@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     SIDE_BY_SIDE_VIEW: bool = True
     LEFT_VIEW_RATIO: float = 0.62
 
+    # 2D radar (top-down pitch) rendering.
+    # Uses the roboflow/sports pitch annotators. The radar is only refreshed
+    # every RADAR_EVERY_N frames (and held in between) to remove the per-frame
+    # jitter caused by detection/homography noise.
+    RADAR_EVERY_N: int = 5
+    RADAR_SCALE: float = 0.1
+    RADAR_PADDING: int = 50
+
     # Tracker tuning (applied when supported by installed supervision version)
     TRACKER_TYPE: str = "bytetrack"  # bytetrack | botsort
     TRACK_ACTIVATION_THRESHOLD: float = 0.25

@@ -32,7 +32,7 @@ from geometry.homography import HomographyEstimator
 from geometry.hstate import HomographyStateMachine
 from geometry.projection import project_anchors_to_pitch
 from io_utils.writers import CSVWriter, VideoWriter
-from io_utils.minimap import render_side_panel, compose_side_by_side
+from io_utils.radar import render_radar, compose_with_radar, overlay_radar
 from io_utils.kpi import write_kpi_summary
 
 
@@ -363,6 +363,8 @@ def main(
     )
 
     last_hmat = None
+    last_radar = None
+    last_radar_h_ok = False
     homography_ok = False
     homography_state = "none"
     homography_ok_frames = 0
@@ -742,7 +744,7 @@ def main(
                 pitch_xy_tracks = project_anchors_to_pitch(last_hmat, tracks, anchor=sv.Position.BOTTOM_CENTER)
                 pitch_xy_ball = project_anchors_to_pitch(last_hmat, ball_det, anchor=sv.Position.BOTTOM_CENTER)
 
-            # 5b) Per-track pitch-coord EMA smoothing (reduces minimap dot jitter).
+            # 5b) Per-track pitch-coord EMA smoothing (reduces radar dot jitter).
             for i in range(len(tracks)):
                 sid = int(stable_track_ids[i]) if i < len(stable_track_ids) else -1
                 if sid < 0:
@@ -866,25 +868,28 @@ def main(
                 cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 210, 255), 2)
                 cv2.putText(annotated, "ball", (x1, max(0, y1 - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 210, 255), 1, cv2.LINE_AA)
 
-            # 8) Side panel rendering
-            track_ids_arr = stable_track_ids if len(stable_track_ids) == len(tracks) else np.full((len(tracks),), -1, dtype=np.int32)
-            panel = render_side_panel(
-                frame=annotated,
-                pitch_vertices=list(pitch_cfg.vertices),
-                pitch_xy_tracks=pitch_xy_tracks,
-                track_class_ids=tracks.class_id.astype(np.int32) if tracks.class_id is not None else np.zeros((len(tracks),), dtype=np.int32),
-                track_ids=track_ids_arr.astype(np.int32),
-                team_by_track=team_by_track,
-                pitch_xy_ball=pitch_xy_ball,
-                homography_ok=homography_ok,
-            )
+            # 8) 2D radar (top-down pitch) rendering.
+            #    Refresh the radar only every RADAR_EVERY_N frames and hold it in
+            #    between — the main video still plays at full frame rate, but the
+            #    pitch dots stop jittering on per-frame detection/homography noise.
+            if (frame_idx % max(1, s.RADAR_EVERY_N) == 0) or (last_radar is None):
+                track_ids_arr = stable_track_ids if len(stable_track_ids) == len(tracks) else np.full((len(tracks),), -1, dtype=np.int32)
+                last_radar = render_radar(
+                    config=pitch_cfg,
+                    pitch_xy_tracks=pitch_xy_tracks,
+                    track_class_ids=tracks.class_id.astype(np.int32) if tracks.class_id is not None else np.zeros((len(tracks),), dtype=np.int32),
+                    track_ids=track_ids_arr.astype(np.int32),
+                    team_by_track=team_by_track,
+                    pitch_xy_ball=pitch_xy_ball,
+                    scale=s.RADAR_SCALE,
+                    padding=s.RADAR_PADDING,
+                )
+                last_radar_h_ok = homography_ok
+
             if s.SIDE_BY_SIDE_VIEW:
-                annotated = compose_side_by_side(annotated, panel, left_ratio=s.LEFT_VIEW_RATIO)
+                annotated = compose_with_radar(annotated, last_radar, left_ratio=s.LEFT_VIEW_RATIO, homography_ok=last_radar_h_ok)
             else:
-                panel_w = min(panel.shape[1], int(w * 0.38))
-                panel_resized = cv2.resize(panel, (panel_w, h), interpolation=cv2.INTER_AREA)
-                x0 = w - panel_w
-                annotated[:, x0:w] = cv2.addWeighted(annotated[:, x0:w], 0.25, panel_resized, 0.75, 0.0)
+                annotated = overlay_radar(annotated, last_radar, homography_ok=last_radar_h_ok)
 
             vw.write(annotated)
 
