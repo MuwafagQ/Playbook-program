@@ -97,6 +97,7 @@ class BoTSORTWrapper:
             # We do not pass native YOLO head features in this pipeline, so "auto" is unsafe here.
             model_name = "yolo11n-cls.pt"
 
+        fr = max(1, int(round(frame_rate)))
         args = SimpleNamespace(
             tracker_type="botsort",
             track_high_thresh=float(track_activation_threshold),
@@ -110,9 +111,20 @@ class BoTSORTWrapper:
             appearance_thresh=float(appearance_thresh),
             with_reid=bool(with_reid),
             model=model_name if with_reid else "auto",
+            # Newer ultralytics (>=8.4.37) dropped the frame_rate constructor arg and
+            # reads the buffer straight from args.track_buffer; expose frame_rate here
+            # too so any intermediate version that looks for args.frame_rate is happy.
+            frame_rate=fr,
         )
 
-        self.tracker = BOTSORT(args=args, frame_rate=max(1, int(round(frame_rate))))
+        # ultralytics removed the frame_rate constructor kwarg around 8.4.37
+        # (BOTSORT/BYTETracker are now __init__(self, args)). Only pass it when the
+        # installed signature still accepts it, otherwise it raises and we lose BoT-SORT.
+        ctor_params = inspect.signature(BOTSORT.__init__).parameters
+        if "frame_rate" in ctor_params:
+            self.tracker = BOTSORT(args=args, frame_rate=fr)
+        else:
+            self.tracker = BOTSORT(args=args)
         self.tracker.reset()
 
     @staticmethod
