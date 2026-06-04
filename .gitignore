@@ -84,6 +84,15 @@ results/
 # !outputs/.gitkeep
 
 # -------------------------
+# Pipeline-generated artifacts
+# -------------------------
+.inference-cache/
+.baseline/
+outputs_test/
+*.pt
+!yolo11n-cls.pt
+
+# -------------------------
 # OS / misc
 # -------------------------
 *.tmp
