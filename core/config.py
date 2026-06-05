@@ -100,6 +100,12 @@ class Settings(BaseSettings):
     MAX_REPROJ_ERR: float = 80.0
     H_HOLD_MAX_FRAMES: int = 10
     H_REINIT_FRAMES: int = 30
+    # Inlier-ratio hysteresis: once locked, maintain at (MIN_INLIER_RATIO - this).
+    H_INLIER_HYSTERESIS: float = 0.08
+    # Frame-to-frame discontinuity gate (cm of median projected jump). 0 = off.
+    H_MAX_JUMP_M: float = 2000.0
+    # Minimum keypoint spread (px, weaker PCA axis) to attempt a fit. 0 = off.
+    H_MIN_KP_SPREAD_PX: float = 12.0
 
 
 def load_settings() -> Settings:

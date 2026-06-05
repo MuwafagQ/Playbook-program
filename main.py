@@ -300,6 +300,9 @@ def main(
         min_kp=s.MIN_KP,
         min_inlier_ratio=s.MIN_INLIER_RATIO,
         max_reproj_err=s.MAX_REPROJ_ERR,
+        inlier_hysteresis=s.H_INLIER_HYSTERESIS,
+        max_jump_m=s.H_MAX_JUMP_M,
+        min_kp_spread_px=s.H_MIN_KP_SPREAD_PX,
     )
     h_state = HomographyStateMachine(
         estimator=h_est,

@@ -27,6 +27,9 @@ class HomographyEstimator:
         min_kp: int,
         min_inlier_ratio: float,
         max_reproj_err: float,
+        inlier_hysteresis: float = 0.0,
+        max_jump_m: float = 0.0,
+        min_kp_spread_px: float = 0.0,
     ):
         self.config = config
         self.kp_conf = kp_conf
@@ -35,6 +38,20 @@ class HomographyEstimator:
         self.min_kp = min_kp
         self.min_inlier_ratio = min_inlier_ratio
         self.max_reproj_err = max_reproj_err
+        # Hysteresis: once a lock is held, tolerate a slightly lower inlier ratio
+        # to maintain it. Stops the per-frame flip-flop caused by the coarse
+        # inlier-ratio quantization with only 6-9 keypoints (e.g. 0.50 vs 0.571).
+        self.inlier_hysteresis = float(inlier_hysteresis)
+        # Frame-to-frame discontinuity gate: reject a new H whose projected points
+        # jump implausibly far (in cm) from the previous H. Catches ill-conditioned
+        # matrices that pass the inlier test but fling points across the pitch.
+        # 0 = disabled.
+        self.max_jump_m = float(max_jump_m)
+        # Reject geometrically degenerate (near-collinear / tightly-clustered)
+        # keypoint sets before RANSAC. Value is the minimum required spread of the
+        # weaker principal axis, in pixels. 0 = disabled.
+        self.min_kp_spread_px = float(min_kp_spread_px)
+        self._have_lock = False
         self._H_prev: np.ndarray | None = None
         self._warned_kp_mismatch = False
         self._fail_counts: dict[str, int] = {}
@@ -67,6 +84,21 @@ class HomographyEstimator:
 
     def reset(self) -> None:
         self._H_prev = None
+        self._have_lock = False
+
+    @staticmethod
+    def _kp_spread_px(frame_pts: np.ndarray) -> float:
+        """Spread of the weaker principal axis of the keypoint cloud, in pixels.
+
+        A near-collinear or tightly-clustered set produces an ill-conditioned H,
+        so we use the smaller standard deviation along the PCA axes as a guard.
+        """
+        if frame_pts.shape[0] < 3:
+            return 0.0
+        centered = frame_pts - frame_pts.mean(axis=0, keepdims=True)
+        cov = np.cov(centered.T)
+        eig = np.linalg.eigvalsh(cov)  # ascending; eig[0] = weaker axis variance
+        return float(np.sqrt(max(eig[0], 0.0)))
 
     def estimate(self, keypoints: sv.KeyPoints) -> HomographyResult:
         if keypoints is None or keypoints.xy is None or len(keypoints.xy) == 0:
@@ -124,6 +156,13 @@ class HomographyEstimator:
             self._diag("too_few_kp", n=n, min_kp=self.min_kp)
             return HomographyResult(H=self._H_prev, ok=False, n_points=n, inlier_ratio=0.0, reproj_err=1e9)
 
+        # Degeneracy guard: reject near-collinear / clustered keypoints up front.
+        if self.min_kp_spread_px > 0.0:
+            spread = self._kp_spread_px(frame_pts)
+            if spread < self.min_kp_spread_px:
+                self._diag("kp_degenerate", n=n, spread=f"{spread:.1f}", min=self.min_kp_spread_px)
+                return HomographyResult(H=self._H_prev, ok=False, n_points=n, inlier_ratio=0.0, reproj_err=1e9)
+
         H, inliers = cv2.findHomography(
             frame_pts,
             pitch_pts,
@@ -137,8 +176,14 @@ class HomographyEstimator:
 
         inliers = inliers.reshape(-1).astype(bool)
         inlier_ratio = float(inliers.mean()) if len(inliers) else 0.0
-        if inlier_ratio < self.min_inlier_ratio:
-            self._diag("inlier_ratio_low", n=n, ratio=f"{inlier_ratio:.2f}", min=self.min_inlier_ratio)
+        # Hysteresis: a held lock is maintained at a slightly lower bar than is
+        # required to acquire one, so frames hovering at the quantization boundary
+        # don't flicker in and out of "ok".
+        accept_bar = self.min_inlier_ratio
+        if self._have_lock and self._H_prev is not None:
+            accept_bar = max(0.0, self.min_inlier_ratio - self.inlier_hysteresis)
+        if inlier_ratio < accept_bar:
+            self._diag("inlier_ratio_low", n=n, ratio=f"{inlier_ratio:.2f}", min=f"{accept_bar:.2f}")
             return HomographyResult(H=self._H_prev, ok=False, n_points=n, inlier_ratio=inlier_ratio, reproj_err=1e9)
 
         # Reject ill-conditioned H — a degenerate matrix projects most of the image to infinity
@@ -179,6 +224,17 @@ class HomographyEstimator:
 
         H = normalize_h(H)
 
+        # Frame-to-frame discontinuity gate: a valid-looking H that nonetheless
+        # projects the keypoints to a wildly different pitch location than the
+        # previous H is a discontinuity (camera cut, or an ill-conditioned fit
+        # that survived the inlier test). Reject and hold the previous H.
+        if self.max_jump_m > 0.0 and self._H_prev is not None:
+            proj_prev = cv2.perspectiveTransform(frame_pts.reshape(-1, 1, 2), self._H_prev).reshape(-1, 2)
+            jump = float(np.median(np.linalg.norm(all_proj - proj_prev, axis=1)))
+            if jump > self.max_jump_m:
+                self._diag("h_discontinuity", n=n, jump=f"{jump:.0f}", max=self.max_jump_m)
+                return HomographyResult(H=self._H_prev, ok=False, n_points=n, inlier_ratio=inlier_ratio, reproj_err=reproj_err)
+
         # EMA smoothing (note: alpha here means "weight of previous")
         if self._H_prev is None:
             H_smooth = H
@@ -187,6 +243,7 @@ class HomographyEstimator:
             H_smooth = normalize_h(H_smooth)
 
         self._H_prev = H_smooth
+        self._have_lock = True
         return HomographyResult(H=H_smooth, ok=True, n_points=n, inlier_ratio=inlier_ratio, reproj_err=reproj_err)
 
     @staticmethod
