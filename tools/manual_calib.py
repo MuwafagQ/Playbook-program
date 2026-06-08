@@ -311,8 +311,11 @@ def build_sidecar(
         "covered_frames": len(dense),
         "range": [lo, hi],
     }
+    import os as _os
+    _os.makedirs(_os.path.dirname(_os.path.abspath(out_path)), exist_ok=True)
     save_dense(out_path, dense, meta=meta)
     if anchors_path:
+        _os.makedirs(_os.path.dirname(_os.path.abspath(anchors_path)), exist_ok=True)
         save_anchors(anchors_path, anchors, meta=meta)
     if verbose:
         nbroken = sum(1 for v in step_M.values() if v is None)
