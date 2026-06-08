@@ -366,6 +366,18 @@ def main(
     )
 
     last_hmat = None
+    # --- Temporary diagnostic: log raw (pre-KP_CONF-filter) keypoint confidence
+    # around homography state transitions (e.g. camera jumps from box -> midfield).
+    # This tells us whether gaps are a CONFIDENCE problem (points detected but
+    # below KP_CONF -> training/threshold fix) or a TRUE DETECTION gap (model sees
+    # nothing useful -> needs algorithmic bridging or more training data), as
+    # opposed to a missing-template-keypoint problem.
+    _kp_debug_prev_state = "none"
+    _kp_debug_remaining = 0
+    _kp_debug_events_logged = 0
+    _kp_debug_max_events = 8
+    _kp_debug_frames_per_event = 6
+
     last_radar = None
     last_radar_h_ok = False
     homography_ok = False
@@ -730,6 +742,26 @@ def main(
                 kp_used = int(hres.n_points)
                 inlier_ratio = float(hres.inlier_ratio)
                 reproj_err = float(hres.reproj_err)
+
+                # --- Diagnostic: on each state transition, dump raw keypoint
+                # confidence for the next few frames (pre-KP_CONF filtering).
+                if homography_state != _kp_debug_prev_state and _kp_debug_events_logged < _kp_debug_max_events:
+                    _kp_debug_remaining = _kp_debug_frames_per_event
+                    _kp_debug_events_logged += 1
+                    print(f"[kp-debug] === transition {_kp_debug_prev_state} -> {homography_state} at frame={frame_idx} ===")
+                _kp_debug_prev_state = homography_state
+                if _kp_debug_remaining > 0:
+                    if kp is not None and kp.confidence is not None and len(kp.confidence) > 0:
+                        raw_conf = np.asarray(kp.confidence[0], dtype=np.float32)
+                        n_above = int((raw_conf > s.KP_CONF).sum())
+                        print(
+                            f"[kp-debug] frame={frame_idx} n_raw={len(raw_conf)} "
+                            f"conf_min={raw_conf.min():.2f} conf_max={raw_conf.max():.2f} "
+                            f"conf_mean={raw_conf.mean():.2f} above_KP_CONF({s.KP_CONF:.2f})={n_above}"
+                        )
+                    else:
+                        print(f"[kp-debug] frame={frame_idx} n_raw=0 (model returned no keypoints)")
+                    _kp_debug_remaining -= 1
             else:
                 homography_ok = False
                 if last_hmat is None:
