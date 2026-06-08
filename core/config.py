@@ -109,7 +109,9 @@ class Settings(BaseSettings):
     H_MIN_KP_SPREAD_PX: float = 12.0
     # Optical-flow homography propagation: when a fresh keypoint H can't be solved
     # (degenerate midfield geometry), propagate the last good H using camera motion
-    # from background features. Capped at H_MAX_PROPAGATION_FRAMES (drift).
+    # from background features. Propagation accumulates drift, so the cap bounds how
+    # long it is allowed to compound; the state machine then HOLDS the frozen H for up
+    # to H_REINIT_FRAMES more frames before blanking.
     H_OPTFLOW_BRIDGE: bool = True
     H_MAX_PROPAGATION_FRAMES: int = 60
 
