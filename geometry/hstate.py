@@ -83,24 +83,28 @@ class HomographyStateMachine:
                     self.last_action = "propagated"
                     return self.H_current, False, hres
 
-        # --- Reinit after a long failure with no recovery ---
-        if self.fail_streak > self.reinit_frames:
-            self.estimator.reset()
-            self.H_current = None
-            self.fail_streak = 0
-            self.prop_count = 0
-            self.prev_gray = None
-            self.last_action = "none"
-            return None, False, hres
+        # Frames in this failure run that propagation did NOT cover (the cap was hit,
+        # or camera motion couldn't be estimated). Reinit is driven by this, not the
+        # raw fail streak — otherwise a long *successful* propagation run (fail_streak
+        # climbs while prop_count tracks it) would trip the reinit threshold the
+        # instant the cap is reached and blank the radar mid-zoom.
+        hold_streak = self.fail_streak - self.prop_count
 
-        # --- Static hold (covers any fail streak up to reinit_frames; H_current
-        # stays cached and projectable the whole time, so the radar keeps showing
-        # the last good positions instead of going blank in this window) ---
-        if self.H_current is not None:
+        # --- Static hold: keep the last good / propagated H on screen instead of
+        # blanking, for up to reinit_frames after propagation stops. H_current stays
+        # cached and projectable the whole time. ---
+        if self.H_current is not None and hold_streak <= self.reinit_frames:
             if gray is not None:
                 self.prev_gray = gray
             self.last_action = "hold"
             return self.H_current, False, hres
 
+        # --- Reinit after propagation is exhausted AND a hold window passed with no
+        # relock (or there was never a lock to hold). ---
+        self.estimator.reset()
+        self.H_current = None
+        self.fail_streak = 0
+        self.prop_count = 0
+        self.prev_gray = None
         self.last_action = "none"
         return None, False, hres

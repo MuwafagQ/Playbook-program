@@ -98,6 +98,8 @@ class Settings(BaseSettings):
     MIN_KP: int = 6
     MIN_INLIER_RATIO: float = 0.40
     MAX_REPROJ_ERR: float = 80.0
+    # Absolute inlier-count acceptance (alongside the ratio bar). 0 = ratio only.
+    H_MIN_INLIERS_ABS: int = 8
     H_REINIT_FRAMES: int = 30
     # Inlier-ratio hysteresis: once locked, maintain at (MIN_INLIER_RATIO - this).
     H_INLIER_HYSTERESIS: float = 0.08

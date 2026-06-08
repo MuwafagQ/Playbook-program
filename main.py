@@ -304,6 +304,7 @@ def main(
         inlier_hysteresis=s.H_INLIER_HYSTERESIS,
         max_jump_m=s.H_MAX_JUMP_M,
         min_kp_spread_px=s.H_MIN_KP_SPREAD_PX,
+        min_inliers_abs=s.H_MIN_INLIERS_ABS,
     )
     motion_estimator = CameraMotionEstimator() if s.H_OPTFLOW_BRIDGE else None
     h_state = HomographyStateMachine(

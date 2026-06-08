@@ -30,6 +30,7 @@ class HomographyEstimator:
         inlier_hysteresis: float = 0.0,
         max_jump_m: float = 0.0,
         min_kp_spread_px: float = 0.0,
+        min_inliers_abs: int = 0,
     ):
         self.config = config
         self.kp_conf = kp_conf
@@ -51,6 +52,11 @@ class HomographyEstimator:
         # keypoint sets before RANSAC. Value is the minimum required spread of the
         # weaker principal axis, in pixels. 0 = disabled.
         self.min_kp_spread_px = float(min_kp_spread_px)
+        # Absolute inlier-count acceptance: a fit with this many RANSAC inliers is
+        # well-determined regardless of how many low-confidence keypoints inflated
+        # the denominator and dragged the inlier *ratio* below the bar. Accepted
+        # fits still pass the cond / soft-reproj / jump guards. 0 = disabled.
+        self.min_inliers_abs = int(min_inliers_abs)
         self._have_lock = False
         self._H_prev: np.ndarray | None = None
         self._warned_kp_mismatch = False
@@ -181,14 +187,22 @@ class HomographyEstimator:
 
         inliers = inliers.reshape(-1).astype(bool)
         inlier_ratio = float(inliers.mean()) if len(inliers) else 0.0
+        n_inliers = int(inliers.sum())
         # Hysteresis: a held lock is maintained at a slightly lower bar than is
         # required to acquire one, so frames hovering at the quantization boundary
         # don't flicker in and out of "ok".
         accept_bar = self.min_inlier_ratio
         if self._have_lock and self._H_prev is not None:
             accept_bar = max(0.0, self.min_inlier_ratio - self.inlier_hysteresis)
-        if inlier_ratio < accept_bar:
-            self._diag("inlier_ratio_low", n=n, ratio=f"{inlier_ratio:.2f}", min=f"{accept_bar:.2f}")
+        # Accept if the inlier RATIO clears the bar, OR the absolute inlier COUNT is
+        # high enough that the fit is well-determined on its own. The latter rescues
+        # frames where many low-confidence keypoints inflate the denominator (lower
+        # KP_CONF) and mechanically depress the ratio even though plenty of points
+        # agree. Both paths still face the cond / soft-reproj / jump guards below.
+        ratio_ok = inlier_ratio >= accept_bar
+        count_ok = self.min_inliers_abs > 0 and n_inliers >= self.min_inliers_abs
+        if not (ratio_ok or count_ok):
+            self._diag("inlier_ratio_low", n=n, inl=n_inliers, ratio=f"{inlier_ratio:.2f}", min=f"{accept_bar:.2f}")
             return HomographyResult(H=self._H_prev, ok=False, n_points=n, inlier_ratio=inlier_ratio, reproj_err=1e9)
 
         # Reject ill-conditioned H — a degenerate matrix projects most of the image to infinity
