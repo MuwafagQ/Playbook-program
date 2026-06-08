@@ -308,7 +308,6 @@ def main(
     motion_estimator = CameraMotionEstimator() if s.H_OPTFLOW_BRIDGE else None
     h_state = HomographyStateMachine(
         estimator=h_est,
-        hold_max_frames=s.H_HOLD_MAX_FRAMES,
         reinit_frames=s.H_REINIT_FRAMES,
         motion_estimator=motion_estimator,
         max_propagation_frames=(s.H_MAX_PROPAGATION_FRAMES if s.H_OPTFLOW_BRIDGE else 0),
@@ -384,6 +383,7 @@ def main(
 
     last_radar = None
     last_radar_h_ok = False
+    last_radar_h_state = "none"
     homography_ok = False
     homography_state = "none"
     homography_ok_frames = 0
@@ -929,11 +929,12 @@ def main(
                     padding=s.RADAR_PADDING,
                 )
                 last_radar_h_ok = homography_ok
+                last_radar_h_state = homography_state
 
             if s.SIDE_BY_SIDE_VIEW:
-                annotated = compose_with_radar(annotated, last_radar, left_ratio=s.LEFT_VIEW_RATIO, homography_ok=last_radar_h_ok)
+                annotated = compose_with_radar(annotated, last_radar, left_ratio=s.LEFT_VIEW_RATIO, homography_ok=last_radar_h_ok, homography_state=last_radar_h_state)
             else:
-                annotated = overlay_radar(annotated, last_radar, homography_ok=last_radar_h_ok)
+                annotated = overlay_radar(annotated, last_radar, homography_ok=last_radar_h_ok, homography_state=last_radar_h_state)
 
             vw.write(annotated)
 

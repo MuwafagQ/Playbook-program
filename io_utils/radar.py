@@ -121,8 +121,18 @@ def _fit_into(canvas_w: int, canvas_h: int, radar: np.ndarray) -> np.ndarray:
     return panel
 
 
-def _draw_status(panel: np.ndarray, homography_ok: bool) -> None:
-    status = "H: OK" if homography_ok else "H: HOLD"
+_STATE_LABELS = {
+    "ok": "H: OK",
+    "propagated": "H: PROPAGATED",
+    "hold": "H: HOLD",
+    "none": "H: LOST",
+}
+
+
+def _draw_status(panel: np.ndarray, homography_ok: bool, state: str | None = None) -> None:
+    status = _STATE_LABELS.get(state, None) if state else None
+    if status is None:
+        status = "H: OK" if homography_ok else "H: HOLD"
     cv2.putText(panel, status, (14, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 4, cv2.LINE_AA)
     cv2.putText(panel, status, (14, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
 
@@ -132,6 +142,7 @@ def compose_with_radar(
     radar: np.ndarray,
     left_ratio: float = 0.62,
     homography_ok: bool = False,
+    homography_state: str | None = None,
 ) -> np.ndarray:
     """Side-by-side: annotated frame on the left, radar panel on the right. Output keeps frame size."""
     h, w = frame.shape[:2]
@@ -140,7 +151,7 @@ def compose_with_radar(
 
     left = cv2.resize(frame, (left_w, h), interpolation=cv2.INTER_AREA)
     panel = _fit_into(right_w, h, radar)
-    _draw_status(panel, homography_ok)
+    _draw_status(panel, homography_ok, homography_state)
 
     out = np.zeros_like(frame)
     out[:, :left_w] = left
@@ -152,6 +163,7 @@ def overlay_radar(
     frame: np.ndarray,
     radar: np.ndarray,
     homography_ok: bool = False,
+    homography_state: str | None = None,
     width_frac: float = 0.38,
     alpha: float = 0.75,
 ) -> np.ndarray:
@@ -159,7 +171,7 @@ def overlay_radar(
     h, w = frame.shape[:2]
     panel_w = max(1, int(w * width_frac))
     panel = _fit_into(panel_w, h, radar)
-    _draw_status(panel, homography_ok)
+    _draw_status(panel, homography_ok, homography_state)
     x0 = w - panel_w
     out = frame.copy()
     out[:, x0:w] = cv2.addWeighted(out[:, x0:w], 1.0 - alpha, panel, alpha, 0.0)

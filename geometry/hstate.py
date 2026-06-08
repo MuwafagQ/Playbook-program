@@ -25,13 +25,11 @@ class HomographyStateMachine:
     def __init__(
         self,
         estimator: HomographyEstimator,
-        hold_max_frames: int = 45,
         reinit_frames: int = 90,
         motion_estimator: CameraMotionEstimator | None = None,
         max_propagation_frames: int = 0,
     ):
         self.estimator = estimator
-        self.hold_max_frames = int(hold_max_frames)
         self.reinit_frames = int(reinit_frames)
         self.motion = motion_estimator
         self.max_propagation_frames = int(max_propagation_frames)
@@ -95,8 +93,10 @@ class HomographyStateMachine:
             self.last_action = "none"
             return None, False, hres
 
-        # --- Static hold ---
-        if self.H_current is not None and self.fail_streak <= self.hold_max_frames:
+        # --- Static hold (covers any fail streak up to reinit_frames; H_current
+        # stays cached and projectable the whole time, so the radar keeps showing
+        # the last good positions instead of going blank in this window) ---
+        if self.H_current is not None:
             if gray is not None:
                 self.prev_gray = gray
             self.last_action = "hold"
