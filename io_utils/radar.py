@@ -123,6 +123,7 @@ def _fit_into(canvas_w: int, canvas_h: int, radar: np.ndarray) -> np.ndarray:
 
 _STATE_LABELS = {
     "ok": "H: OK",
+    "manual": "H: MANUAL",
     "propagated": "H: PROPAGATED",
     "hold": "H: HOLD",
     "none": "H: LOST",

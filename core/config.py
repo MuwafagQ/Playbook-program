@@ -114,6 +114,12 @@ class Settings(BaseSettings):
     # to H_REINIT_FRAMES more frames before blanking.
     H_OPTFLOW_BRIDGE: bool = True
     H_MAX_PROPAGATION_FRAMES: int = 60
+    # Manual homography keyframe anchors. Path to a dense per-frame sidecar JSON
+    # built by tools/manual_calib.py. When set and loadable, the frames it covers
+    # use the human-clicked / flow-interpolated H directly (state "manual"),
+    # bypassing the automatic keypoint estimator. Frames it does not cover fall
+    # back to the automatic pipeline. "" = disabled.
+    H_MANUAL_SIDECAR: str = ""
 
 
 def load_settings() -> Settings:

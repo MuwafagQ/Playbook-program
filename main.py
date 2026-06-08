@@ -314,6 +314,19 @@ def main(
         max_propagation_frames=(s.H_MAX_PROPAGATION_FRAMES if s.H_OPTFLOW_BRIDGE else 0),
     )
 
+    # Optional manual homography keyframe anchors (human-clicked + flow-interpolated).
+    # Frames the sidecar covers use its H directly; others fall back to h_state.
+    manual_h_guide = None
+    if str(s.H_MANUAL_SIDECAR).strip():
+        try:
+            from geometry.manual_h import load_guide
+            manual_h_guide = load_guide(s.H_MANUAL_SIDECAR)
+            rng = manual_h_guide.frame_range()
+            print(f"[stage] Manual homography sidecar loaded: {len(manual_h_guide)} frames, range={rng}")
+        except Exception as e:
+            print(f"[WARN] Could not load H_MANUAL_SIDECAR='{s.H_MANUAL_SIDECAR}': {e}")
+            manual_h_guide = None
+
     team_clf = None
     team_color_clf = None
     team_by_track: dict[int, int] = {}
@@ -419,9 +432,12 @@ def main(
             # 1) Submit both model inferences in parallel, then collect detection results
             should_detect = track_mgr_players.should_detect(frame_idx) or track_mgr_officials.should_detect(frame_idx)
             should_update_h = (frame_idx % max(1, homography_every_n) == 0) or (last_hmat is None) or (homography_state == "none")
+            # A manual keyframe sidecar (if loaded) supplies this frame's H directly,
+            # so we skip the field-keypoint inference entirely for covered frames.
+            manual_H = manual_h_guide.get(frame_idx) if manual_h_guide is not None else None
 
             _fut_det = _pool.submit(infer_players_and_ball_upscaled, player_model, frame_infer, s.DET_CONF, s.DETECT_UPSCALE) if should_detect else None
-            _fut_kp = _pool.submit(infer_field_keypoints, field_model, frame_infer, s.FIELD_CONF) if should_update_h else None
+            _fut_kp = _pool.submit(infer_field_keypoints, field_model, frame_infer, s.FIELD_CONF) if (should_update_h and manual_H is None) else None
 
             players_det = None
             officials_det = None
@@ -738,7 +754,28 @@ def main(
                         team_by_track[int(tid)] = team_memory.get(int(tid))
 
             # 4) Field keypoints -> Homography state machine (result already computed in parallel)
-            if _fut_kp is not None:
+            if manual_H is not None:
+                # Human-clicked / flow-interpolated keyframe homography. Use it
+                # directly and keep the state machine seeded from it, so any later
+                # uncovered frame resumes automatic estimation (and optical-flow
+                # propagation) from the correct camera pose instead of a stale one.
+                Hmat = np.asarray(manual_H, dtype=np.float64)
+                last_hmat = Hmat
+                homography_ok = True
+                homography_state = "manual"
+                homography_ok_frames += 1
+                kp_used = 0
+                inlier_ratio = 1.0
+                reproj_err = 0.0
+                h_state.H_current = Hmat
+                h_state.estimator.set_prev_h(Hmat)
+                h_state.fail_streak = 0
+                h_state.prop_count = 0
+                h_state.last_action = "manual"
+                if motion_estimator is not None:
+                    h_state.prev_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                _kp_debug_prev_state = homography_state
+            elif _fut_kp is not None:
                 kp = _fut_kp.result()
                 # Grayscale + foreground boxes for optical-flow H propagation: the
                 # state machine uses background camera motion to bridge frames where
