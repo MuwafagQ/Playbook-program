@@ -106,6 +106,11 @@ class Settings(BaseSettings):
     H_MAX_JUMP_M: float = 2000.0
     # Minimum keypoint spread (px, weaker PCA axis) to attempt a fit. 0 = off.
     H_MIN_KP_SPREAD_PX: float = 12.0
+    # Optical-flow homography propagation: when a fresh keypoint H can't be solved
+    # (degenerate midfield geometry), propagate the last good H using camera motion
+    # from background features. Capped at H_MAX_PROPAGATION_FRAMES (drift).
+    H_OPTFLOW_BRIDGE: bool = True
+    H_MAX_PROPAGATION_FRAMES: int = 60
 
 
 def load_settings() -> Settings:

@@ -30,6 +30,7 @@ from vision.team_memory import TeamMemory
 from vision.id_stabilizer import IDStabilizer
 from geometry.homography import HomographyEstimator
 from geometry.hstate import HomographyStateMachine
+from geometry.motion import CameraMotionEstimator
 from geometry.projection import project_anchors_to_pitch
 from io_utils.writers import CSVWriter, VideoWriter
 from io_utils.radar import render_radar, compose_with_radar, overlay_radar
@@ -304,10 +305,13 @@ def main(
         max_jump_m=s.H_MAX_JUMP_M,
         min_kp_spread_px=s.H_MIN_KP_SPREAD_PX,
     )
+    motion_estimator = CameraMotionEstimator() if s.H_OPTFLOW_BRIDGE else None
     h_state = HomographyStateMachine(
         estimator=h_est,
         hold_max_frames=s.H_HOLD_MAX_FRAMES,
         reinit_frames=s.H_REINIT_FRAMES,
+        motion_estimator=motion_estimator,
+        max_propagation_frames=(s.H_MAX_PROPAGATION_FRAMES if s.H_OPTFLOW_BRIDGE else 0),
     )
 
     team_clf = None
@@ -735,9 +739,14 @@ def main(
             # 4) Field keypoints -> Homography state machine (result already computed in parallel)
             if _fut_kp is not None:
                 kp = _fut_kp.result()
-                Hmat, homography_ok, hres = h_state.update(kp)
+                # Grayscale + foreground boxes for optical-flow H propagation: the
+                # state machine uses background camera motion to bridge frames where
+                # the pitch keypoints are too degenerate to solve a fresh H.
+                cur_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if motion_estimator is not None else None
+                exclude_boxes = tracks.xyxy if (motion_estimator is not None and len(tracks) > 0) else None
+                Hmat, homography_ok, hres = h_state.update(kp, gray=cur_gray, exclude_boxes=exclude_boxes)
                 last_hmat = Hmat
-                homography_state = "ok" if homography_ok else ("hold" if Hmat is not None else "none")
+                homography_state = h_state.last_action
                 homography_ok_frames += int(homography_ok)
                 kp_used = int(hres.n_points)
                 inlier_ratio = float(hres.inlier_ratio)

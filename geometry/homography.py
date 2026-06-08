@@ -86,6 +86,11 @@ class HomographyEstimator:
         self._H_prev = None
         self._have_lock = False
 
+    def set_prev_h(self, H: np.ndarray | None) -> None:
+        """Override the EMA / jump-gate baseline (used by external H propagation)."""
+        self._H_prev = H
+        self._have_lock = H is not None
+
     @staticmethod
     def _kp_spread_px(frame_pts: np.ndarray) -> float:
         """Spread of the weaker principal axis of the keypoint cloud, in pixels.
