@@ -57,6 +57,9 @@ class HomographyEstimator:
         self.config = config
         self.kp_conf = float(kp_conf)
         self.min_kp = max(4, int(min_kp))
+        # RANSAC reprojection tolerance, in pitch units (cm) — destination space of
+        # findHomography. The only tuning knob the stateless solve actually uses.
+        self.ransac_reproj_thresh = float(ransac_reproj_thresh)
 
         # Retained only so the bypassed state machine can still poke the estimator
         # without AttributeError. Not used by the stateless solve.
