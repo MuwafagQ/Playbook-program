@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     HF_TOKEN: str | None = Field(default=None, description="Hugging Face token (optional)")
 
     PLAYER_MODEL_ID: str = "football-players-detection-3zvbc/11"
-    FIELD_MODEL_ID: str = "football-field-detection-f07vi-it2xv/3"
+    FIELD_MODEL_ID: str = "football-field-detection-f07vi-it2xv/10"
 
     # Runtime
     DEVICE: str = "cpu"
@@ -80,11 +80,8 @@ class Settings(BaseSettings):
     DET_CONF_GOALKEEPER: float = 0.22
     DET_CONF_BALL: float = 0.10
     DETECT_UPSCALE: float = 1.35
-    # Pure-model homography recipe (original ViewTransformer): the field model
-    # infers at FIELD_CONF; KP_CONF then keeps only high-confidence keypoints
-    # for the plain cv2.findHomography solve. 0.50 matches the original notebook.
     FIELD_CONF: float = 0.30
-    KP_CONF: float = 0.50
+    KP_CONF: float = 0.30
     BALL_PAD_PX: int = 10
     BALL_MAX_MISSING: int = 10
     BALL_MAX_INTERP_FRAMES: int = 8
