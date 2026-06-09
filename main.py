@@ -29,8 +29,6 @@ from vision.ball import BallSmoother
 from vision.team_memory import TeamMemory
 from vision.id_stabilizer import IDStabilizer
 from geometry.homography import HomographyEstimator
-from geometry.hstate import HomographyStateMachine
-from geometry.motion import CameraMotionEstimator
 from geometry.projection import project_anchors_to_pitch
 from io_utils.writers import CSVWriter, VideoWriter
 from io_utils.radar import render_radar, compose_with_radar, overlay_radar
@@ -306,16 +304,14 @@ def main(
         min_kp_spread_px=s.H_MIN_KP_SPREAD_PX,
         min_inliers_abs=s.H_MIN_INLIERS_ABS,
     )
-    motion_estimator = CameraMotionEstimator() if s.H_OPTFLOW_BRIDGE else None
-    h_state = HomographyStateMachine(
-        estimator=h_est,
-        reinit_frames=s.H_REINIT_FRAMES,
-        motion_estimator=motion_estimator,
-        max_propagation_frames=(s.H_MAX_PROPAGATION_FRAMES if s.H_OPTFLOW_BRIDGE else 0),
-    )
+    # NOTE: the homography is now a stateless per-frame solve (geometry/homography.py).
+    # The HomographyStateMachine / CameraMotionEstimator (temporal propagation,
+    # optical-flow bridging) are intentionally NOT used — they introduced the very
+    # temporal memory that made pans worse on this footage.
 
     # Optional manual homography keyframe anchors (human-clicked + flow-interpolated).
-    # Frames the sidecar covers use its H directly; others fall back to h_state.
+    # Frames the sidecar covers use its H directly; others fall back to the
+    # stateless per-frame keypoint solve.
     manual_h_guide = None
     if str(s.H_MANUAL_SIDECAR).strip():
         try:
@@ -416,8 +412,12 @@ def main(
     processed_frames = 0
     prev_player_boxes: dict[int, np.ndarray] = {}
     pitch_smooth: dict[int, tuple[float, float, int]] = {}
-    PITCH_SMOOTH_ALPHA = 0.30
-    PITCH_SMOOTH_RESET_GAP = 60
+    PITCH_SMOOTH_ALPHA = float(s.PITCH_SMOOTH_ALPHA)
+    PITCH_SMOOTH_RESET_GAP = int(s.PITCH_SMOOTH_RESET_GAP)
+    # Velocity gate: max plausible per-axis displacement, in pitch cm per second.
+    # Players peak ~10-11 m/s; PITCH_VEL_MAX_MPS (default 12) is the reject bar.
+    _video_fps = float(video_info.fps) if float(video_info.fps) > 1e-6 else 25.0
+    PITCH_VEL_MAX_CMPS = float(s.PITCH_VEL_MAX_MPS) * 100.0
     GK_GOAL_ZONE_X_M = 1500.0  # cm; 15m from each goal line
     print("[stage] Starting frame loop...")
     with VideoWriter(out_video_path, video_info) as vw:
@@ -753,38 +753,29 @@ def main(
                     for tid in stable_player_ids:
                         team_by_track[int(tid)] = team_memory.get(int(tid))
 
-            # 4) Field keypoints -> Homography state machine (result already computed in parallel)
+            # 4) Field keypoints -> STATELESS per-frame homography (pure-model replica).
+            #    A manual keyframe sidecar (if loaded) supplies this frame's H
+            #    directly; otherwise each computed frame is solved independently
+            #    (plain least-squares, no temporal carry-over). On a failed solve we
+            #    set last_hmat=None so no radar is drawn that frame (the original
+            #    cell-60 `continue`); on subsampled frames (_fut_kp is None) we hold
+            #    the most recent H. There is no state machine to seed anymore.
             if manual_H is not None:
-                # Human-clicked / flow-interpolated keyframe homography. Use it
-                # directly and keep the state machine seeded from it, so any later
-                # uncovered frame resumes automatic estimation (and optical-flow
-                # propagation) from the correct camera pose instead of a stale one.
-                Hmat = np.asarray(manual_H, dtype=np.float64)
-                last_hmat = Hmat
+                # Human-clicked / flow-interpolated keyframe homography: use directly.
+                last_hmat = np.asarray(manual_H, dtype=np.float64)
                 homography_ok = True
                 homography_state = "manual"
                 homography_ok_frames += 1
                 kp_used = 0
                 inlier_ratio = 1.0
                 reproj_err = 0.0
-                h_state.H_current = Hmat
-                h_state.estimator.set_prev_h(Hmat)
-                h_state.fail_streak = 0
-                h_state.prop_count = 0
-                h_state.last_action = "manual"
-                if motion_estimator is not None:
-                    h_state.prev_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 _kp_debug_prev_state = homography_state
             elif _fut_kp is not None:
                 kp = _fut_kp.result()
-                # Grayscale + foreground boxes for optical-flow H propagation: the
-                # state machine uses background camera motion to bridge frames where
-                # the pitch keypoints are too degenerate to solve a fresh H.
-                cur_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if motion_estimator is not None else None
-                exclude_boxes = tracks.xyxy if (motion_estimator is not None and len(tracks) > 0) else None
-                Hmat, homography_ok, hres = h_state.update(kp, gray=cur_gray, exclude_boxes=exclude_boxes)
-                last_hmat = Hmat
-                homography_state = h_state.last_action
+                hres = h_est.estimate(kp)
+                last_hmat = hres.H
+                homography_ok = bool(hres.ok)
+                homography_state = "ok" if homography_ok else "none"
                 homography_ok_frames += int(homography_ok)
                 kp_used = int(hres.n_points)
                 inlier_ratio = float(hres.inlier_ratio)
@@ -826,7 +817,15 @@ def main(
                 pitch_xy_tracks = project_anchors_to_pitch(last_hmat, tracks, anchor=sv.Position.BOTTOM_CENTER)
                 pitch_xy_ball = project_anchors_to_pitch(last_hmat, ball_det, anchor=sv.Position.BOTTOM_CENTER)
 
-            # 5b) Per-track pitch-coord EMA smoothing (reduces radar dot jitter).
+            # 5b) Per-track pitch-coord VELOCITY GATE + hold (output-space cleaning).
+            #     The stateless H is briefly wrong during camera pans, projecting a
+            #     track to an impossible location. A sample whose implied speed from
+            #     the last good position exceeds PITCH_VEL_MAX_MPS is rejected and we
+            #     HOLD the last good pitch position instead (the radar dot freezes
+            #     rather than teleporting). The allowance grows with the held gap, so
+            #     once H restabilizes a plausible sample is re-accepted and the dot
+            #     snaps back. Accepted samples get a mild EMA to calm residual jitter.
+            #     We never touch H itself, so a wrong pose can't lock or block recovery.
             for i in range(len(tracks)):
                 sid = int(stable_track_ids[i]) if i < len(stable_track_ids) else -1
                 if sid < 0:
@@ -837,7 +836,18 @@ def main(
                 obs_y = float(pitch_xy_tracks[i, 1])
                 prev = pitch_smooth.get(sid)
                 if prev is None or (frame_idx - prev[2]) > PITCH_SMOOTH_RESET_GAP:
+                    # New track or stale gap: (re)seed, accept as-is.
                     pitch_smooth[sid] = (obs_x, obs_y, int(frame_idx))
+                    continue
+                dt = max(1, int(frame_idx) - int(prev[2])) / _video_fps
+                allowed = PITCH_VEL_MAX_CMPS * dt
+                dist = float(np.hypot(obs_x - prev[0], obs_y - prev[1]))
+                if dist > allowed:
+                    # Implausible jump (pan artifact): hold last good position.
+                    # Keep prev (incl. its frame) so the allowance widens until a
+                    # plausible sample arrives, then recovery re-accepts.
+                    pitch_xy_tracks[i, 0] = prev[0]
+                    pitch_xy_tracks[i, 1] = prev[1]
                 else:
                     sx = (1 - PITCH_SMOOTH_ALPHA) * prev[0] + PITCH_SMOOTH_ALPHA * obs_x
                     sy = (1 - PITCH_SMOOTH_ALPHA) * prev[1] + PITCH_SMOOTH_ALPHA * obs_y

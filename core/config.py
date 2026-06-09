@@ -81,7 +81,10 @@ class Settings(BaseSettings):
     DET_CONF_BALL: float = 0.10
     DETECT_UPSCALE: float = 1.35
     FIELD_CONF: float = 0.30
-    KP_CONF: float = 0.30
+    # Keypoint acceptance for the homography solve. The "pure model" replica uses
+    # 0.5 (the original recipe): at that bar surviving points are clean and
+    # well-distributed, so a plain least-squares fit is well-conditioned.
+    KP_CONF: float = 0.50
     BALL_PAD_PX: int = 10
     BALL_MAX_MISSING: int = 10
     BALL_MAX_INTERP_FRAMES: int = 8
@@ -92,10 +95,15 @@ class Settings(BaseSettings):
     MIN_AREA_RATIO_PEOPLE: float = 0.00008
     MIN_AREA_RATIO_BALL: float = 0.00001
 
-    # Homography estimation
-    H_EMA_ALPHA: float = 0.50
+    # Homography estimation.
+    # The estimator is now a STATELESS per-frame least-squares solve (replica of
+    # the original "pure model" pipeline). The tuning knobs below are retained for
+    # config compatibility but no longer gate acceptance; only MIN_KP is honored
+    # (clamped to >=4 internally). Temporal machinery is disabled (see
+    # H_OPTFLOW_BRIDGE = False).
+    H_EMA_ALPHA: float = 0.0
     RANSAC_REPROJ_THRESH: float = 25.0
-    MIN_KP: int = 6
+    MIN_KP: int = 4
     MIN_INLIER_RATIO: float = 0.40
     MAX_REPROJ_ERR: float = 80.0
     # Absolute inlier-count acceptance (alongside the ratio bar). 0 = ratio only.
@@ -112,7 +120,7 @@ class Settings(BaseSettings):
     # from background features. Propagation accumulates drift, so the cap bounds how
     # long it is allowed to compound; the state machine then HOLDS the frozen H for up
     # to H_REINIT_FRAMES more frames before blanking.
-    H_OPTFLOW_BRIDGE: bool = True
+    H_OPTFLOW_BRIDGE: bool = False
     H_MAX_PROPAGATION_FRAMES: int = 60
     # Manual homography keyframe anchors. Path to a dense per-frame sidecar JSON
     # built by tools/manual_calib.py. When set and loadable, the frames it covers
@@ -120,6 +128,21 @@ class Settings(BaseSettings):
     # bypassing the automatic keypoint estimator. Frames it does not cover fall
     # back to the automatic pipeline. "" = disabled.
     H_MANUAL_SIDECAR: str = ""
+
+    # --- Output-space (pitch) trajectory cleaning ---
+    # The stateless H is correct on steady frames but produces a few wrong frames
+    # during camera pans (the model's confidence ramps up on newly-revealed
+    # landmarks, so for ~8-12 transition frames the kept points come from two
+    # camera poses and the solve is briefly wrong). We never smooth H (that would
+    # lock a wrong pose and block recovery); instead we gate the PROJECTED pitch
+    # positions per track. A sample implying a speed above PITCH_VEL_MAX_MPS is
+    # physically impossible (players peak ~10-11 m/s), so it is rejected and the
+    # last good pitch position is held until a plausible sample arrives. This
+    # feeds both the radar display and the speed/track-map analytics, so neither
+    # shows the pan teleport. Accepted samples then get a mild EMA to calm jitter.
+    PITCH_VEL_MAX_MPS: float = 12.0
+    PITCH_SMOOTH_ALPHA: float = 0.30
+    PITCH_SMOOTH_RESET_GAP: int = 60
 
 
 def load_settings() -> Settings:
