@@ -76,6 +76,31 @@ class HomographyEstimator:
         except Exception:
             self._class_id_to_vertex_idx = None
 
+        # Bilateral symmetry disambiguation: the pitch is left/right symmetric so the
+        # model sometimes assigns the wrong vertex ID to symmetric landmark pairs
+        # (e.g. left penalty-box corner ↔ right penalty-box corner). We detect both
+        # assignments at runtime and prefer whichever RANSAC finds more inliers for.
+        self._sym_pairs = self._build_sym_pairs(np.asarray(config.vertices, dtype=np.float64))
+
+    @staticmethod
+    def _build_sym_pairs(vertices: np.ndarray) -> np.ndarray:
+        """For each vertex, find its bilateral mirror across the pitch centre-x.
+
+        Returns an int32 array of length N where result[i] is the index of the
+        mirror vertex (same as i when no mirror exists within 200 cm tolerance).
+        """
+        cx = float(vertices[:, 0].mean())
+        n = len(vertices)
+        result = np.arange(n, dtype=np.int32)
+        for i in range(n):
+            mirror_x = 2.0 * cx - vertices[i, 0]
+            mirror_y = float(vertices[i, 1])
+            dists = np.hypot(vertices[:, 0] - mirror_x, vertices[:, 1] - mirror_y)
+            j = int(np.argmin(dists))
+            if j != i and dists[j] < 200.0:
+                result[i] = j
+        return result
+
     def _diag(self, reason: str, **kwargs) -> None:
         n = self._fail_counts.get(reason, 0) + 1
         self._fail_counts[reason] = n
@@ -135,12 +160,18 @@ class HomographyEstimator:
                 kp_idx = kp_idx[0]
             kp_idx = kp_idx.astype(np.int32)
 
+        active_vidx: np.ndarray | None = None  # vertex indices for the kept points
         if kp_idx is not None and kp_idx.shape[0] == frame_all.shape[0]:
             valid_idx = (kp_idx >= 0) & (kp_idx < len(vertices))
             if np.any(valid_idx):
+                active_vidx_pre_conf = kp_idx[valid_idx]
                 frame_all = frame_all[valid_idx]
                 conf_all = conf_all[valid_idx]
-                pitch_all = vertices[kp_idx[valid_idx]]
+                pitch_all = vertices[active_vidx_pre_conf]
+            else:
+                active_vidx_pre_conf = None
+        else:
+            active_vidx_pre_conf = None
 
         if pitch_all is None:
             n_common = min(frame_all.shape[0], conf_all.shape[0], len(vertices))
@@ -161,6 +192,8 @@ class HomographyEstimator:
         keep = conf_all > self.kp_conf
         frame_pts = frame_all[keep]
         pitch_pts = pitch_all[keep]
+        if active_vidx_pre_conf is not None:
+            active_vidx = active_vidx_pre_conf[keep]
 
         n = frame_pts.shape[0]
         if n < 4 or n < self.min_kp:
@@ -186,8 +219,28 @@ class HomographyEstimator:
             return HomographyResult(H=self._H_prev, ok=False, n_points=n, inlier_ratio=0.0, reproj_err=1e9)
 
         inliers = inliers.reshape(-1).astype(bool)
-        inlier_ratio = float(inliers.mean()) if len(inliers) else 0.0
         n_inliers = int(inliers.sum())
+
+        # Symmetry disambiguation: try the mirror-flipped vertex assignment and prefer
+        # it if RANSAC finds strictly more inliers. This corrects the common failure
+        # where the model swaps symmetric landmark pairs (left↔right penalty corners,
+        # etc.) producing a "consistent but wrong" homography that passes RANSAC.
+        if active_vidx is not None:
+            flipped_vidx = self._sym_pairs[active_vidx]
+            if not np.array_equal(flipped_vidx, active_vidx):
+                pitch_flip = vertices[flipped_vidx]
+                H_f, inl_f = cv2.findHomography(
+                    frame_pts, pitch_flip,
+                    method=cv2.RANSAC,
+                    ransacReprojThreshold=float(self.ransac_reproj_thresh),
+                )
+                if H_f is not None and inl_f is not None:
+                    inl_f = inl_f.reshape(-1).astype(bool)
+                    n_f = int(inl_f.sum())
+                    if n_f > n_inliers:
+                        H, inliers, n_inliers, pitch_pts = H_f, inl_f, n_f, pitch_flip
+
+        inlier_ratio = float(inliers.mean()) if len(inliers) else 0.0
         # Hysteresis: a held lock is maintained at a slightly lower bar than is
         # required to acquire one, so frames hovering at the quantization boundary
         # don't flicker in and out of "ok".
