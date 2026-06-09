@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     HF_TOKEN: str | None = Field(default=None, description="Hugging Face token (optional)")
 
     PLAYER_MODEL_ID: str = "football-players-detection-3zvbc/11"
-    FIELD_MODEL_ID: str = "football-field-detection-f07vi/14"
+    FIELD_MODEL_ID: str = "football-field-detection-f07vi-it2xv/3"
 
     # Runtime
     DEVICE: str = "cpu"
@@ -81,11 +81,10 @@ class Settings(BaseSettings):
     DET_CONF_BALL: float = 0.10
     DETECT_UPSCALE: float = 1.35
     FIELD_CONF: float = 0.30
-    # Keypoint acceptance for the homography solve. 0.25 admits 8-14 points/frame
-    # on this footage, giving RANSAC enough to select the correct inlier subset.
-    # (0.50 was correct for the original it2xv/3 model which was purpose-trained;
-    # f07vi/15 produces lower confidence scores, so 0.50 starves the solver to 4.)
-    KP_CONF: float = 0.25
+    # Keypoint acceptance for the homography solve. 0.50 = the original recipe,
+    # valid with the fine-tuned it2xv/3 field model (many high-confidence,
+    # well-distributed points). 0.25 was only a stopgap for the weaker f07vi/15.
+    KP_CONF: float = 0.50
     BALL_PAD_PX: int = 10
     BALL_MAX_MISSING: int = 10
     BALL_MAX_INTERP_FRAMES: int = 8
