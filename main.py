@@ -291,37 +291,8 @@ def main(
         slot_map[int(free_slot)] = sid
         return int(free_slot)
 
-    h_est = HomographyEstimator(
-        config=pitch_cfg,
-        kp_conf=s.KP_CONF,
-        ema_alpha=s.H_EMA_ALPHA,
-        ransac_reproj_thresh=s.RANSAC_REPROJ_THRESH,
-        min_kp=s.MIN_KP,
-        min_inlier_ratio=s.MIN_INLIER_RATIO,
-        max_reproj_err=s.MAX_REPROJ_ERR,
-        inlier_hysteresis=s.H_INLIER_HYSTERESIS,
-        max_jump_m=s.H_MAX_JUMP_M,
-        min_kp_spread_px=s.H_MIN_KP_SPREAD_PX,
-        min_inliers_abs=s.H_MIN_INLIERS_ABS,
-    )
-    # NOTE: the homography is now a stateless per-frame solve (geometry/homography.py).
-    # The HomographyStateMachine / CameraMotionEstimator (temporal propagation,
-    # optical-flow bridging) are intentionally NOT used — they introduced the very
-    # temporal memory that made pans worse on this footage.
-
-    # Optional manual homography keyframe anchors (human-clicked + flow-interpolated).
-    # Frames the sidecar covers use its H directly; others fall back to the
-    # stateless per-frame keypoint solve.
-    manual_h_guide = None
-    if str(s.H_MANUAL_SIDECAR).strip():
-        try:
-            from geometry.manual_h import load_guide
-            manual_h_guide = load_guide(s.H_MANUAL_SIDECAR)
-            rng = manual_h_guide.frame_range()
-            print(f"[stage] Manual homography sidecar loaded: {len(manual_h_guide)} frames, range={rng}")
-        except Exception as e:
-            print(f"[WARN] Could not load H_MANUAL_SIDECAR='{s.H_MANUAL_SIDECAR}': {e}")
-            manual_h_guide = None
+    # Pure per-frame homography: stateless, no EMA / RANSAC gating / fallback.
+    h_est = HomographyEstimator(config=pitch_cfg, kp_conf=s.KP_CONF)
 
     team_clf = None
     team_color_clf = None
@@ -411,13 +382,6 @@ def main(
     start_time = time.time()
     processed_frames = 0
     prev_player_boxes: dict[int, np.ndarray] = {}
-    pitch_smooth: dict[int, tuple[float, float, int]] = {}
-    PITCH_SMOOTH_ALPHA = float(s.PITCH_SMOOTH_ALPHA)
-    PITCH_SMOOTH_RESET_GAP = int(s.PITCH_SMOOTH_RESET_GAP)
-    # Velocity gate: max plausible per-axis displacement, in pitch cm per second.
-    # Players peak ~10-11 m/s; PITCH_VEL_MAX_MPS (default 12) is the reject bar.
-    _video_fps = float(video_info.fps) if float(video_info.fps) > 1e-6 else 25.0
-    PITCH_VEL_MAX_CMPS = float(s.PITCH_VEL_MAX_MPS) * 100.0
     GK_GOAL_ZONE_X_M = 1500.0  # cm; 15m from each goal line
     print("[stage] Starting frame loop...")
     with VideoWriter(out_video_path, video_info) as vw:
@@ -432,12 +396,9 @@ def main(
             # 1) Submit both model inferences in parallel, then collect detection results
             should_detect = track_mgr_players.should_detect(frame_idx) or track_mgr_officials.should_detect(frame_idx)
             should_update_h = (frame_idx % max(1, homography_every_n) == 0) or (last_hmat is None) or (homography_state == "none")
-            # A manual keyframe sidecar (if loaded) supplies this frame's H directly,
-            # so we skip the field-keypoint inference entirely for covered frames.
-            manual_H = manual_h_guide.get(frame_idx) if manual_h_guide is not None else None
 
             _fut_det = _pool.submit(infer_players_and_ball_upscaled, player_model, frame_infer, s.DET_CONF, s.DETECT_UPSCALE) if should_detect else None
-            _fut_kp = _pool.submit(infer_field_keypoints, field_model, frame_infer, s.FIELD_CONF) if (should_update_h and manual_H is None) else None
+            _fut_kp = _pool.submit(infer_field_keypoints, field_model, frame_infer, s.FIELD_CONF) if should_update_h else None
 
             players_det = None
             officials_det = None
@@ -753,24 +714,10 @@ def main(
                     for tid in stable_player_ids:
                         team_by_track[int(tid)] = team_memory.get(int(tid))
 
-            # 4) Field keypoints -> STATELESS per-frame homography (pure-model replica).
-            #    A manual keyframe sidecar (if loaded) supplies this frame's H
-            #    directly; otherwise each computed frame is solved independently
-            #    (plain least-squares, no temporal carry-over). On a failed solve we
-            #    set last_hmat=None so no radar is drawn that frame (the original
-            #    cell-60 `continue`); on subsampled frames (_fut_kp is None) we hold
-            #    the most recent H. There is no state machine to seed anymore.
-            if manual_H is not None:
-                # Human-clicked / flow-interpolated keyframe homography: use directly.
-                last_hmat = np.asarray(manual_H, dtype=np.float64)
-                homography_ok = True
-                homography_state = "manual"
-                homography_ok_frames += 1
-                kp_used = 0
-                inlier_ratio = 1.0
-                reproj_err = 0.0
-                _kp_debug_prev_state = homography_state
-            elif _fut_kp is not None:
+            # 4) Field keypoints -> pure per-frame homography (stateless, no fallback).
+            #    Each frame is solved independently; a failed solve yields H=None
+            #    and a blank radar for that frame — the pure-model baseline.
+            if _fut_kp is not None:
                 kp = _fut_kp.result()
                 hres = h_est.estimate(kp)
                 last_hmat = hres.H
@@ -816,44 +763,6 @@ def main(
             if last_hmat is not None:
                 pitch_xy_tracks = project_anchors_to_pitch(last_hmat, tracks, anchor=sv.Position.BOTTOM_CENTER)
                 pitch_xy_ball = project_anchors_to_pitch(last_hmat, ball_det, anchor=sv.Position.BOTTOM_CENTER)
-
-            # 5b) Per-track pitch-coord VELOCITY GATE + hold (output-space cleaning).
-            #     The stateless H is briefly wrong during camera pans, projecting a
-            #     track to an impossible location. A sample whose implied speed from
-            #     the last good position exceeds PITCH_VEL_MAX_MPS is rejected and we
-            #     HOLD the last good pitch position instead (the radar dot freezes
-            #     rather than teleporting). The allowance grows with the held gap, so
-            #     once H restabilizes a plausible sample is re-accepted and the dot
-            #     snaps back. Accepted samples get a mild EMA to calm residual jitter.
-            #     We never touch H itself, so a wrong pose can't lock or block recovery.
-            for i in range(len(tracks)):
-                sid = int(stable_track_ids[i]) if i < len(stable_track_ids) else -1
-                if sid < 0:
-                    continue
-                if not (np.isfinite(pitch_xy_tracks[i, 0]) and np.isfinite(pitch_xy_tracks[i, 1])):
-                    continue
-                obs_x = float(pitch_xy_tracks[i, 0])
-                obs_y = float(pitch_xy_tracks[i, 1])
-                prev = pitch_smooth.get(sid)
-                if prev is None or (frame_idx - prev[2]) > PITCH_SMOOTH_RESET_GAP:
-                    # New track or stale gap: (re)seed, accept as-is.
-                    pitch_smooth[sid] = (obs_x, obs_y, int(frame_idx))
-                    continue
-                dt = max(1, int(frame_idx) - int(prev[2])) / _video_fps
-                allowed = PITCH_VEL_MAX_CMPS * dt
-                dist = float(np.hypot(obs_x - prev[0], obs_y - prev[1]))
-                if dist > allowed:
-                    # Implausible jump (pan artifact): hold last good position.
-                    # Keep prev (incl. its frame) so the allowance widens until a
-                    # plausible sample arrives, then recovery re-accepts.
-                    pitch_xy_tracks[i, 0] = prev[0]
-                    pitch_xy_tracks[i, 1] = prev[1]
-                else:
-                    sx = (1 - PITCH_SMOOTH_ALPHA) * prev[0] + PITCH_SMOOTH_ALPHA * obs_x
-                    sy = (1 - PITCH_SMOOTH_ALPHA) * prev[1] + PITCH_SMOOTH_ALPHA * obs_y
-                    pitch_smooth[sid] = (sx, sy, int(frame_idx))
-                    pitch_xy_tracks[i, 0] = sx
-                    pitch_xy_tracks[i, 1] = sy
 
             # 5c) Goalkeeper spatial constraint: demote GK detections that are far from any goal line.
             #     Conservative — never promotes random players, only demotes wrong GK labels.
@@ -999,7 +908,6 @@ def main(
     print(f"Ball interpolated frames: {ball_interp_frames}/{processed_frames}")
     print(f"Homography OK frames: {homography_ok_frames}/{processed_frames}")
     print(f"Homography available frames: {homography_available_frames}/{processed_frames}")
-    h_est.report_failure_summary()
     print(f"Valid projection rows: {valid_projection_rows}/{max(total_rows, 1)}")
     print(f"Elapsed: {elapsed:.2f}s | Effective FPS: {fps:.2f}")
 
