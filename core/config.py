@@ -81,10 +81,11 @@ class Settings(BaseSettings):
     DET_CONF_BALL: float = 0.10
     DETECT_UPSCALE: float = 1.35
     FIELD_CONF: float = 0.30
-    # Keypoint acceptance for the homography solve. The "pure model" replica uses
-    # 0.5 (the original recipe): at that bar surviving points are clean and
-    # well-distributed, so a plain least-squares fit is well-conditioned.
-    KP_CONF: float = 0.50
+    # Keypoint acceptance for the homography solve. 0.25 admits 8-14 points/frame
+    # on this footage, giving RANSAC enough to select the correct inlier subset.
+    # (0.50 was correct for the original it2xv/3 model which was purpose-trained;
+    # f07vi/15 produces lower confidence scores, so 0.50 starves the solver to 4.)
+    KP_CONF: float = 0.25
     BALL_PAD_PX: int = 10
     BALL_MAX_MISSING: int = 10
     BALL_MAX_INTERP_FRAMES: int = 8
@@ -102,7 +103,7 @@ class Settings(BaseSettings):
     # (clamped to >=4 internally). Temporal machinery is disabled (see
     # H_OPTFLOW_BRIDGE = False).
     H_EMA_ALPHA: float = 0.0
-    RANSAC_REPROJ_THRESH: float = 25.0
+    RANSAC_REPROJ_THRESH: float = 150.0
     MIN_KP: int = 4
     MIN_INLIER_RATIO: float = 0.40
     MAX_REPROJ_ERR: float = 80.0

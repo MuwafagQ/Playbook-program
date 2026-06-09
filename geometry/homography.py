@@ -152,7 +152,7 @@ class HomographyEstimator:
             conf_all = conf_all[:n_common]
             pitch_all = vertices[:n_common]
 
-        # --- Confidence filter (original recipe: conf > 0.5). ---
+        # --- Confidence filter ---
         keep = conf_all > self.kp_conf
         frame_pts = frame_all[keep]
         pitch_pts = pitch_all[keep]
@@ -162,24 +162,40 @@ class HomographyEstimator:
             self._diag("too_few_kp", n=n, min_kp=self.min_kp)
             return HomographyResult(H=None, ok=False, n_points=n, inlier_ratio=0.0, reproj_err=1e9)
 
-        # --- Plain least-squares homography over ALL kept points (method=0),
-        #     identical to ViewTransformer in the original notebook. No RANSAC. ---
-        H, _ = cv2.findHomography(frame_pts, pitch_pts)
-        if H is None:
-            self._diag("solve_returned_none", n=n)
+        # --- Stateless RANSAC solve. ---
+        # Using conf>0.25 admits 8-14 points/frame (vs exactly 4 at 0.50), so the
+        # set contains some noisy low-confidence points. RANSAC selects the largest
+        # geometrically consistent subset per-frame, exactly as the original solve
+        # did — but without any temporal carry-over or acceptance gating. A frame
+        # whose inliers disagree (degenerate pan mix or genuine model failure) just
+        # returns H=None and the radar is blank that frame; the next frame tries
+        # fresh. Threshold is in pitch space (cm): ~150cm ≈ 5-15 px of image error.
+        H, inliers = cv2.findHomography(
+            frame_pts,
+            pitch_pts,
+            method=cv2.RANSAC,
+            ransacReprojThreshold=float(self.ransac_reproj_thresh),
+        )
+        if H is None or inliers is None:
+            self._diag("ransac_returned_none", n=n)
             return HomographyResult(H=None, ok=False, n_points=n, inlier_ratio=0.0, reproj_err=1e9)
+
+        inliers_bool = inliers.reshape(-1).astype(bool)
+        n_inliers = int(inliers_bool.sum())
+        if n_inliers < 4:
+            self._diag("too_few_inliers", n=n, inliers=n_inliers)
+            return HomographyResult(H=None, ok=False, n_points=n, inlier_ratio=float(n_inliers) / n, reproj_err=1e9)
 
         H = normalize_h(H)
 
-        # Reprojection error over the kept points — for logging only; it never
-        # gates acceptance (stateless: we always trust the per-frame solve).
-        proj = cv2.perspectiveTransform(frame_pts.reshape(-1, 1, 2), H).reshape(-1, 2)
-        if np.all(np.isfinite(proj)):
-            reproj_err = float(np.linalg.norm(proj - pitch_pts, axis=1).mean())
+        # Reprojection error on RANSAC inliers — for logging only.
+        proj_in = cv2.perspectiveTransform(frame_pts[inliers_bool].reshape(-1, 1, 2), H).reshape(-1, 2)
+        if np.all(np.isfinite(proj_in)):
+            reproj_err = float(np.linalg.norm(proj_in - pitch_pts[inliers_bool], axis=1).mean())
         else:
             reproj_err = 1e9
 
-        return HomographyResult(H=H, ok=True, n_points=n, inlier_ratio=1.0, reproj_err=reproj_err)
+        return HomographyResult(H=H, ok=True, n_points=n_inliers, inlier_ratio=float(n_inliers) / n, reproj_err=reproj_err)
 
     @staticmethod
     def transform_points(H: np.ndarray, points_xy: np.ndarray) -> np.ndarray:
