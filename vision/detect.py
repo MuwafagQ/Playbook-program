@@ -55,6 +55,23 @@ def infer_players_and_ball_upscaled(
 _KP_CORRESPONDENCE_LOGGED = False
 
 
+def _vertex_label(keypoint) -> int:
+    """Pitch-vertex label for a Roboflow keypoint.
+
+    class_name is the true vertex label (e.g. "20"); the model's internal
+    class_id is a different ordering and must NOT be used for correspondence.
+    Falls back to class_id only if class_name is missing/non-numeric.
+    """
+    name = getattr(keypoint, "class_name", None)
+    try:
+        return int(name)
+    except (TypeError, ValueError):
+        try:
+            return int(keypoint.class_id)
+        except (TypeError, ValueError, AttributeError):
+            return -1
+
+
 def infer_field_keypoints(field_model, frame: np.ndarray, conf: float) -> sv.KeyPoints:
     global _KP_CORRESPONDENCE_LOGGED
     result = field_model.infer(frame, confidence=conf)[0]
@@ -73,22 +90,26 @@ def infer_field_keypoints(field_model, frame: np.ndarray, conf: float) -> sv.Key
 
     xy = np.array([[float(k.x), float(k.y)] for k in kpts], dtype=np.float32).reshape(1, -1, 2)
     kp = sv.KeyPoints(xy=xy)
+    # Store the pitch-vertex LABEL (class_name, e.g. "20"), NOT the model's internal
+    # class_id. The model's class_id ordering is its own and does NOT match the pitch
+    # vertex numbering (class_id 17 == vertex label "20" for this model). The
+    # homography estimator maps label -> vertex index via the pitch config.
     # The KeyPoints constructor validates class_id as per-DETECTION; assign per-keypoint
     # arrays (shape [1, n_kp]) as attributes so the homography estimator can read them.
-    kp.class_id = np.array([int(k.class_id) for k in kpts], dtype=np.int32).reshape(1, -1)
+    kp.class_id = np.array([_vertex_label(k) for k in kpts], dtype=np.int32).reshape(1, -1)
     kp.confidence = np.array([float(k.confidence) for k in kpts], dtype=np.float32).reshape(1, -1)
 
     if not _KP_CORRESPONDENCE_LOGGED:
-        ids = kp.class_id[0]
+        labels = kp.class_id[0]
         cf = kp.confidence[0]
         print(
-            f"[detect] keypoint correspondence injected: n={ids.shape[0]} "
-            f"ids[0:8]={ids[:8].tolist()} conf[0:8]={np.round(cf[:8], 2).tolist()} "
+            f"[detect] keypoint vertex-labels injected: n={labels.shape[0]} "
+            f"labels[0:8]={labels[:8].tolist()} conf[0:8]={np.round(cf[:8], 2).tolist()} "
             f"pitch_conf={float(getattr(pred, 'confidence', 0.0)):.2f} n_det={len(preds)}"
         )
         try:
             pairs = [(int(k.class_id), getattr(k, "class_name", "?")) for k in kpts[:12]]
-            print(f"[detect] kp class_id <-> class_name pairs: {pairs}")
+            print(f"[detect] kp class_id <-> class_name (label) pairs: {pairs}")
         except Exception:
             pass
         _KP_CORRESPONDENCE_LOGGED = True

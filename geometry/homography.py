@@ -21,24 +21,26 @@ class HomographyEstimator:
     Stateless: NO EMA, NO RANSAC gating, NO inlier/reproj validation,
     NO jump gate, NO fallback to a previous H. Failed solve -> H=None.
 
-    Correspondence uses the per-keypoint class_id injected by vision/detect.py
-    (not positional pairing). The it2xv model emits keypoints in label order,
-    so slot 0 is NOT vertex 0 — it's whatever vertex its class_id maps to.
-    class_id -> vertex_index: int(config.labels[class_id]) - 1.
+    Correspondence uses the per-keypoint vertex LABEL injected by vision/detect.py
+    as kp.class_id (taken from each keypoint's class_name). The model's internal
+    class_id ordering does NOT match the pitch vertex numbering, so we map the
+    label -> vertex index via config.labels.
     """
 
     def __init__(self, config: SoccerPitchConfiguration, kp_conf: float):
         self.config = config
         self.kp_conf = float(kp_conf)
         self._vertices = np.asarray(config.vertices, dtype=np.float32)
-        # class_id -> vertex_index: label "20" -> index 19, etc.
+        # Map pitch-vertex LABEL (e.g. 20) -> index into config.vertices.
+        # detect.py injects each keypoint's class_NAME (the vertex label) as
+        # kp.class_id, because the model's internal class_id ordering does NOT
+        # match the vertex numbering (model class_id 17 == vertex label "20").
         try:
-            self._class_id_to_vertex_idx = np.array(
-                [int(label) - 1 for label in config.labels],
-                dtype=np.int32,
-            )
+            self._label_to_vertex_idx = {
+                int(label): i for i, label in enumerate(config.labels)
+            }
         except Exception:
-            self._class_id_to_vertex_idx = None
+            self._label_to_vertex_idx = None
 
     def estimate(self, keypoints: sv.KeyPoints) -> HomographyResult:
         if keypoints is None or keypoints.xy is None or len(keypoints.xy) == 0:
@@ -55,24 +57,24 @@ class HomographyEstimator:
         else:
             conf_all = np.ones((frame_all.shape[0],), dtype=np.float32)
 
-        # Correspondence: class_id -> vertex index (required for it2xv model family).
-        # Fall back to positional pairing only if class_ids are absent.
+        # Correspondence: vertex LABEL (kp.class_id, injected from class_name) ->
+        # vertex index. Required for the it2xv model family, whose keypoint order
+        # and internal class_id do NOT match the pitch vertex numbering.
         pitch_all = None
         if (
             hasattr(keypoints, "class_id")
             and keypoints.class_id is not None
-            and self._class_id_to_vertex_idx is not None
+            and self._label_to_vertex_idx
         ):
-            kp_idx = np.asarray(keypoints.class_id)
-            if kp_idx.ndim > 1:
-                kp_idx = kp_idx[0]
-            kp_idx = kp_idx.astype(np.int32)
-            if kp_idx.shape[0] == frame_all.shape[0]:
-                # Map class_id -> vertex_index
-                valid = (kp_idx >= 0) & (kp_idx < len(self._class_id_to_vertex_idx))
-                vtx_idx = np.full_like(kp_idx, -1)
-                vtx_idx[valid] = self._class_id_to_vertex_idx[kp_idx[valid]]
-                # Keep only slots with a valid vertex mapping
+            labels = np.asarray(keypoints.class_id)
+            if labels.ndim > 1:
+                labels = labels[0]
+            labels = labels.astype(np.int32)
+            if labels.shape[0] == frame_all.shape[0]:
+                vtx_idx = np.array(
+                    [self._label_to_vertex_idx.get(int(l), -1) for l in labels],
+                    dtype=np.int32,
+                )
                 has_vtx = vtx_idx >= 0
                 if np.any(has_vtx):
                     frame_all = frame_all[has_vtx]
