@@ -29,7 +29,7 @@ from vision.ball import BallSmoother
 from vision.team_memory import TeamMemory
 from vision.id_stabilizer import IDStabilizer
 from geometry.homography import HomographyEstimator
-from geometry.projection import project_anchors_to_pitch
+from geometry.projection import project_anchors_to_pitch, on_pitch_mask
 from io_utils.writers import CSVWriter, VideoWriter
 from io_utils.radar import render_radar, compose_with_radar, overlay_radar
 from io_utils.kpi import write_kpi_summary
@@ -443,6 +443,26 @@ def main(
             officials_tracks, detector_ran_o = track_mgr_officials.update(frame_idx, officials_det, frame=frame_infer)
             tracks = merge_detections([players_tracks, officials_tracks])
             detector_ran = bool(detector_ran_p or detector_ran_o)
+
+            # On-pitch boundary gate for the ball: drop candidates projected
+            # outside the pitch rectangle (defined by the corner keypoints) before
+            # the smoother sees them, so a ball detected behind the goal / in the
+            # stands can never enter the trajectory. Uses the previous frame's H
+            # (geometry is stable frame-to-frame); skipped until the first lock.
+            if (
+                last_hmat is not None
+                and len(raw_ball_det) > 0
+                and (s.BALL_ON_PITCH_MARGIN_X > 0 or s.BALL_ON_PITCH_MARGIN_Y > 0)
+            ):
+                bmask = on_pitch_mask(
+                    last_hmat,
+                    raw_ball_det,
+                    (pitch_xmin, pitch_xmax, pitch_ymin, pitch_ymax),
+                    margin_x=s.BALL_ON_PITCH_MARGIN_X,
+                    margin_y=s.BALL_ON_PITCH_MARGIN_Y,
+                    anchor=sv.Position.BOTTOM_CENTER,
+                )
+                raw_ball_det = raw_ball_det[bmask]
 
             ball_det, ball_imputed = ball_smoother.update(raw_ball_det)
             stable_track_ids = np.full((len(tracks),), -1, dtype=np.int32)

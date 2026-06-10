@@ -107,6 +107,12 @@ class Settings(BaseSettings):
     # EMA weight of the newest velocity measurement; per-frame decay while bridging.
     BALL_VEL_ALPHA: float = 0.5
     BALL_HOLD_DECAY: float = 0.85
+    # On-pitch boundary gate: drop ball detections whose projected position falls
+    # outside the pitch rectangle (defined by the corner keypoints) expanded by
+    # these margins (cm). Catches balls detected behind the goal / in the stands.
+    # 0 = off. Pitch is ~12000x7000 cm.
+    BALL_ON_PITCH_MARGIN_X: float = 500.0
+    BALL_ON_PITCH_MARGIN_Y: float = 500.0
 
     # Tiny box filtering (ratio relative to frame area)
     MIN_AREA_RATIO_PEOPLE: float = 0.00008
