@@ -291,7 +291,6 @@ def main(
         slot_map[int(free_slot)] = sid
         return int(free_slot)
 
-    # Pure per-frame homography: stateless, no EMA / RANSAC gating / fallback.
     h_est = HomographyEstimator(config=pitch_cfg, kp_conf=s.KP_CONF)
 
     team_clf = None
@@ -715,8 +714,6 @@ def main(
                         team_by_track[int(tid)] = team_memory.get(int(tid))
 
             # 4) Field keypoints -> pure per-frame homography (stateless, no fallback).
-            #    Each frame is solved independently; a failed solve yields H=None
-            #    and a blank radar for that frame — the pure-model baseline.
             if _fut_kp is not None:
                 kp = _fut_kp.result()
                 hres = h_est.estimate(kp)

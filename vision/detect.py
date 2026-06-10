@@ -68,11 +68,17 @@ def infer_field_keypoints(field_model, frame: np.ndarray, conf: float) -> sv.Key
             [kpt.class_id for kpt in pred.keypoints],
             dtype=np.int32,
         )
+        per_kp_conf = np.array(
+            [float(kpt.confidence) for kpt in pred.keypoints],
+            dtype=np.float32,
+        )
         kp.class_id = per_kp_ids.reshape(1, -1)
+        kp.confidence = per_kp_conf.reshape(1, -1)
         if not _KP_CORRESPONDENCE_LOGGED:
             print(
                 f"[detect] keypoint correspondence injected: "
-                f"n={per_kp_ids.shape[0]} ids[0:8]={per_kp_ids[:8].tolist()}"
+                f"n={per_kp_ids.shape[0]} ids[0:8]={per_kp_ids[:8].tolist()} "
+                f"conf[0:8]={per_kp_conf[:8].round(2).tolist()}"
             )
             try:
                 pairs = [
