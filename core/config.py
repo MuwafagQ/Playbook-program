@@ -111,6 +111,8 @@ class Settings(BaseSettings):
     H_MAX_JUMP_M: float = 2000.0
     # Minimum keypoint spread (px, weaker PCA axis) to attempt a fit. 0 = off.
     H_MIN_KP_SPREAD_PX: float = 12.0
+    # Bounded short hold: frames to keep the last good H when a degeneracy guard fires.
+    H_MAX_HOLD_FRAMES: int = 15
     # Optical-flow homography propagation: when a fresh keypoint H can't be solved
     # (degenerate midfield geometry), propagate the last good H using camera motion
     # from background features. Propagation accumulates drift, so the cap bounds how

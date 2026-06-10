@@ -291,7 +291,12 @@ def main(
         slot_map[int(free_slot)] = sid
         return int(free_slot)
 
-    h_est = HomographyEstimator(config=pitch_cfg, kp_conf=s.KP_CONF)
+    h_est = HomographyEstimator(
+        config=pitch_cfg,
+        kp_conf=s.KP_CONF,
+        min_kp_spread_px=s.H_MIN_KP_SPREAD_PX,
+        max_hold_frames=s.H_MAX_HOLD_FRAMES,
+    )
 
     team_clf = None
     team_color_clf = None
