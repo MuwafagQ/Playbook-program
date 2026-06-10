@@ -89,8 +89,24 @@ class Settings(BaseSettings):
     BALL_PAD_PX: int = 10
     BALL_MAX_MISSING: int = 10
     BALL_MAX_INTERP_FRAMES: int = 8
-    BALL_MAX_JUMP_PX: float = 140.0
+    # Hard ceiling on accepted ball displacement from the predicted position (px).
+    # Raised from 140: the velocity-aware gate (below) keeps slow-ball matching
+    # tight, while this only blocks genuinely wild jumps. A struck ball can move
+    # several hundred px/frame in a broadcast clip.
+    BALL_MAX_JUMP_PX: float = 600.0
     BALL_MIN_CONF: float = 0.12
+    # Velocity-aware acceptance gate: radius = BALL_GATE_BASE_PX + BALL_GATE_VEL_K*speed,
+    # capped at BALL_MAX_JUMP_PX. Base covers detection jitter on a slow ball.
+    BALL_GATE_BASE_PX: float = 90.0
+    BALL_GATE_VEL_K: float = 3.0
+    # Wider cold-start gate, used until a real velocity has been measured.
+    BALL_ACQUIRE_GATE_PX: float = 300.0
+    # Reject a ball candidate whose box area exceeds this multiple of the running
+    # ball-size estimate (filters boots/limbs misread as the ball). 0 = off.
+    BALL_SIZE_MAX_RATIO: float = 5.0
+    # EMA weight of the newest velocity measurement; per-frame decay while bridging.
+    BALL_VEL_ALPHA: float = 0.5
+    BALL_HOLD_DECAY: float = 0.85
 
     # Tiny box filtering (ratio relative to frame area)
     MIN_AREA_RATIO_PEOPLE: float = 0.00008

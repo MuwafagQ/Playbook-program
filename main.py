@@ -162,6 +162,12 @@ def main(
         max_interp_frames=s.BALL_MAX_INTERP_FRAMES,
         max_jump_px=s.BALL_MAX_JUMP_PX,
         min_conf=s.BALL_MIN_CONF,
+        gate_base_px=s.BALL_GATE_BASE_PX,
+        gate_vel_k=s.BALL_GATE_VEL_K,
+        acquire_gate_px=s.BALL_ACQUIRE_GATE_PX,
+        size_max_ratio=s.BALL_SIZE_MAX_RATIO,
+        vel_alpha=s.BALL_VEL_ALPHA,
+        hold_decay=s.BALL_HOLD_DECAY,
     )
     team_memory = TeamMemory(history_size=35, min_votes=8)
     # Split stabilizers by role to prevent cross-class identity interference.
