@@ -80,8 +80,12 @@ class Settings(BaseSettings):
     DET_CONF_GOALKEEPER: float = 0.22
     DET_CONF_BALL: float = 0.10
     DETECT_UPSCALE: float = 1.35
+    # FIELD_CONF = object (pitch) detection threshold passed to .infer(); must stay
+    # well below the pitch detection's confidence floor (~0.55) or whole frames drop.
+    # KP_CONF = per-keypoint confidence filter applied before findHomography.
+    # 0.30 / 0.50 match the original notebook recipe.
     FIELD_CONF: float = 0.30
-    KP_CONF: float = 0.30
+    KP_CONF: float = 0.50
     BALL_PAD_PX: int = 10
     BALL_MAX_MISSING: int = 10
     BALL_MAX_INTERP_FRAMES: int = 8

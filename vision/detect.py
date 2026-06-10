@@ -58,41 +58,40 @@ _KP_CORRESPONDENCE_LOGGED = False
 def infer_field_keypoints(field_model, frame: np.ndarray, conf: float) -> sv.KeyPoints:
     global _KP_CORRESPONDENCE_LOGGED
     result = field_model.infer(frame, confidence=conf)[0]
-    kp = sv.KeyPoints.from_inference(result)
-    # sv.KeyPoints.from_inference only stores the global detection class_id, not
-    # the per-keypoint class_ids that encode which pitch vertex each point corresponds to.
-    # Inject the per-keypoint ids so the homography estimator uses the correct mapping.
-    try:
-        pred = result.predictions[0]
-        per_kp_ids = np.array(
-            [kpt.class_id for kpt in pred.keypoints],
-            dtype=np.int32,
+    preds = list(getattr(result, "predictions", []) or [])
+    if len(preds) == 0:
+        return sv.KeyPoints(xy=np.zeros((1, 0, 2), dtype=np.float32))
+
+    # The field model detects a single "pitch" object, but at low FIELD_CONF it can
+    # emit duplicate detections (Roboflow test: 3 "pitch" boxes at the 0.53 object
+    # threshold). Use the HIGHEST-confidence detection, not predictions[0] — order is
+    # not guaranteed, and a weaker duplicate would corrupt the homography. Its keypoint
+    # list is the full vertex set; each keypoint carries its own class_id (-> pitch
+    # vertex) and confidence, which sv.KeyPoints.from_inference throws away.
+    pred = max(preds, key=lambda p: float(getattr(p, "confidence", 0.0)))
+    kpts = list(getattr(pred, "keypoints", []) or [])
+
+    xy = np.array([[float(k.x), float(k.y)] for k in kpts], dtype=np.float32).reshape(1, -1, 2)
+    kp = sv.KeyPoints(xy=xy)
+    # The KeyPoints constructor validates class_id as per-DETECTION; assign per-keypoint
+    # arrays (shape [1, n_kp]) as attributes so the homography estimator can read them.
+    kp.class_id = np.array([int(k.class_id) for k in kpts], dtype=np.int32).reshape(1, -1)
+    kp.confidence = np.array([float(k.confidence) for k in kpts], dtype=np.float32).reshape(1, -1)
+
+    if not _KP_CORRESPONDENCE_LOGGED:
+        ids = kp.class_id[0]
+        cf = kp.confidence[0]
+        print(
+            f"[detect] keypoint correspondence injected: n={ids.shape[0]} "
+            f"ids[0:8]={ids[:8].tolist()} conf[0:8]={np.round(cf[:8], 2).tolist()} "
+            f"pitch_conf={float(getattr(pred, 'confidence', 0.0)):.2f} n_det={len(preds)}"
         )
-        per_kp_conf = np.array(
-            [float(kpt.confidence) for kpt in pred.keypoints],
-            dtype=np.float32,
-        )
-        kp.class_id = per_kp_ids.reshape(1, -1)
-        kp.confidence = per_kp_conf.reshape(1, -1)
-        if not _KP_CORRESPONDENCE_LOGGED:
-            print(
-                f"[detect] keypoint correspondence injected: "
-                f"n={per_kp_ids.shape[0]} ids[0:8]={per_kp_ids[:8].tolist()} "
-                f"conf[0:8]={per_kp_conf[:8].round(2).tolist()}"
-            )
-            try:
-                pairs = [
-                    (int(kpt.class_id), getattr(kpt, "class_name", "?"))
-                    for kpt in pred.keypoints[:12]
-                ]
-                print(f"[detect] kp class_id <-> class_name pairs: {pairs}")
-            except Exception:
-                pass
-            _KP_CORRESPONDENCE_LOGGED = True
-    except Exception as exc:
-        if not _KP_CORRESPONDENCE_LOGGED:
-            print(f"[detect] WARNING: keypoint correspondence injection FAILED: {exc!r}")
-            _KP_CORRESPONDENCE_LOGGED = True
+        try:
+            pairs = [(int(k.class_id), getattr(k, "class_name", "?")) for k in kpts[:12]]
+            print(f"[detect] kp class_id <-> class_name pairs: {pairs}")
+        except Exception:
+            pass
+        _KP_CORRESPONDENCE_LOGGED = True
     return kp
 
 
