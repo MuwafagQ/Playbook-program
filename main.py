@@ -17,6 +17,7 @@ from vision.models import load_roboflow_models
 from vision.detect import (
     infer_players_and_ball_upscaled,
     infer_field_keypoints,
+    recover_ball_in_roi,
     tiny_box_filter,
     class_conf_filter,
     BALL_ID, PLAYER_ID, REFEREE_ID, GOALKEEPER_ID,
@@ -382,6 +383,7 @@ def main(
     player_total = 0
     ball_detect_frames = 0
     ball_interp_frames = 0
+    ball_roi_recovered_frames = 0
     valid_projection_rows = 0
     total_rows = 0
     kp_used = 0
@@ -463,6 +465,32 @@ def main(
                     anchor=sv.Position.BOTTOM_CENTER,
                 )
                 raw_ball_det = raw_ball_det[bmask]
+
+            # ROI re-detection: the full-frame pass found no usable ball this
+            # frame, but the smoother still has an active trajectory. Re-run the
+            # detector on an upscaled crop around the predicted position — the
+            # tiny ball is several times larger there and is often recovered.
+            # Runs after the boundary gate (the prediction is anchored to the
+            # last on-pitch position) and only on frames where detection ran.
+            if (
+                s.BALL_ROI_RECOVERY
+                and _fut_det is not None
+                and len(raw_ball_det) == 0
+            ):
+                _pred_center = ball_smoother.predicted_center()
+                if _pred_center is not None:
+                    raw_ball_det = recover_ball_in_roi(
+                        player_model,
+                        frame_infer,
+                        _pred_center,
+                        roi_px=s.BALL_ROI_PX,
+                        upscale=s.BALL_ROI_UPSCALE,
+                        conf=s.BALL_ROI_CONF,
+                    )
+                    if len(raw_ball_det) > 0:
+                        if s.BALL_PAD_PX > 0:
+                            raw_ball_det.xyxy = sv.pad_boxes(raw_ball_det.xyxy, px=s.BALL_PAD_PX)
+                        ball_roi_recovered_frames += 1
 
             ball_det, ball_imputed = ball_smoother.update(raw_ball_det)
             stable_track_ids = np.full((len(tracks),), -1, dtype=np.int32)
@@ -934,6 +962,7 @@ def main(
     print(f"Avg tracked players/frame: {player_total / max(processed_frames, 1):.2f}")
     print(f"Ball detected frames: {ball_detect_frames}/{processed_frames}")
     print(f"Ball interpolated frames: {ball_interp_frames}/{processed_frames}")
+    print(f"Ball ROI-recovered frames: {ball_roi_recovered_frames}/{processed_frames}")
     print(f"Homography OK frames: {homography_ok_frames}/{processed_frames}")
     print(f"Homography available frames: {homography_available_frames}/{processed_frames}")
     print(f"Valid projection rows: {valid_projection_rows}/{max(total_rows, 1)}")
@@ -947,6 +976,7 @@ def main(
         "avg_players_per_frame": player_total / max(processed_frames, 1),
         "ball_detect_coverage": ball_detect_frames / max(processed_frames, 1),
         "ball_interp_coverage": ball_interp_frames / max(processed_frames, 1),
+        "ball_roi_recovery_rate": ball_roi_recovered_frames / max(processed_frames, 1),
         "homography_ok_rate": homography_ok_frames / max(processed_frames, 1),
         "homography_available_rate": homography_available_frames / max(processed_frames, 1),
         "valid_projection_ratio": valid_projection_rows / max(total_rows, 1),

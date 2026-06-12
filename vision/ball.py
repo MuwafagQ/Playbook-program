@@ -137,6 +137,11 @@ class BallSmoother:
         v = self.state.velocity if self.state.velocity is not None else np.zeros(2, dtype=np.float32)
         return self.state.center + v
 
+    def predicted_center(self) -> np.ndarray | None:
+        """One-step prediction of the ball position, or None when no track is
+        active. Used by ROI re-detection to centre the search crop."""
+        return self._predicted_center()
+
     def _gate_radius(self) -> float:
         # Until we've measured a real velocity, use the wider acquisition gate so
         # a fast ball's first post-acquisition move can be picked up.

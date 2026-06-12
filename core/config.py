@@ -113,6 +113,15 @@ class Settings(BaseSettings):
     # 0 = off. Pitch is ~12000x7000 cm.
     BALL_ON_PITCH_MARGIN_X: float = 500.0
     BALL_ON_PITCH_MARGIN_Y: float = 500.0
+    # ROI re-detection: when the full-frame pass finds no ball but a track is
+    # active, re-run detection on an upscaled crop around the predicted position
+    # (the tiny ball becomes several times larger in the zoomed crop). Costs one
+    # extra inference call on miss frames only. The recovered detection still
+    # passes the smoother's distance/size/confidence gates.
+    BALL_ROI_RECOVERY: bool = True
+    BALL_ROI_PX: int = 320
+    BALL_ROI_UPSCALE: float = 2.0
+    BALL_ROI_CONF: float = 0.10
 
     # Tiny box filtering (ratio relative to frame area)
     MIN_AREA_RATIO_PEOPLE: float = 0.00008

@@ -52,6 +52,64 @@ def infer_players_and_ball_upscaled(
     return det
 
 
+def _empty_ball_detections() -> sv.Detections:
+    return sv.Detections(
+        xyxy=np.zeros((0, 4), dtype=np.float32),
+        confidence=np.zeros((0,), dtype=np.float32),
+        class_id=np.zeros((0,), dtype=np.int32),
+    )
+
+
+def recover_ball_in_roi(
+    player_model,
+    frame: np.ndarray,
+    center_xy,
+    roi_px: int = 320,
+    upscale: float = 2.0,
+    conf: float = 0.10,
+) -> sv.Detections:
+    """
+    Second-chance ball detection in a zoomed crop around the predicted position.
+
+    The ball is often only ~10 px in the full frame, below what the detector
+    resolves reliably. Cropping roi_px around the trajectory prediction and
+    upscaling makes the ball several times larger, recovering detections the
+    full-frame pass missed. Returned boxes (ball class only) are mapped back to
+    full-frame coordinates.
+
+    The low conf here is safe because the result is spatially anchored: the
+    caller's smoother still applies its distance/size/confidence gates.
+    """
+    h, w = frame.shape[:2]
+    half = max(16, int(roi_px) // 2)
+    cx = int(round(float(center_xy[0])))
+    cy = int(round(float(center_xy[1])))
+    x1 = max(0, cx - half)
+    y1 = max(0, cy - half)
+    x2 = min(w, cx + half)
+    y2 = min(h, cy + half)
+    if (x2 - x1) < 32 or (y2 - y1) < 32:
+        return _empty_ball_detections()
+
+    crop = frame[y1:y2, x1:x2]
+    up = float(max(1.0, upscale))
+    if up > 1.01:
+        crop = cv2.resize(
+            crop,
+            (int((x2 - x1) * up), int((y2 - y1) * up)),
+            interpolation=cv2.INTER_LINEAR,
+        )
+
+    det = infer_players_and_ball(player_model, crop, conf=conf)
+    if det.class_id is None or len(det) == 0:
+        return _empty_ball_detections()
+    det = det[det.class_id == BALL_ID]
+    if len(det) == 0:
+        return _empty_ball_detections()
+    det.xyxy = det.xyxy / up + np.array([x1, y1, x1, y1], dtype=np.float32)
+    return det
+
+
 _KP_CORRESPONDENCE_LOGGED = False
 
 
