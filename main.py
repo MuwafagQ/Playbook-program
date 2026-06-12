@@ -464,6 +464,18 @@ def main(
                     margin_y=s.BALL_ON_PITCH_MARGIN_Y,
                     anchor=sv.Position.BOTTOM_CENTER,
                 )
+                # Trajectory exception: the homography is a GROUND-PLANE map, so
+                # an airborne ball projects to a point well behind its true spot
+                # — often beyond the goal line — even though it's in play. A real
+                # high ball is continuous with the track in image space, while a
+                # stands false positive is far from it. Keep off-pitch candidates
+                # that fall inside the smoother's gate around the prediction.
+                if not np.all(bmask):
+                    _pred = ball_smoother.predicted_center()
+                    if _pred is not None:
+                        bc = 0.5 * (raw_ball_det.xyxy[:, 0:2] + raw_ball_det.xyxy[:, 2:4])
+                        bdist = np.linalg.norm(bc - _pred.reshape(1, 2), axis=1)
+                        bmask = bmask | (bdist <= ball_smoother.gate_radius())
                 raw_ball_det = raw_ball_det[bmask]
 
             # ROI re-detection: the full-frame pass found no usable ball this

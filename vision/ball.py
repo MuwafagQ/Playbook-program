@@ -142,6 +142,11 @@ class BallSmoother:
         active. Used by ROI re-detection to centre the search crop."""
         return self._predicted_center()
 
+    def gate_radius(self) -> float:
+        """Current acceptance-gate radius around the predicted position (px).
+        Used by the boundary gate's trajectory exception for airborne balls."""
+        return self._gate_radius()
+
     def _gate_radius(self) -> float:
         # Until we've measured a real velocity, use the wider acquisition gate so
         # a fast ball's first post-acquisition move can be picked up.
