@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     HF_TOKEN: str | None = Field(default=None, description="Hugging Face token (optional)")
 
     PLAYER_MODEL_ID: str = "football-players-detection-3zvbc/11"
-    FIELD_MODEL_ID: str = "football-field-detection-f07vi/14"
+    FIELD_MODEL_ID: str = "football-field-detection-f07vi-it2xv/10"
 
     # Runtime
     DEVICE: str = "cpu"
@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     TEAM_MODE: str = "color"  # color | embedding
     SIDE_BY_SIDE_VIEW: bool = True
     LEFT_VIEW_RATIO: float = 0.62
+
+    # 2D radar (top-down pitch) rendering.
+    # Uses the roboflow/sports pitch annotators. The radar is only refreshed
+    # every RADAR_EVERY_N frames (and held in between) to remove the per-frame
+    # jitter caused by detection/homography noise.
+    RADAR_EVERY_N: int = 5
+    RADAR_SCALE: float = 0.1
+    RADAR_PADDING: int = 50
 
     # Tracker tuning (applied when supported by installed supervision version)
     TRACKER_TYPE: str = "bytetrack"  # bytetrack | botsort
@@ -72,13 +80,48 @@ class Settings(BaseSettings):
     DET_CONF_GOALKEEPER: float = 0.22
     DET_CONF_BALL: float = 0.10
     DETECT_UPSCALE: float = 1.35
+    # FIELD_CONF = object (pitch) detection threshold passed to .infer(); must stay
+    # well below the pitch detection's confidence floor (~0.55) or whole frames drop.
+    # KP_CONF = per-keypoint confidence filter applied before findHomography.
+    # 0.30 / 0.50 match the original notebook recipe.
     FIELD_CONF: float = 0.30
-    KP_CONF: float = 0.30
+    KP_CONF: float = 0.50
     BALL_PAD_PX: int = 10
     BALL_MAX_MISSING: int = 10
     BALL_MAX_INTERP_FRAMES: int = 8
-    BALL_MAX_JUMP_PX: float = 140.0
+    # Hard ceiling on accepted ball displacement from the predicted position (px).
+    # Raised from 140: the velocity-aware gate (below) keeps slow-ball matching
+    # tight, while this only blocks genuinely wild jumps. A struck ball can move
+    # several hundred px/frame in a broadcast clip.
+    BALL_MAX_JUMP_PX: float = 600.0
     BALL_MIN_CONF: float = 0.12
+    # Velocity-aware acceptance gate: radius = BALL_GATE_BASE_PX + BALL_GATE_VEL_K*speed,
+    # capped at BALL_MAX_JUMP_PX. Base covers detection jitter on a slow ball.
+    BALL_GATE_BASE_PX: float = 90.0
+    BALL_GATE_VEL_K: float = 3.0
+    # Wider cold-start gate, used until a real velocity has been measured.
+    BALL_ACQUIRE_GATE_PX: float = 300.0
+    # Reject a ball candidate whose box area exceeds this multiple of the running
+    # ball-size estimate (filters boots/limbs misread as the ball). 0 = off.
+    BALL_SIZE_MAX_RATIO: float = 5.0
+    # EMA weight of the newest velocity measurement; per-frame decay while bridging.
+    BALL_VEL_ALPHA: float = 0.5
+    BALL_HOLD_DECAY: float = 0.85
+    # On-pitch boundary gate: drop ball detections whose projected position falls
+    # outside the pitch rectangle (defined by the corner keypoints) expanded by
+    # these margins (cm). Catches balls detected behind the goal / in the stands.
+    # 0 = off. Pitch is ~12000x7000 cm.
+    BALL_ON_PITCH_MARGIN_X: float = 500.0
+    BALL_ON_PITCH_MARGIN_Y: float = 500.0
+    # ROI re-detection: when the full-frame pass finds no ball but a track is
+    # active, re-run detection on an upscaled crop around the predicted position
+    # (the tiny ball becomes several times larger in the zoomed crop). Costs one
+    # extra inference call on miss frames only. The recovered detection still
+    # passes the smoother's distance/size/confidence gates.
+    BALL_ROI_RECOVERY: bool = True
+    BALL_ROI_PX: int = 320
+    BALL_ROI_UPSCALE: float = 2.0
+    BALL_ROI_CONF: float = 0.10
 
     # Tiny box filtering (ratio relative to frame area)
     MIN_AREA_RATIO_PEOPLE: float = 0.00008
@@ -90,8 +133,24 @@ class Settings(BaseSettings):
     MIN_KP: int = 6
     MIN_INLIER_RATIO: float = 0.40
     MAX_REPROJ_ERR: float = 80.0
-    H_HOLD_MAX_FRAMES: int = 10
+    # Absolute inlier-count acceptance (alongside the ratio bar). 0 = ratio only.
+    H_MIN_INLIERS_ABS: int = 5
     H_REINIT_FRAMES: int = 30
+    # Inlier-ratio hysteresis: once locked, maintain at (MIN_INLIER_RATIO - this).
+    H_INLIER_HYSTERESIS: float = 0.08
+    # Frame-to-frame discontinuity gate (cm of median projected jump). 0 = off.
+    H_MAX_JUMP_M: float = 2000.0
+    # Minimum keypoint spread (px, weaker PCA axis) to attempt a fit. 0 = off.
+    H_MIN_KP_SPREAD_PX: float = 12.0
+    # Bounded short hold: frames to keep the last good H when a degeneracy guard fires.
+    H_MAX_HOLD_FRAMES: int = 15
+    # Optical-flow homography propagation: when a fresh keypoint H can't be solved
+    # (degenerate midfield geometry), propagate the last good H using camera motion
+    # from background features. Propagation accumulates drift, so the cap bounds how
+    # long it is allowed to compound; the state machine then HOLDS the frozen H for up
+    # to H_REINIT_FRAMES more frames before blanking.
+    H_OPTFLOW_BRIDGE: bool = True
+    H_MAX_PROPAGATION_FRAMES: int = 60
 
 
 def load_settings() -> Settings:

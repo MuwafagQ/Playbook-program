@@ -52,41 +52,125 @@ def infer_players_and_ball_upscaled(
     return det
 
 
+def _empty_ball_detections() -> sv.Detections:
+    return sv.Detections(
+        xyxy=np.zeros((0, 4), dtype=np.float32),
+        confidence=np.zeros((0,), dtype=np.float32),
+        class_id=np.zeros((0,), dtype=np.int32),
+    )
+
+
+def recover_ball_in_roi(
+    player_model,
+    frame: np.ndarray,
+    center_xy,
+    roi_px: int = 320,
+    upscale: float = 2.0,
+    conf: float = 0.10,
+) -> sv.Detections:
+    """
+    Second-chance ball detection in a zoomed crop around the predicted position.
+
+    The ball is often only ~10 px in the full frame, below what the detector
+    resolves reliably. Cropping roi_px around the trajectory prediction and
+    upscaling makes the ball several times larger, recovering detections the
+    full-frame pass missed. Returned boxes (ball class only) are mapped back to
+    full-frame coordinates.
+
+    The low conf here is safe because the result is spatially anchored: the
+    caller's smoother still applies its distance/size/confidence gates.
+    """
+    h, w = frame.shape[:2]
+    half = max(16, int(roi_px) // 2)
+    cx = int(round(float(center_xy[0])))
+    cy = int(round(float(center_xy[1])))
+    x1 = max(0, cx - half)
+    y1 = max(0, cy - half)
+    x2 = min(w, cx + half)
+    y2 = min(h, cy + half)
+    if (x2 - x1) < 32 or (y2 - y1) < 32:
+        return _empty_ball_detections()
+
+    crop = frame[y1:y2, x1:x2]
+    up = float(max(1.0, upscale))
+    if up > 1.01:
+        crop = cv2.resize(
+            crop,
+            (int((x2 - x1) * up), int((y2 - y1) * up)),
+            interpolation=cv2.INTER_LINEAR,
+        )
+
+    det = infer_players_and_ball(player_model, crop, conf=conf)
+    if det.class_id is None or len(det) == 0:
+        return _empty_ball_detections()
+    det = det[det.class_id == BALL_ID]
+    if len(det) == 0:
+        return _empty_ball_detections()
+    det.xyxy = det.xyxy / up + np.array([x1, y1, x1, y1], dtype=np.float32)
+    return det
+
+
 _KP_CORRESPONDENCE_LOGGED = False
+
+
+def _vertex_label(keypoint) -> int:
+    """Pitch-vertex label for a Roboflow keypoint.
+
+    class_name is the true vertex label (e.g. "20"); the model's internal
+    class_id is a different ordering and must NOT be used for correspondence.
+    Falls back to class_id only if class_name is missing/non-numeric.
+    """
+    name = getattr(keypoint, "class_name", None)
+    try:
+        return int(name)
+    except (TypeError, ValueError):
+        try:
+            return int(keypoint.class_id)
+        except (TypeError, ValueError, AttributeError):
+            return -1
 
 
 def infer_field_keypoints(field_model, frame: np.ndarray, conf: float) -> sv.KeyPoints:
     global _KP_CORRESPONDENCE_LOGGED
     result = field_model.infer(frame, confidence=conf)[0]
-    kp = sv.KeyPoints.from_inference(result)
-    # sv.KeyPoints.from_inference only stores the global detection class_id, not
-    # the per-keypoint class_ids that encode which pitch vertex each point corresponds to.
-    # Inject the per-keypoint ids so the homography estimator uses the correct mapping.
-    try:
-        pred = result.predictions[0]
-        per_kp_ids = np.array(
-            [kpt.class_id for kpt in pred.keypoints],
-            dtype=np.int32,
+    preds = list(getattr(result, "predictions", []) or [])
+    if len(preds) == 0:
+        return sv.KeyPoints(xy=np.zeros((1, 0, 2), dtype=np.float32))
+
+    # The field model detects a single "pitch" object, but at low FIELD_CONF it can
+    # emit duplicate detections (Roboflow test: 3 "pitch" boxes at the 0.53 object
+    # threshold). Use the HIGHEST-confidence detection, not predictions[0] — order is
+    # not guaranteed, and a weaker duplicate would corrupt the homography. Its keypoint
+    # list is the full vertex set; each keypoint carries its own class_id (-> pitch
+    # vertex) and confidence, which sv.KeyPoints.from_inference throws away.
+    pred = max(preds, key=lambda p: float(getattr(p, "confidence", 0.0)))
+    kpts = list(getattr(pred, "keypoints", []) or [])
+
+    xy = np.array([[float(k.x), float(k.y)] for k in kpts], dtype=np.float32).reshape(1, -1, 2)
+    kp = sv.KeyPoints(xy=xy)
+    # Store the pitch-vertex LABEL (class_name, e.g. "20"), NOT the model's internal
+    # class_id. The model's class_id ordering is its own and does NOT match the pitch
+    # vertex numbering (class_id 17 == vertex label "20" for this model). The
+    # homography estimator maps label -> vertex index via the pitch config.
+    # The KeyPoints constructor validates class_id as per-DETECTION; assign per-keypoint
+    # arrays (shape [1, n_kp]) as attributes so the homography estimator can read them.
+    kp.class_id = np.array([_vertex_label(k) for k in kpts], dtype=np.int32).reshape(1, -1)
+    kp.confidence = np.array([float(k.confidence) for k in kpts], dtype=np.float32).reshape(1, -1)
+
+    if not _KP_CORRESPONDENCE_LOGGED:
+        labels = kp.class_id[0]
+        cf = kp.confidence[0]
+        print(
+            f"[detect] keypoint vertex-labels injected: n={labels.shape[0]} "
+            f"labels[0:8]={labels[:8].tolist()} conf[0:8]={np.round(cf[:8], 2).tolist()} "
+            f"pitch_conf={float(getattr(pred, 'confidence', 0.0)):.2f} n_det={len(preds)}"
         )
-        kp.class_id = per_kp_ids.reshape(1, -1)
-        if not _KP_CORRESPONDENCE_LOGGED:
-            print(
-                f"[detect] keypoint correspondence injected: "
-                f"n={per_kp_ids.shape[0]} ids[0:8]={per_kp_ids[:8].tolist()}"
-            )
-            try:
-                pairs = [
-                    (int(kpt.class_id), getattr(kpt, "class_name", "?"))
-                    for kpt in pred.keypoints[:12]
-                ]
-                print(f"[detect] kp class_id <-> class_name pairs: {pairs}")
-            except Exception:
-                pass
-            _KP_CORRESPONDENCE_LOGGED = True
-    except Exception as exc:
-        if not _KP_CORRESPONDENCE_LOGGED:
-            print(f"[detect] WARNING: keypoint correspondence injection FAILED: {exc!r}")
-            _KP_CORRESPONDENCE_LOGGED = True
+        try:
+            pairs = [(int(k.class_id), getattr(k, "class_name", "?")) for k in kpts[:12]]
+            print(f"[detect] kp class_id <-> class_name (label) pairs: {pairs}")
+        except Exception:
+            pass
+        _KP_CORRESPONDENCE_LOGGED = True
     return kp
 
 

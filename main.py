@@ -17,6 +17,7 @@ from vision.models import load_roboflow_models
 from vision.detect import (
     infer_players_and_ball_upscaled,
     infer_field_keypoints,
+    recover_ball_in_roi,
     tiny_box_filter,
     class_conf_filter,
     BALL_ID, PLAYER_ID, REFEREE_ID, GOALKEEPER_ID,
@@ -29,10 +30,9 @@ from vision.ball import BallSmoother
 from vision.team_memory import TeamMemory
 from vision.id_stabilizer import IDStabilizer
 from geometry.homography import HomographyEstimator
-from geometry.hstate import HomographyStateMachine
-from geometry.projection import project_anchors_to_pitch
+from geometry.projection import project_anchors_to_pitch, on_pitch_mask
 from io_utils.writers import CSVWriter, VideoWriter
-from io_utils.minimap import render_side_panel, compose_side_by_side
+from io_utils.radar import render_radar, compose_with_radar, overlay_radar
 from io_utils.kpi import write_kpi_summary
 
 
@@ -163,6 +163,12 @@ def main(
         max_interp_frames=s.BALL_MAX_INTERP_FRAMES,
         max_jump_px=s.BALL_MAX_JUMP_PX,
         min_conf=s.BALL_MIN_CONF,
+        gate_base_px=s.BALL_GATE_BASE_PX,
+        gate_vel_k=s.BALL_GATE_VEL_K,
+        acquire_gate_px=s.BALL_ACQUIRE_GATE_PX,
+        size_max_ratio=s.BALL_SIZE_MAX_RATIO,
+        vel_alpha=s.BALL_VEL_ALPHA,
+        hold_decay=s.BALL_HOLD_DECAY,
     )
     team_memory = TeamMemory(history_size=35, min_votes=8)
     # Split stabilizers by role to prevent cross-class identity interference.
@@ -295,16 +301,8 @@ def main(
     h_est = HomographyEstimator(
         config=pitch_cfg,
         kp_conf=s.KP_CONF,
-        ema_alpha=s.H_EMA_ALPHA,
-        ransac_reproj_thresh=s.RANSAC_REPROJ_THRESH,
-        min_kp=s.MIN_KP,
-        min_inlier_ratio=s.MIN_INLIER_RATIO,
-        max_reproj_err=s.MAX_REPROJ_ERR,
-    )
-    h_state = HomographyStateMachine(
-        estimator=h_est,
-        hold_max_frames=s.H_HOLD_MAX_FRAMES,
-        reinit_frames=s.H_REINIT_FRAMES,
+        min_kp_spread_px=s.H_MIN_KP_SPREAD_PX,
+        max_hold_frames=s.H_MAX_HOLD_FRAMES,
     )
 
     team_clf = None
@@ -363,6 +361,21 @@ def main(
     )
 
     last_hmat = None
+    # --- Temporary diagnostic: log raw (pre-KP_CONF-filter) keypoint confidence
+    # around homography state transitions (e.g. camera jumps from box -> midfield).
+    # This tells us whether gaps are a CONFIDENCE problem (points detected but
+    # below KP_CONF -> training/threshold fix) or a TRUE DETECTION gap (model sees
+    # nothing useful -> needs algorithmic bridging or more training data), as
+    # opposed to a missing-template-keypoint problem.
+    _kp_debug_prev_state = "none"
+    _kp_debug_remaining = 0
+    _kp_debug_events_logged = 0
+    _kp_debug_max_events = 8
+    _kp_debug_frames_per_event = 6
+
+    last_radar = None
+    last_radar_h_ok = False
+    last_radar_h_state = "none"
     homography_ok = False
     homography_state = "none"
     homography_ok_frames = 0
@@ -370,6 +383,7 @@ def main(
     player_total = 0
     ball_detect_frames = 0
     ball_interp_frames = 0
+    ball_roi_recovered_frames = 0
     valid_projection_rows = 0
     total_rows = 0
     kp_used = 0
@@ -380,9 +394,6 @@ def main(
     start_time = time.time()
     processed_frames = 0
     prev_player_boxes: dict[int, np.ndarray] = {}
-    pitch_smooth: dict[int, tuple[float, float, int]] = {}
-    PITCH_SMOOTH_ALPHA = 0.30
-    PITCH_SMOOTH_RESET_GAP = 60
     GK_GOAL_ZONE_X_M = 1500.0  # cm; 15m from each goal line
     print("[stage] Starting frame loop...")
     with VideoWriter(out_video_path, video_info) as vw:
@@ -434,6 +445,64 @@ def main(
             officials_tracks, detector_ran_o = track_mgr_officials.update(frame_idx, officials_det, frame=frame_infer)
             tracks = merge_detections([players_tracks, officials_tracks])
             detector_ran = bool(detector_ran_p or detector_ran_o)
+
+            # On-pitch boundary gate for the ball: drop candidates projected
+            # outside the pitch rectangle (defined by the corner keypoints) before
+            # the smoother sees them, so a ball detected behind the goal / in the
+            # stands can never enter the trajectory. Uses the previous frame's H
+            # (geometry is stable frame-to-frame); skipped until the first lock.
+            if (
+                last_hmat is not None
+                and len(raw_ball_det) > 0
+                and (s.BALL_ON_PITCH_MARGIN_X > 0 or s.BALL_ON_PITCH_MARGIN_Y > 0)
+            ):
+                bmask = on_pitch_mask(
+                    last_hmat,
+                    raw_ball_det,
+                    (pitch_xmin, pitch_xmax, pitch_ymin, pitch_ymax),
+                    margin_x=s.BALL_ON_PITCH_MARGIN_X,
+                    margin_y=s.BALL_ON_PITCH_MARGIN_Y,
+                    anchor=sv.Position.BOTTOM_CENTER,
+                )
+                # Trajectory exception: the homography is a GROUND-PLANE map, so
+                # an airborne ball projects to a point well behind its true spot
+                # — often beyond the goal line — even though it's in play. A real
+                # high ball is continuous with the track in image space, while a
+                # stands false positive is far from it. Keep off-pitch candidates
+                # that fall inside the smoother's gate around the prediction.
+                if not np.all(bmask):
+                    _pred = ball_smoother.predicted_center()
+                    if _pred is not None:
+                        bc = 0.5 * (raw_ball_det.xyxy[:, 0:2] + raw_ball_det.xyxy[:, 2:4])
+                        bdist = np.linalg.norm(bc - _pred.reshape(1, 2), axis=1)
+                        bmask = bmask | (bdist <= ball_smoother.gate_radius())
+                raw_ball_det = raw_ball_det[bmask]
+
+            # ROI re-detection: the full-frame pass found no usable ball this
+            # frame, but the smoother still has an active trajectory. Re-run the
+            # detector on an upscaled crop around the predicted position — the
+            # tiny ball is several times larger there and is often recovered.
+            # Runs after the boundary gate (the prediction is anchored to the
+            # last on-pitch position) and only on frames where detection ran.
+            if (
+                s.BALL_ROI_RECOVERY
+                and _fut_det is not None
+                and len(raw_ball_det) == 0
+            ):
+                _pred_center = ball_smoother.predicted_center()
+                if _pred_center is not None:
+                    raw_ball_det = recover_ball_in_roi(
+                        player_model,
+                        frame_infer,
+                        _pred_center,
+                        roi_px=s.BALL_ROI_PX,
+                        upscale=s.BALL_ROI_UPSCALE,
+                        conf=s.BALL_ROI_CONF,
+                    )
+                    if len(raw_ball_det) > 0:
+                        if s.BALL_PAD_PX > 0:
+                            raw_ball_det.xyxy = sv.pad_boxes(raw_ball_det.xyxy, px=s.BALL_PAD_PX)
+                        ball_roi_recovered_frames += 1
 
             ball_det, ball_imputed = ball_smoother.update(raw_ball_det)
             stable_track_ids = np.full((len(tracks),), -1, dtype=np.int32)
@@ -715,16 +784,37 @@ def main(
                     for tid in stable_player_ids:
                         team_by_track[int(tid)] = team_memory.get(int(tid))
 
-            # 4) Field keypoints -> Homography state machine (result already computed in parallel)
+            # 4) Field keypoints -> pure per-frame homography (stateless, no fallback).
             if _fut_kp is not None:
                 kp = _fut_kp.result()
-                Hmat, homography_ok, hres = h_state.update(kp)
-                last_hmat = Hmat
-                homography_state = "ok" if homography_ok else ("hold" if Hmat is not None else "none")
+                hres = h_est.estimate(kp)
+                last_hmat = hres.H
+                homography_ok = bool(hres.ok)
+                homography_state = "ok" if homography_ok else "none"
                 homography_ok_frames += int(homography_ok)
                 kp_used = int(hres.n_points)
                 inlier_ratio = float(hres.inlier_ratio)
                 reproj_err = float(hres.reproj_err)
+
+                # --- Diagnostic: on each state transition, dump raw keypoint
+                # confidence for the next few frames (pre-KP_CONF filtering).
+                if homography_state != _kp_debug_prev_state and _kp_debug_events_logged < _kp_debug_max_events:
+                    _kp_debug_remaining = _kp_debug_frames_per_event
+                    _kp_debug_events_logged += 1
+                    print(f"[kp-debug] === transition {_kp_debug_prev_state} -> {homography_state} at frame={frame_idx} ===")
+                _kp_debug_prev_state = homography_state
+                if _kp_debug_remaining > 0:
+                    if kp is not None and kp.confidence is not None and len(kp.confidence) > 0:
+                        raw_conf = np.asarray(kp.confidence[0], dtype=np.float32)
+                        n_above = int((raw_conf > s.KP_CONF).sum())
+                        print(
+                            f"[kp-debug] frame={frame_idx} n_raw={len(raw_conf)} "
+                            f"conf_min={raw_conf.min():.2f} conf_max={raw_conf.max():.2f} "
+                            f"conf_mean={raw_conf.mean():.2f} above_KP_CONF({s.KP_CONF:.2f})={n_above}"
+                        )
+                    else:
+                        print(f"[kp-debug] frame={frame_idx} n_raw=0 (model returned no keypoints)")
+                    _kp_debug_remaining -= 1
             else:
                 homography_ok = False
                 if last_hmat is None:
@@ -741,25 +831,6 @@ def main(
             if last_hmat is not None:
                 pitch_xy_tracks = project_anchors_to_pitch(last_hmat, tracks, anchor=sv.Position.BOTTOM_CENTER)
                 pitch_xy_ball = project_anchors_to_pitch(last_hmat, ball_det, anchor=sv.Position.BOTTOM_CENTER)
-
-            # 5b) Per-track pitch-coord EMA smoothing (reduces minimap dot jitter).
-            for i in range(len(tracks)):
-                sid = int(stable_track_ids[i]) if i < len(stable_track_ids) else -1
-                if sid < 0:
-                    continue
-                if not (np.isfinite(pitch_xy_tracks[i, 0]) and np.isfinite(pitch_xy_tracks[i, 1])):
-                    continue
-                obs_x = float(pitch_xy_tracks[i, 0])
-                obs_y = float(pitch_xy_tracks[i, 1])
-                prev = pitch_smooth.get(sid)
-                if prev is None or (frame_idx - prev[2]) > PITCH_SMOOTH_RESET_GAP:
-                    pitch_smooth[sid] = (obs_x, obs_y, int(frame_idx))
-                else:
-                    sx = (1 - PITCH_SMOOTH_ALPHA) * prev[0] + PITCH_SMOOTH_ALPHA * obs_x
-                    sy = (1 - PITCH_SMOOTH_ALPHA) * prev[1] + PITCH_SMOOTH_ALPHA * obs_y
-                    pitch_smooth[sid] = (sx, sy, int(frame_idx))
-                    pitch_xy_tracks[i, 0] = sx
-                    pitch_xy_tracks[i, 1] = sy
 
             # 5c) Goalkeeper spatial constraint: demote GK detections that are far from any goal line.
             #     Conservative — never promotes random players, only demotes wrong GK labels.
@@ -866,25 +937,29 @@ def main(
                 cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 210, 255), 2)
                 cv2.putText(annotated, "ball", (x1, max(0, y1 - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 210, 255), 1, cv2.LINE_AA)
 
-            # 8) Side panel rendering
-            track_ids_arr = stable_track_ids if len(stable_track_ids) == len(tracks) else np.full((len(tracks),), -1, dtype=np.int32)
-            panel = render_side_panel(
-                frame=annotated,
-                pitch_vertices=list(pitch_cfg.vertices),
-                pitch_xy_tracks=pitch_xy_tracks,
-                track_class_ids=tracks.class_id.astype(np.int32) if tracks.class_id is not None else np.zeros((len(tracks),), dtype=np.int32),
-                track_ids=track_ids_arr.astype(np.int32),
-                team_by_track=team_by_track,
-                pitch_xy_ball=pitch_xy_ball,
-                homography_ok=homography_ok,
-            )
+            # 8) 2D radar (top-down pitch) rendering.
+            #    Refresh the radar only every RADAR_EVERY_N frames and hold it in
+            #    between — the main video still plays at full frame rate, but the
+            #    pitch dots stop jittering on per-frame detection/homography noise.
+            if (frame_idx % max(1, s.RADAR_EVERY_N) == 0) or (last_radar is None):
+                track_ids_arr = stable_track_ids if len(stable_track_ids) == len(tracks) else np.full((len(tracks),), -1, dtype=np.int32)
+                last_radar = render_radar(
+                    config=pitch_cfg,
+                    pitch_xy_tracks=pitch_xy_tracks,
+                    track_class_ids=tracks.class_id.astype(np.int32) if tracks.class_id is not None else np.zeros((len(tracks),), dtype=np.int32),
+                    track_ids=track_ids_arr.astype(np.int32),
+                    team_by_track=team_by_track,
+                    pitch_xy_ball=pitch_xy_ball,
+                    scale=s.RADAR_SCALE,
+                    padding=s.RADAR_PADDING,
+                )
+                last_radar_h_ok = homography_ok
+                last_radar_h_state = homography_state
+
             if s.SIDE_BY_SIDE_VIEW:
-                annotated = compose_side_by_side(annotated, panel, left_ratio=s.LEFT_VIEW_RATIO)
+                annotated = compose_with_radar(annotated, last_radar, left_ratio=s.LEFT_VIEW_RATIO, homography_ok=last_radar_h_ok, homography_state=last_radar_h_state)
             else:
-                panel_w = min(panel.shape[1], int(w * 0.38))
-                panel_resized = cv2.resize(panel, (panel_w, h), interpolation=cv2.INTER_AREA)
-                x0 = w - panel_w
-                annotated[:, x0:w] = cv2.addWeighted(annotated[:, x0:w], 0.25, panel_resized, 0.75, 0.0)
+                annotated = overlay_radar(annotated, last_radar, homography_ok=last_radar_h_ok, homography_state=last_radar_h_state)
 
             vw.write(annotated)
 
@@ -899,9 +974,9 @@ def main(
     print(f"Avg tracked players/frame: {player_total / max(processed_frames, 1):.2f}")
     print(f"Ball detected frames: {ball_detect_frames}/{processed_frames}")
     print(f"Ball interpolated frames: {ball_interp_frames}/{processed_frames}")
+    print(f"Ball ROI-recovered frames: {ball_roi_recovered_frames}/{processed_frames}")
     print(f"Homography OK frames: {homography_ok_frames}/{processed_frames}")
     print(f"Homography available frames: {homography_available_frames}/{processed_frames}")
-    h_est.report_failure_summary()
     print(f"Valid projection rows: {valid_projection_rows}/{max(total_rows, 1)}")
     print(f"Elapsed: {elapsed:.2f}s | Effective FPS: {fps:.2f}")
 
@@ -913,6 +988,7 @@ def main(
         "avg_players_per_frame": player_total / max(processed_frames, 1),
         "ball_detect_coverage": ball_detect_frames / max(processed_frames, 1),
         "ball_interp_coverage": ball_interp_frames / max(processed_frames, 1),
+        "ball_roi_recovery_rate": ball_roi_recovered_frames / max(processed_frames, 1),
         "homography_ok_rate": homography_ok_frames / max(processed_frames, 1),
         "homography_available_rate": homography_available_frames / max(processed_frames, 1),
         "valid_projection_ratio": valid_projection_rows / max(total_rows, 1),
