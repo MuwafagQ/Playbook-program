@@ -156,6 +156,12 @@ class BallSmoother:
         if self.state.center is None or self.state.missing > self.max_missing:
             self.state = BallTrackState()
             return self._empty(), False
+        # Re-open the wide acquisition gate for the next real detection.
+        # Without this, a stationary ball that gets kicked hard stays permanently
+        # rejected: vel_measured=True with speed≈0 → gate=gate_base_px=90px,
+        # too small for the kick displacement, so every subsequent frame is also
+        # rejected and the track extrapolates away from the real ball.
+        self.state.vel_measured = False
         if self.state.missing <= self.max_interp_frames:
             v = self.state.velocity if self.state.velocity is not None else np.zeros(2, dtype=np.float32)
             v = (v * self.hold_decay).astype(np.float32)
