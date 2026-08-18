@@ -87,6 +87,41 @@ If your load_settings() supports .env, create a .env in project root:
 ROBOFLOW_API_KEY=YOUR_KEY
 PLAYER_MODEL_ID=YOUR_ROBOFLOW_PLAYER_MODEL_ID
 FIELD_MODEL_ID=YOUR_ROBOFLOW_FIELD_MODEL_ID
+
+3b) Firebase Auth (Google + email/password login)
+The API (api.py) and the Streamlit app (streamlit_app.py) are protected by Firebase Auth.
+Both must be configured before either will work — the Streamlit login screen won't render, and
+the API will reject every request, until these are set.
+
+In the Firebase console:
+1. Enable the Google and Email/Password sign-in providers under Authentication -> Sign-in method.
+2. Project settings -> General -> Your apps -> add a Web app, copy its config values.
+3. Project settings -> Service accounts -> Generate new private key, save the JSON file
+   somewhere local (do NOT commit it).
+
+Add to your .env:
+
+FIREBASE_SERVICE_ACCOUNT_JSON=/path/to/serviceAccountKey.json
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_API_KEY=your-web-api-key
+FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+FIREBASE_APP_ID=your-web-app-id
+
+Install the added dependency:
+
+pip install firebase-admin
+
+How it works:
+- streamlit_app.py embeds the Firebase Web SDK to show a Google/email sign-in screen and
+  obtains a Firebase ID token client-side.
+- Every request to the API attaches that token as `Authorization: Bearer <token>`.
+- api.py verifies the token via firebase-admin (auth.py) on every request, and scopes each
+  job to the uid that created it — one signed-in user cannot see another's jobs/artifacts.
+
+Note: signInWithPopup (used for the Google button) runs inside a Streamlit embedded-HTML
+iframe; if your browser blocks the popup there, email/password sign-in is unaffected — only
+the Google button is at risk of this.
+
 4) Run as a Script (main.py)
 Edit the bottom of main.py:
 

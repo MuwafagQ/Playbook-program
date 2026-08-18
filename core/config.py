@@ -152,6 +152,23 @@ class Settings(BaseSettings):
     H_OPTFLOW_BRIDGE: bool = True
     H_MAX_PROPAGATION_FRAMES: int = 60
 
+    # ---- Firebase Auth ----
+    # Backend: verifies ID tokens via firebase-admin. Point this at a service
+    # account JSON downloaded from Firebase console -> Project settings ->
+    # Service accounts -> Generate new private key.
+    FIREBASE_SERVICE_ACCOUNT_JSON: str | None = Field(
+        default=None, description="Path to Firebase service-account JSON (backend token verification)"
+    )
+    FIREBASE_PROJECT_ID: str | None = None
+
+    # Frontend (Streamlit): the Firebase Web App config object, from Firebase
+    # console -> Project settings -> General -> Your apps -> Web app. These
+    # are not secret (they identify the project to the client SDK; access is
+    # still governed by Firebase Auth + your security rules).
+    FIREBASE_API_KEY: str | None = None
+    FIREBASE_AUTH_DOMAIN: str | None = None
+    FIREBASE_APP_ID: str | None = None
+
 
 def load_settings() -> Settings:
     s = Settings()
