@@ -89,3 +89,43 @@ structure in the deck is describing.
 - [ ] Who signs: auditor, governance lead, or technical director.
 - [ ] Whether age-group teams really buy separately, or the academy buys once centrally.
 - [ ] Whether a compliance artefact is itself a sellable deliverable.
+
+---
+
+## The real differentiator — tactical event notifications (8 Sep)
+The live product (`app.playbookiq.ai`) already shows phase tabs (Build-up / Transition /
+Finishing / **Retrait**) and fires in-context notifications such as **"RETRAIT → delay
+attack."**
+
+**The notification is the product; the metric is the engine.** A coach reads "delay attack"
+and knows what to do. A game analyst — the competitor's user — understands it instantly.
+xT never achieves that. This is the answer to the Hudl category problem: Hudl gives you
+video to watch; Playbook-IQ tells you what happened and what was wrong with it.
+
+**Hidden metric family (kept unpublished deliberately):** counter-attack efficiency —
+time-sensitive metrics and percentages, to be developed with the science-lab partners.
+"Retrait / delay attack" is the defensive counterpart already visible in the UI.
+
+**Validation so far:** the two youth-league experts *loved the notifications.*
+
+### Two consequences
+1. **UI hierarchy is inverted.** The Performance Metrics table leads with xT, xP, SP, BP, PR
+   — the industry-standard metrics Playbook-IQ would be *competing* on — while the
+   differentiator is a small popup. Flip it. Same inversion exists in the deck.
+2. **Engineering priority may be wrong.** The notifications are currently hand-labelled but
+   "easy to automate," and phase/event detection runs off ball position and team shape —
+   **no Re-ID required.** Automating the notification layer likely beats perfecting Re-ID as
+   the next build. Re-ID gates individual-player metrics (premium tier); notifications gate
+   the base product.
+
+### IP protection — practical
+Metrics and formulas are very hard to patent. Realistic protection:
+- **Code** is automatically copyrighted.
+- **Method** as a **trade secret** — which requires acting like it is one: NDA before
+  detailed demos, documented internally, access controlled.
+- **Trademark** Playbook-IQ and the metric names via **SAIP** (Saudi Authority for
+  Intellectual Property). Cheap, fast, and the one reliable protection for a *named* metric.
+- This is what **PDD Ask #2 (regulatory support)** is for — raise it with the program.
+- **Do not let secrecy block the six interviews.** The label is already visible to anyone
+  who sees a demo. A one-line NDA is enough; showing the notification fire is worth far more
+  than the risk.
