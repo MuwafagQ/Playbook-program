@@ -33,24 +33,39 @@ ever been quoted a price.** This is the single biggest unvalidated assumption in
   it is why the 4-matches/month cap is currently unachievable. Models trained so far are
   deliberately weak test models. Gross margin is a function of automation, nothing else.
 
-## THE BUYER — this changes the whole sale
-The Saudi **Ministry of Sport gives academies millions of riyals and requires them to
-implement data-analytics / advanced-analysis tools. It is a governance requirement, and
-compliance is rewarded financially.**
+## THE BUYING COMMITTEE — several roles, one of several triggers
 
-**Therefore the buyer is the internal auditors and the governance team — not the technical
-director, not the coach.**
+**Correction (8 Sep):** governance is *not* the buyer. It is **one segment of the persona and
+one buying trigger among several**, and **it does not apply to all ICPs.**
 
-Consequences:
-1. The job-to-be-done is **"satisfy the governance requirement and unlock the reward"**, not
-   "win more matches." Football performance is the proof, compliance is the purchase reason.
-2. The budget is **externally funded and earmarked**. You are not competing for the academy's
-   own discretionary money.
-3. Price against **the size of the grant**, not against what a club feels it can afford. This
-   dissolves most of the pricing anxiety.
-4. The pitch needs a **compliance artefact**: something an auditor can file as evidence that
-   an advanced analytics tool is in use. That may be as valuable as the metrics themselves.
-5. None of this is in the deck. **It should be on the problem slide.**
+### The roles, all of them engaged
+| Role | What they care about |
+|---|---|
+| **Owner** | Return on the academy; reputation; player sale value |
+| **Sporting director / manager** | Squad quality, development pathway, competitive results |
+| **Analyst / game analyst** | Daily workflow; producing insight without a data team |
+| **Coach** | What to change on Monday |
+| **Governance / internal audit** | Compliance where a mandate applies; unlocking the reward |
+
+Which of these leads varies by account. **Do not assume one universal buyer.** Darrena's
+ruling still holds — weight toward whoever pays — but *who pays differs between accounts*,
+and part of discovery is finding out which it is.
+
+### The governance trigger — real, but partial
+In Saudi, the **Ministry of Sport gives some academies substantial grants and requires them
+to implement data-analytics / advanced-analysis tools**; it is a governance matter and
+compliance is financially rewarded. Where this applies:
+- Budget is externally funded and earmarked — price against the grant, not their own pocket.
+- The purchase has urgency attached to someone else's deadline.
+- Internal audit or the governance team triggers it, then typically hands evaluation to a
+  sporting manager.
+- A **compliance artefact** — something an auditor can file as evidence the tool is in use —
+  may be worth building.
+
+**But it does not cover every target account.** For the rest, the buying reason is the
+football and commercial one: better development, better decisions, provable player value.
+So the product needs **both** arguments available, and the discovery interviews must
+establish *which trigger is live in each account*, not assume the mandate.
 
 ## Competitive framing problem
 Academies compare Playbook-IQ to **Hudl, Metrica, and telestration tools** — because those

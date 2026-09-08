@@ -33,19 +33,20 @@ Then the phase tabs (Build-up / Transition / Finishing / Retrait) and the pitch-
 *(Showing him is fine and recommended — he is your assigned mentor under program terms and a
 product lead in e-commerce SaaS, not a competitor. He cannot advise you blind.)*
 
-### 2. Think with me #1 — the buyer just changed — 15 min
-> "I've discovered my buyer probably isn't who I thought. The Saudi Ministry of Sport gives
-> academies large grants and requires them to implement advanced analytics — it's a governance
-> requirement, and compliance is rewarded. So the trigger sits with **internal auditors and
-> the governance team**, who then hand evaluation to a sporting manager.
+### 2. Think with me #1 — selling to a committee — 15 min
+> "My buyer isn't one person. An academy engages the owner, the sporting director, the
+> analyst, the coach — and in some accounts an internal governance team, because the Ministry
+> of Sport funds certain academies and requires them to implement advanced analytics, with
+> compliance financially rewarded. That mandate is a strong trigger where it applies, but it
+> doesn't apply to all of my targets.
 >
-> That means I'm selling compliance to one audience and football credibility to another, from
-> one product. How do I build for a buying committee like that as a solo founder — and does
-> the compliance angle become the wedge, or does it make me look like a box-ticking tool
-> rather than a real analytics product?"
+> So I have several roles to satisfy and two different buying reasons — compliance in some
+> accounts, football and commercial value in others. As a solo founder, how do I sell into a
+> committee like that without building two products? And should I qualify hard on the
+> mandated accounts first because the budget is already there, or does that narrow me too
+> early?"
 
-This is the highest-value question available. He has sold B2B into MENA institutions and he
-will have a real view.
+He has sold B2B into MENA institutions; this is the highest-value question available.
 
 ### 3. Think with me #2 — pricing — 10 min
 Be honest that the numbers are invented:
