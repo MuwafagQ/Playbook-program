@@ -1,76 +1,107 @@
-# Mentor Sync #1 — agenda
-**Deadline: complete by Sun 13 Sep.** Book with Startup ID. Assigned mentor only.
+# Mentor Sync #1 — Walid
+**Scheduled: Sun 13 Sep — the deadline day itself. No buffer.**
 
-## Principle
-A mentor sync is not a status update. Come with **specific asks** and leave with
-**commitments**. The single most valuable thing this mentor can give you in Week 1 is
-**introductions** — Assignment #1 needs 4 more interviews by 15 Sep and your stated
-bottleneck is access, not skill. Everything else is secondary.
+## Who he is (calibrate everything to this)
+Lead Product Strategist at **Salla** (MENA e-commerce SaaS, 68k merchants, 50B GMV).
+Early PM at **ClickUp** (scaled to $4B). Co-built **Qawafel**, B2B wholesale marketplace,
+$60M GMV in two years. Runs **Elden Studio** and built the **StartHack Framework** — a
+structured, plug-and-play approach to product-market fit. Figma/UX prototyping, no-code
+operational systems, AI-native "vibe building." Bilingual EN/AR, based in **Calgary**.
+Writes *Inside The Trenches* on product strategy. **Explicitly offers his LinkedIn network
+for warm intros.**
 
-Send this agenda ahead of the call. It signals seriousness and lets them prepare intros.
+**He is a product-strategy and B2B-SaaS operator. He is not a sports person and not a
+computer-vision expert.** Play to what he has.
+
+### Two consequences
+1. **Deprioritize the Ministry footage ask and the CV-lab ask.** They're real, but they're
+   not his network. Raise them in one sentence at the end, not as agenda items.
+2. **The timing kills intros as the primary ask.** Interviews must be *finished* by
+   Tue 15 Sep. A sync on Sunday the 13th leaves ~2 days for an intro to convert — too late
+   for Assignment #1. **Still ask** (for Assignment #2 and beyond), but it is no longer the
+   headline.
+
+**So the headline ask becomes product strategy — which is exactly his strength.**
+
+### Logistics
+- Calgary is **UTC−6**; Riyadh is **UTC+3** — a 9-hour gap. His morning is your evening.
+  Book early in the week; the 13th is the deadline with zero slack. **If an earlier slot
+  exists, take it.** If he cancels on the 13th you miss a mandatory obligation.
 
 ---
 
 ## Agenda (45–60 min)
 
-### 1. Context — 5 min, strictly
-Playbook-IQ: elite football analytics for GCC academies from broadcast footage only,
-no hardware. Working prototype, one full match processed. Ministry of Sport / SportTech track.
-Solo founder, surveying-engineering and GIS background, Barça Innovation Hub diploma.
-**Do not pitch. Do not open the deck unless asked.** Five minutes, then move on.
+### 1. Context — 4 min, hard stop
+Playbook-IQ: elite football analytics for GCC academies from broadcast footage only, no
+hardware, no analysts to hire. Working prototype, one full match processed end-to-end.
+Ministry of Sport / SportTech track. Solo technical founder; Barça Innovation Hub diploma.
+**No deck. No demo unless he asks.**
 
-### 2. THE ASK — introductions — 15 min ⭐ the reason for this meeting
-> "My Assignment #1 needs 6 customer interviews by 15 September, buyer-weighted per
-> Darrena's ICP session. I have two warm contacts, both users. I need **four academy owners
-> or technical directors in the GCC**. Who in your network should I speak to, and would you
-> introduce me?"
+### 2. Headline: pressure-test the two-tier product scope — 20 min ⭐
+Frame it as a decision you've made and want attacked — he responds to executable plans,
+not open questions.
 
-Have ready: a two-line description of exactly who you want to meet, and a forwardable intro
-blurb so the mentor only has to press send. Do not leave without at least **two names**.
+> "I've scoped the product into two tiers. **Base:** team-level tactical metrics —
+> territory, pressing zones, defensive block height, formation shape — fully automated
+> today. **Premium:** individual-player metrics and custom KPIs, where we handle the science
+> and broker an external sports-science lab; the club never touches the lab.
+>
+> The split isn't arbitrary — individual player identity across a full match is still a
+> research-grade CV problem, so anything requiring it can't be honestly sold as automated
+> yet. Is that credible sequencing, or does the base tier look too thin to sell?"
 
-### 3. Strategic question — 15 min
-Pick **one**, based on the mentor's background (see "Before the call"):
+This is the highest-value 20 minutes available. He has scoped MVPs at ClickUp and Qawafel
+and he will have a sharp view. It also directly de-risks **Assignment #2** (MVP Roadmap &
+Product Vision, due 27 Sep).
 
-- **If commercial / GTM:** "Darrena said prioritize the buyer. For us the buyer is the
-  academy owner and the daily user is the analyst. Our Trojan Horse play is that when an
-  academy sells a player, the buying pro club has to engage our platform to validate the
-  data — zero-CAC enterprise adoption. Is that a real GTM motion or wishful thinking?"
+### 3. The PLG tension — 10 min
+He is a PLG specialist. Your model is enterprise: ~100k SAR ACV, sales-led, long cycles.
+Name the tension yourself — he'll respect it:
 
-- **If technical / product:** "Our pipeline produces reliable team-level tactical metrics
-  automatically, but individual player identity across a full match still needs human
-  correction. I'm planning a two-tier product: automated team metrics in the base tier,
-  individual-player metrics and custom KPIs in a premium tier where we handle the science.
-  Does that read as honest sequencing or as a weak MVP?"
+> "Your background is PLG, but our ACV is around 100k SAR to academy owners, which looks
+> sales-led. Is there a self-serve wedge here — a free tier that gets a coach uploading one
+> match — that could pull the owner in? Or is PLG simply wrong for this buyer?"
 
-- **If sports industry:** "Do GCC academies actually monetize player development through
-  transfers today, or is that mostly a European dynamic? Our whole buyer thesis rests on it."
+*(A free single-match tier is plausible precisely because the base tier needs no human in
+the loop. If he likes it, that's a genuine strategic unlock — and it's cheap for you to
+build.)*
 
-### 4. Two standing asks — 10 min
-1. **Ministry of Sport footage licensing.** "We run on broadcast footage. The Ministry
-   sponsors our track. What's the sanctioned path to licensed league footage for an
-   accredited Launchpad startup — and who should I be talking to?"
-2. **Computer vision expertise.** "Player re-identification across a full match is a
-   research-grade problem. I need either a CV lab partnership or a technical co-founder.
-   Does the MISK network reach either?"
+### 4. StartHack — 5 min
+> "You built the StartHack Framework for finding PMF. We're in Phase 1 with 6 discovery
+> interviews due. Is there a piece of it I should be running on Playbook-IQ right now?"
 
-### 5. Close — 5 min
-- Confirm what they committed to (names, intros, follow-ups) — repeat it back.
-- Ask: **"What should I bring you next week?"**
-- Confirm next week's slot before hanging up (sync #2 due Sun 20 Sep).
+Cheap question, high yield: people enjoy applying their own framework, and it gives him a
+concrete way to help you every week.
+
+### 5. Intros — 8 min (for Assignment #2 and beyond, not #1)
+> "You offer warm intros. I need academy owners and technical directors in the GCC — the
+> buyer, per Darrena's ICP session. Your Salla and MENA operator network may not be football,
+> but is there anyone adjacent — sports business, youth sports operators, MENA founders who'd
+> know academy owners?"
+
+Bring a **forwardable 3-line blurb** so he only has to press send. Also ask whether he'd
+be willing to post or share the request on LinkedIn — that's leverage his network gives
+cheaply.
+
+### 6. Close — 5 min
+- One sentence each on the Ministry footage question and CV expertise — just so he knows
+  they exist, in case someone crosses his path.
+- Repeat back what he committed to.
+- **"What should I bring you next week?"**
+- Book sync #2 before hanging up (due Sun 20 Sep) — earlier in the week this time.
 
 ---
 
 ## Before the call
-- [ ] Look up the mentor's background — it decides which question in §3 you ask.
-- [ ] Write the forwardable intro blurb (2–3 lines, so they can just forward it).
+- [ ] **Try to move it earlier than the 13th.** Zero buffer on a mandatory obligation.
+- [ ] Read one issue of *Inside The Trenches* — mentioning it specifically buys goodwill.
 - [ ] Send this agenda ahead.
-- [ ] Decide the ONE thing you want out of the call. Right now that is **two introductions.**
+- [ ] Write the forwardable intro blurb.
+- [ ] Have interview findings ready if any interviews have happened by then — showing real
+      customer evidence changes the quality of his advice enormously.
 
 ## Do not
-- Spend the hour presenting the deck.
-- Ask "what do you think of my idea?" — it produces opinions, not action.
-- Leave without a named commitment.
-
-## After
-Log outcomes in `launchpad/sessions/` and update `TASKS.md`. Send a thank-you the same day
-that repeats their commitments in writing — that is what makes intros actually happen.
+- Present the deck. He'll tell you what's wrong with it if you ask; don't spend the hour on it.
+- Ask him about computer vision or football. Not his lane; it wastes the session.
+- Ask "what do you think of my idea?" — bring decisions to attack, not questions to answer.
