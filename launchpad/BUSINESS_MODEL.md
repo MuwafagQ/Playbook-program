@@ -88,10 +88,39 @@ spending. Reword from cost-replacement to capability-access:
 
 Aspirational, not cost-cutting. Same math, a sentence that survives scrutiny.
 
-## Second market — players' agents
-Agents want **scouting** (find and evaluate talent) primarily; opposition analysis secondary.
-Potentially a much shorter sales cycle than an academy and a natural fit for the Verified
-Asset Ledger. Not the beachhead — but worth one interview.
+## SECOND CUSTOMER — players' agents / agencies
+Muwafag: *"a big potential customer."* Treated properly here rather than as a footnote.
+
+**What they want:** **scouting** primarily — finding and evaluating talent, and building the
+case for a client. Opposition analysis is secondary.
+
+**Why this is strategically interesting, not just an extra segment:**
+1. **Much shorter sales cycle.** An agency is a small commercial business making its own
+   buying decision — no governance committee, no grant cycle, no sporting director to
+   convince. Days, not quarters.
+2. **They are the natural buyer of the Verified Asset Ledger.** An agent's entire job is
+   proving a player is worth more than the buying club currently believes. That is precisely
+   what the Ledger produces.
+3. **They may be a distribution channel, not only a customer.** An agent shopping a player
+   with a Playbook-IQ ledger puts the platform in front of buying clubs — which is the
+   "Trojan Horse" motion in the deck, but driven by agents rather than academies. Agents move
+   between many clubs; an academy touches few.
+4. **They already pay for data.** Agents buy Wyscout, Transfermarkt-type services and scouting
+   reports today, so willingness to pay is established and comparables exist — which directly
+   addresses the "no comparable pricing data" problem.
+
+**Open questions**
+- [ ] Is this a separate ICP with its own product, or the same platform with a scouting view?
+- [ ] Do agents pay per player, per season, or per placement/success fee?
+- [ ] Does an agent need individual-player metrics — i.e. does this segment depend on Re-ID,
+      unlike the academy base tier?
+- [ ] Are agents a customer, a channel, or both?
+- [ ] Regulatory: FIFA-licensed agents in Saudi — how many, and are they reachable?
+
+**Include at least one agent in the six discovery interviews.** Not as the beachhead — the
+academies remain the Phase 1 focus — but because one conversation would resolve whether this
+is a second business or a distraction, and agents are typically far easier to reach than
+academy owners.
 
 ## Market vision
 Start with academies; expand to pro clubs. That progression is what the TAM/SAM/SOM

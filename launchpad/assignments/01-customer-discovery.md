@@ -60,6 +60,7 @@ cheap differentiation in filtration.
 | Newly privatized mid-tier club | Sporting director | Is transfer-valuation proof a live pain? |
 | Youth league | Coach | Daily workflow; what they do with video today |
 | Federation / Ministry | Programme lead | Is a digital-standard mandate real? |
+| **Players' agent / agency** | **Agent** | **Would they pay for scouting data and a player ledger? Customer, channel, or both?** |
 
 Mix segments — 6 interviews all with youth coaches proves less than 6 across the buying chain.
 
