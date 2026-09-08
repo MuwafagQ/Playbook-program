@@ -76,3 +76,32 @@ Mix segments — 6 interviews all with youth coaches proves less than 6 across t
 - [ ] **Get the assignment form.** It shapes the questions and is required reading before interviews.
 - [ ] Confirm what counts as "customer discovery proof" — notes, recordings, contact list?
 - [ ] Submission link is **TBA** on the dashboard — watch for it.
+
+---
+
+## Pricing & governance questions — ASK THESE IN EVERY INTERVIEW
+The six interviews are how you get the pricing and market data you say you cannot find
+anywhere else. Six real data points by 15 Sep beats any amount of desk research.
+
+**Governance / the real buying trigger**
+1. "Tell me about the Ministry requirement around data and analytics tools. What exactly do
+   you have to implement?"
+2. "Is there a deadline? What happens if you don't meet it?"
+3. "Who inside the academy owns that compliance — who signs off?"
+4. "What does the reward look like — money, ranking, licensing?"
+5. "What have you implemented so far to satisfy it? How is that going?"
+
+**Current spend & tools**
+6. "What do you use today for match analysis? What does it cost per year?"
+7. "Who on staff works with that tool? What's their role?"
+8. "Have you looked at Hudl or Metrica? What stopped you, or what disappointed you?"
+9. "Do you have anyone who works with data, as opposed to video?"
+
+**Willingness to pay — ONLY at the very end, after they've described their problems**
+10. "If something solved that, what would you expect it to cost?"
+11. "Would you buy that per team, or once for the whole academy?"
+12. "Who would have to approve that spend?"
+
+**Rule:** never name your price first. Let them say a number. If they ask, deflect once —
+"I'm still working that out, what would feel right to you?" — then let it go. You have never
+quoted anyone; these six conversations are your first real market data.
