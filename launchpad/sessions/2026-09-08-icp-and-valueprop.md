@@ -70,3 +70,43 @@ the moat: state it plainly in the value prop.
 ## Do tonight, after the sessions
 Rewrite the ICP filter and the one-liner while it's fresh. Both feed Assignment #1 directly,
 and the interview guide should be built from the ICP you leave tonight with.
+
+---
+
+## Session outcome — Darrena, ICP masterclass (attended)
+
+**Ruling: prioritize the BUYER, keep the user engaged. Roughly buyer-weighted 3:1.**
+Target the person who pays first, without ignoring the person who uses it.
+
+### Consequences — apply these
+
+**1. Primary ICP is the buyer.** The academy **owner / technical director** who controls the
+budget. The analyst and coach are users to keep engaged, not the primary target.
+
+**2. Lead with the Verified Asset Ledger, not the tactical dashboard.**
+The Ledger answers the buyer's job — *"prove this player is worth what I'm asking."*
+The dashboard answers the user's job. Buyer-first means the Ledger moves to the front of
+the pitch, and the dashboard becomes what keeps the academy using it daily.
+
+**3. Interview mix flips (revises `outreach/interview-sourcing.md`):**
+| Target | Count |
+|---|---|
+| Academy owner / technical director (BUYER) | **4** |
+| Head of performance / analyst / coach (USER) | **2** |
+Optional 7th: federation / Ministry programme lead.
+Previously planned 2 buyers / 3 users / 1 institution — **now buyer-weighted.**
+
+**4. Value proposition leads on money, not tactics.** The buyer's language is transfer
+value, reputation, cost avoided (no data department, no hardware). Tactical sophistication
+is the proof, not the promise.
+
+**5. Buyer-first one-liner to test at the 6:40pm workshop:**
+> For academy owners in the GCC who develop and sell players, Playbook-IQ turns ordinary
+> match video into a verified record of every player's progression — the evidence you need
+> to justify a transfer fee — without hiring a data department or installing a camera.
+
+Keep the earlier user-facing one-liner as the secondary message for the analyst/coach.
+
+**6. The "who else should I talk to?" ask changes too.** When the two warm youth-league
+experts (users) give referrals, explicitly ask for **owners and technical directors**, not
+more coaches.
