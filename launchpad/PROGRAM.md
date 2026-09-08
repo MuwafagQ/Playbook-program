@@ -57,11 +57,17 @@ Post-program: further support resources, but **only for advanced companies.**
 | Thu 24 Sep | 6:40pm | Avoiding Common MVP Mistakes & Phase 1 Wrap | Panel | — |
 | **Sun 27 Sep** | **11:59pm** | **ASSIGNMENT #2 DEADLINE** | — | — |
 
-## Assignments
-- **#1 — Customer discovery interviews.** Due Thu 17 Sep 11:59pm. *(Full brief not yet
-  captured — it lives on the Notion dashboard. Needs to be pasted in.)*
-- **#2 —** Due Sun 27 Sep 11:59pm. Brief not yet captured. Likely MVP scope / roadmap given
-  the Week 2–3 curriculum arc.
+## Assignments (official briefs captured — see `assignments/`)
+- **#1 — JTBD, Value Proposition & Customer Discovery proof.** Minimum **6 interviews**, any
+  language. Due **Thu 17 Sep, 8:00 PM Saudi time.** One submission per startup. Must attend
+  the referenced sessions first (the last is 15 Sep, so the window is 15–17 Sep).
+- **#2 — MVP Roadmap & Product Vision.** "Summarize your product plans into one realistic
+  vision." Due **Sun 27 Sep, 8:00 PM Saudi time.** Window 17–27 Sep.
+
+Note: the curriculum CSV lists 11:59pm for both; the dashboard says 8:00 PM. **The dashboard
+governs.** Submission links are TBA.
+
+See also `OBLIGATIONS.md` — mandatory weekly mentor syncs and feedback forms.
 
 ## Recordings captured
 - Kick-off — https://us06web.zoom.us/rec/share/aUH8yI89h_zq-693rgyrimcJ4M1BfjxHq7EobnsuXevjlVLK-UMUPA-hSw4GmAc.IjhZYAY4VRr6iskE — passcode `g2^yyRf$`
