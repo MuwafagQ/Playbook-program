@@ -112,8 +112,17 @@ case for a client. Opposition analysis is secondary.
 **Open questions**
 - [ ] Is this a separate ICP with its own product, or the same platform with a scouting view?
 - [ ] Do agents pay per player, per season, or per placement/success fee?
-- [ ] Does an agent need individual-player metrics — i.e. does this segment depend on Re-ID,
-      unlike the academy base tier?
+- [x] **Yes — agents need individual-player metrics, so this segment depends on Re-ID**,
+      unlike the academy base tier. This confirms the sequencing: **academies first**
+      (no Re-ID needed), **agents second**.
+      *But note the wedge:* an agent cares about 1–3 named players, not all 22. Tracking two
+      prospects through a match is a far smaller problem than full-squad Re-ID, and manual
+      correction on two players is hours rather than months. So an agent offering could ship
+      as a **manual service** well before the SaaS is ready — "send the match, name the
+      player, we return the report," priced per player per match. No platform, no automation
+      required. Revenue, a second validated segment, and real pricing comparables, all before
+      Re-ID is solved. **Speculative, and a distraction if it pulls focus during Phase 1** —
+      but the door exists.
 - [ ] Are agents a customer, a channel, or both?
 - [ ] Regulatory: FIFA-licensed agents in Saudi — how many, and are they reachable?
 
