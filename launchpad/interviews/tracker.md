@@ -4,19 +4,19 @@ Owned by the Data Operations Specialist. Update after every send, reply and call
 ## Scoreboard
 | | Count |
 |---|---|
-| Outreach sent | 0 |
+| Outreach sent | batch sent 9 Sep — update count |
 | Replies | 0 |
 | Scheduled | 0 |
-| **Completed** | **0 / 6** |
+| **Completed** | **3 / 6** (all users; 3 buyers still needed) |
 
 ## Outreach log
 | # | Name | Academy / org | Role | Segment | Channel | Sent | Followed up | Reply | Interview date | Notes file |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | | | | buyer | LinkedIn | | | | | |
-| 2 | | | | buyer | | | | | | |
+| 1 | Feiras Alahmad | Al-Fateh SC | Academy Technical Director | buyer | LinkedIn | 9 Sep | | | | |
+| 2 | | | | buyer | LinkedIn | 9 Sep | | | | |
 | 3 | | | | buyer | | | | | | |
-| 4 | | | | governance | | | | | | |
-| 5 | | | | user | | | | | | |
+| 4 | | | | buyer / governance | | | | | | |
+| 5 | | | | buyer | | | | | | |
 | 6 | | | | agent | | | | | | |
 
 *(Add rows freely — aim for 30–40 sends, not 6.)*
@@ -26,12 +26,12 @@ Fill as they happen. This feeds Assignment #1 sections 7, 8 and 9–11 directly.
 
 | # | Date | Role / ICP | Main problem discussed | Key insight | Interest: yes / maybe / no |
 |---|---|---|---|---|---|
-| 1 | | | | | |
-| 2 | | | | | |
-| 3 | | | | | |
-| 4 | | | | | |
-| 5 | | | | | |
-| 6 | | | | | |
+| 1 | | Head coach (USER) | | | |
+| 2 | | Assistant coach / analyst (USER) | | | |
+| 3 | | Scout (USER) | | | |
+| 4 | | Buyer — TBC | | | |
+| 5 | | Buyer — TBC | | | |
+| 6 | | Buyer / agent — TBC | | | |
 
 ## Reasons for any "no"
 *(Record verbatim. The form asks for this and the honest answers are worth more than the yeses.)*

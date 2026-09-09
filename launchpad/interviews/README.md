@@ -2,21 +2,27 @@
 **Target: 6 fresh interviews completed by Tue 15 Sep 2026.** Assignment #1 requires a minimum
 of 6. Deadline for the assignment itself is **Thu 17 Sep, 8 PM KSA.**
 
-## Decision (9 Sep)
-Earlier conversations with an analyst, a coach and a scout are **parked**. They were over six
-months old, user-side only, and not conducted under JTBD discipline. **All six interviews for
-this assignment are fresh.**
+## Decision (revised 9 Sep)
+The user side is **covered** by three completed interviews — a coach, an assistant coach /
+analyst, and a scout. They are counted. **The remaining three must be buyers.**
+
+The user-ICP findings are being written up in `notes/` from Muwafag's records. The buyer side
+is entirely uncovered and is the critical path.
 
 ## Who we need — buyer-weighted
 Per Darrena Mamm's ICP masterclass: prioritise the buyer, keep the user engaged.
 
-| # | Target | Priority |
+| # | Target | Status |
 |---|---|---|
-| 1–2 | Academy owner / technical director (BUYER — controls budget) | **highest** |
-| 3 | Sporting director or academy manager | high |
-| 4 | Governance / internal audit lead, or a governance consultant | high |
-| 5 | Performance analyst or head coach (USER) | medium |
-| 6 | Players' agent (second segment) | medium |
+| 1 | Head coach (USER) | ✅ done |
+| 2 | Assistant coach / analyst (USER) | ✅ done |
+| 3 | Scout (USER) | ✅ done |
+| 4 | Academy owner / technical director (BUYER) | **needed** |
+| 5 | Academy owner / technical director or sporting director (BUYER) | **needed** |
+| 6 | Buyer, governance lead, or players' agent | **needed** |
+
+**3 of 6 complete. All three remaining must be buyer-side.** Darrena's ruling: prioritise the
+person who pays. Outreach is out; awaiting replies.
 
 ## How the work splits
 - **Muwafag:** runs every interview. Non-delegable.
