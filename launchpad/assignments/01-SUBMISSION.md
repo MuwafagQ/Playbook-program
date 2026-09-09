@@ -110,7 +110,7 @@ cycle, and dependent on individual-player tracking.
 ---
 
 ## 6. Number of interviews conducted
-`[minimum 6 — see the honesty note at the bottom]`
+`6` (minimum required). All conducted during Phase 1 — see `../interviews/tracker.md`.
 
 ---
 
@@ -118,24 +118,24 @@ cycle, and dependent on individual-player tracking.
 *Format: Interview N – [ICP / Interviewee Type]: [main problem]*
 
 ```
-Interview 1 – Performance analyst, youth academy: [fill from notes]
-Interview 2 – Coach, youth league: [fill from notes]
-Interview 3 – Scout: [fill from notes]
-Interview 4 – Academy director / owner: [to be conducted]
-Interview 5 – Technical director: [to be conducted]
-Interview 6 – Academy owner or governance lead: [to be conducted]
+Interview 1 – Academy owner / technical director (buyer): [fill from tracker]
+Interview 2 – Academy owner / technical director (buyer): [fill]
+Interview 3 – Sporting director / academy manager (buyer): [fill]
+Interview 4 – Governance / internal audit lead: [fill]
+Interview 5 – Performance analyst or head coach (user): [fill]
+Interview 6 – Players' agent: [fill]
 ```
 
 ## 8. Key insight from the interviews
 *Format: Interview N – [ICP / Interviewee Type]: [key insight]*
 
 ```
-Interview 1 – Performance analyst: [fill]
-Interview 2 – Coach: [fill]
-Interview 3 – Scout: [fill]
-Interview 4 – Academy director: [fill]
-Interview 5 – Technical director: [fill]
-Interview 6 – Owner / governance: [fill]
+Interview 1 – Academy owner / technical director: [fill]
+Interview 2 – Academy owner / technical director: [fill]
+Interview 3 – Sporting director: [fill]
+Interview 4 – Governance lead: [fill]
+Interview 5 – Analyst / coach: [fill]
+Interview 6 – Players' agent: [fill]
 ```
 
 **Write these as what you LEARNED, not what they liked.** "Liked the notifications" is not an
@@ -188,20 +188,15 @@ these responses are valuable.
 
 ---
 
-## Honesty note — read before filling section 6
-Three of the interviews are **more than six months old.** They were substantial — over an hour
-each, with notes — and they are legitimate customer research. But:
-- They were not conducted under the JTBD discipline taught in this programme.
-- They do not answer the questions that now matter most: pricing, who signs, and the
-  governance mandate.
-- They were with **users** — analyst, coach, scout. The buyer side is entirely uncovered.
+## Note on earlier research (decided 9 Sep)
+Three long conversations held more than six months ago — with an analyst, a coach and a scout —
+are **parked and not counted**. They shaped the current prototype, but they were user-side only,
+predate this programme, and cannot answer what now matters: pricing, who signs, and the
+governance mandate. **All six interviews for this assignment are fresh and buyer-weighted.**
 
-**Recommendation:** count them, and say plainly in section 16 that they predate the programme.
-Then make the new interviews buyer-side and fresh. That is both honest and stronger — it shows
-a research history rather than a scramble, and the form asks for progress and engagement, not
-perfection. Do not present old conversations as new ones.
+Mention the earlier research in section 16 as background if useful, but do not count it.
 
 ## On Darrena's 20–30
-She was describing what it takes to *know* an ICP, not what this assignment requires. The
-assignment requires 6. Do 6–8 well, and describe the ICP as a **hypothesis** rather than a
-finding. Saying so explicitly demonstrates you understood her point.
+She was describing what it takes to *know* an ICP in general, not what this assignment requires.
+The assignment requires 6. Do 6–8 well, and describe the ICP as a **hypothesis** rather than a
+finding — saying so explicitly shows you understood her point.

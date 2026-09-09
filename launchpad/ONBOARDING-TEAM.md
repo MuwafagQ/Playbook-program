@@ -59,9 +59,17 @@ structured data, and patience with detail.
 3. Annotate that same clip. Compare with Muwafag's version and discuss **every**
    disagreement — that conversation becomes our annotation standard, so write it down.
 4. Report: how long did it take, and which step was slowest? That's our baseline.
-5. In parallel, and urgently: help with **outreach**. See `outreach/outreach-kit.md`. We need
-   six customer interviews completed before 15 September and none have happened yet. This is
-   the critical path.
+5. **In parallel, and this is the urgent one: outreach.** We need **six fresh customer
+   interviews completed by Tue 15 September** and none have happened yet. This is the
+   critical path for the whole programme phase, and it is largely yours.
+   - Read `interviews/README.md` — who we need and why
+   - Read `outreach/linkedin-buyer-search.md` — where to find them
+   - Use the templates in `outreach/outreach-kit.md` (English and Arabic)
+   - Log **everything** in `interviews/tracker.md`
+   - Expect 30–40 messages to land 6 interviews. Send them within 48 hours.
+
+   Muwafag runs the interviews. You find the people, send the messages, chase the replies,
+   schedule the calls, and take the notes using `interviews/notes/TEMPLATE.md`.
 
 ## How we work
 - Everything lives in this repository. If it isn't written down here, it doesn't exist —
