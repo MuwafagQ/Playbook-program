@@ -14,6 +14,18 @@ Ask permission to record — Assignment #1 asks for *proof* of customer discover
 
 ---
 
+## What you are listening for (JTBD — Sher Gafar)
+- The **situation** — the context and the struggle
+- The **desired outcome** — where they want to get to
+- The **progress they already tried to make**, and the hacks they built
+- What they found **frustrating** — in their exact words
+- **Who else is involved**
+- Their **functional** job (what they want done), **emotional** job (how they want to feel),
+  and **social** job (how they want to be seen). B2B buyers have all three — career risk,
+  fear of blame, wanting to look forward-thinking.
+
+*"Jobs are best uncovered through stories, not hypothetical questions or feature demos."*
+
 ## 0. Open (2 min)
 > "Thank you for the time. I'm doing research, not selling — I want to understand how you
 > actually work with match video. There are no right answers. Do you mind if I record this for
@@ -39,11 +51,15 @@ Ask permission to record — Assignment #1 asks for *proof* of customer discover
     you'd had better information?
 13. What happens if you just… don't analyse a match? Who notices?
 
-## 4. Buying (4 min)
-14. If you wanted to bring in a new tool, what would that process look like?
-15. Who would need to approve it? Who else would have an opinion?
-16. What would have to be true for your academy to buy something like that this season?
-17. *(Only if they raise it — don't lead)* Is there anything the Ministry or the federation
+## 4. The trigger and the buyer (5 min)
+*Darrena's script steps 3 and 4 — the "why now" and the decision structure.*
+
+14. **"What would have to happen for you to make solving this a top priority tomorrow?"**
+    ← the single most important question in the interview. It reveals the trigger, and a
+    customer with no trigger stays interested forever and never buys.
+15. If you decided to buy a solution, who else would need to be involved?
+16. Who would need to approve it? Who else would have an opinion?
+17. *(Only if they raise it — never lead)* Is there anything the Ministry or the federation
     requires you to have in place around data and analytics?
 
 ## 5. Money — LAST, and only after they've described real pain (3 min)
@@ -55,12 +71,20 @@ Ask permission to record — Assignment #1 asks for *proof* of customer discover
 what would feel right to you?"* Then let it go. You have never quoted anyone; these six
 conversations are your first real pricing data.
 
-## 6. Close (1 min)
-21. Is there anything I should have asked you and didn't?
-22. **Who else should I be talking to? Could you introduce me to two or three people?**
-23. Would it be useful if I came back and showed you what I've built?
+## 6. Close with COMMITMENT (2 min)
+*Darrena's script step 6. This is what separates real intent from polite interest — and it is
+what the assignment form's yes / maybe / no counts are actually measuring.*
 
-Q22 is how six interviews become twelve. Ask it every single time.
+21. Is there anything I should have asked you and didn't?
+22. **"Would you be willing to be one of our first users on a real match of yours?"**
+23. **"Would you pay for early access?"**
+24. **"Could you introduce me to two others with this problem?"**
+
+**Applause is not validation.** "This is so cool" is not a yes. A yes is a date in the diary,
+a name of a person to contact, or a number they said out loud. Score the interview on what
+they *committed* to, not on how warm the conversation felt — and record the honest answer.
+
+Q24 is how six interviews become twelve. Ask it every single time.
 
 ---
 

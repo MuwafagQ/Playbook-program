@@ -21,6 +21,20 @@ Worth confirming on the dashboard which number governs.)
 
 Post-program: further support resources, but **only for advanced companies.**
 
+## Cohort 10 context (Kick-off deck, 7 Sep)
+- **251 startups**, selected roughly **5:1**. 86% based in Saudi Arabia (137 in Riyadh).
+- **SportTech is 14% of the cohort — roughly 35 startups in or near our track.** We are not
+  the only football/sports data play in the room.
+- **Stage split: Idea 9% · Prototype 24% · MVP built 37% · Launched 31%.** 67% arrive at MVP
+  or beyond. **Playbook-IQ is at prototype stage — in the bottom third by build maturity.**
+  Our edge has to be depth of customer insight and honesty of scoping, not build progress.
+- 70% build with AI technologies, so "we use AI" differentiates nothing here.
+- Delivered by **2080 Ventures** (team from 500 Global, Techstars, Mind the Bridge).
+- **19 mentors**, 9 from the local market, plus 5+ visiting mentor slots for the focus tracks.
+- Phase 1 was extended from 2 to 3 weeks specifically to allow more customer validation before
+  Phase 2 selection — the programme is telling us where the marks are.
+- Zoom name format: `StartupName_YourName` or `StartupID_YourName`, in English.
+
 ## Phase 1 curriculum
 
 ### Week 1

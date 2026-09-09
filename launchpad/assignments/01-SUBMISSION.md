@@ -73,24 +73,40 @@ governance requirement genuinely satisfied rather than superficially ticked.
 - The technical director looks credible to the board and to the Ministry
 
 **What forces can stop the customer from switching?**
-1. **No one on staff who works with data** — a tool needing interpretation will not be used.
-2. **Category confusion** — they compare us to Hudl and telestration tools, because those are
-   the only things they have seen, and then compare on price.
-3. **Budget authority is split** — the user is not the buyer, and in mandated academies a
-   governance function is involved as well.
-4. **Habit and low urgency** — where no mandate applies, nothing forces a decision this season.
-5. **Trust in an unproven vendor** — we are early, with no reference customer yet.
+*Structured as Sher Gafar's 4 Forces of Progress (JTBD masterclass, 7 Sep). Two forces push
+toward us, two hold them back — and the deck's own lesson is that you win by reducing the
+anxiety and breaking the habit, not by adding more product.*
+
+| Force | For our customer |
+|---|---|
+| **Push of the situation** | "I'm making decisions on instinct. Most matches are never analysed. When I sell a player I can't prove what he's worth. And the Ministry is asking what analytics tools we've implemented." |
+| **Pull of the new solution** | "Every match analysed automatically, from the footage we already have. No cameras, no hires. It tells me what went wrong in a sentence I understand, in Arabic." |
+| **Anxiety of the new solution** | "Who on my staff will actually run this? Will the numbers be right? These people are new — what if they disappear? Is this just Hudl with a different name at a different price?" |
+| **Habit of the present** | "Our analyst clips the video the way he always has. The coach trusts his own eyes. We've managed for years without this. Nothing forces a decision this season." |
+
+**And the largest competitor is a decision to do nothing.** (Sher Gafar, slide 26.)
 
 **How will you address it?**
-1. Deliver conclusions, not dashboards — plain-language notifications a coach acts on, with
-   no interpretation required. The product does the analyst's thinking.
-2. Reposition explicitly: Hudl gives you video to watch; we tell you what happened and what
-   was wrong with it. Lead every demo with a notification firing, not with a metrics table.
-3. Two arguments from one product — compliance evidence for governance, football and
-   commercial value for the sporting side — and qualify early on which one is live.
-4. Lead with the mandated accounts, where the trigger and the budget already exist.
-5. Reduce the risk of trying us: start with a single match, no hardware, no installation,
-   nothing to integrate.
+*Push and pull are already strong. The work is on anxiety and habit.*
+
+**Reducing anxiety**
+1. **No interpretation required.** We deliver conclusions, not dashboards — plain-language
+   notifications a coach acts on. Nobody needs hiring; the product does the analyst's thinking.
+2. **Show our uncertainty.** Every output carries its own confidence flags. We can say when we
+   are unsure — which is why our numbers can be trusted at all.
+3. **Nothing to install, nothing to integrate.** Start with one match. If it's wrong, they've
+   lost nothing.
+4. **Backed by science-lab partners**, so the metrics aren't one founder's opinion — and the
+   MISK Launchpad and Ministry of Sport track give an early vendor institutional credibility.
+
+**Breaking the habit**
+5. **Reposition out of the video category.** Hudl gives you footage to watch; we tell you what
+   happened and what was wrong with it. Lead every demo with a notification firing, never with
+   a metrics table — the comparison to telestration tools is what keeps them where they are.
+6. **Use the trigger.** Where the Ministry mandate applies, doing nothing stops being free.
+   That is the "why now" and we should qualify for it early.
+7. **Fit the existing workflow.** They already have footage and a game analyst. We add to what
+   they do rather than asking them to work differently.
 
 ---
 
