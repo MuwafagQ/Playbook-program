@@ -1,88 +1,86 @@
-# Role — Data Operations Engineer
-First hire. Engineering background. Reports to the founder.
+# Role — Data Operations Specialist
+First team member. Telecommunications engineering background, no longer working in the field
+and not attached to engineering as an identity. **No programming required in this role.**
 
 ## Title
-**Data Operations Engineer**
+**Data Operations Specialist**
 
-Accurate for an engineer, respectable on a CV and on LinkedIn, and it covers both the manual
-work needed now and the pipeline work it grows into. Avoid "intern" or "annotator" — he will
-disengage, and the role is genuinely more than that.
+Respectable, accurate, and honest — he isn't doing engineering, so calling it "Engineer"
+would set an expectation the work doesn't meet. If a more senior framing helps, use
+**Data Operations Lead**; he would be the only person in it.
 
-Alternatives if he prefers: *Data Pipeline Engineer*, *ML Data Engineer*.
+What he actually brings, and what the role needs: **systematic thinking, comfort with
+structured data, and patience with detail.** An engineering degree trains all three. None of
+the work below requires code.
 
 ## The one-line mission
-> **Turn raw match footage into trustworthy structured data — and progressively automate
-> yourself out of every manual step in that process.**
-
-That framing matters. The manual work is not busywork he's stuck with; it is how he learns
-the domain and generates the training data that eventually replaces it. Say this to him
-explicitly on day one.
+> **Own the quality of our match data, and measure how well the system is doing without us.**
 
 ## Why this role exists
-Cost to serve is ~10 SAR of compute per match and **months of manual labour**. Gross margin
-is a pure function of automation. This role owns that ratio.
+Cost to serve is ~10 SAR of compute per match and **months of manual work**. Margin is a pure
+function of how much of that manual work goes away. This role owns the manual work today and
+the evidence that shows it shrinking.
 
 ---
 
 ## Responsibilities
 
-### 1. Data operations (immediate — this is the bottleneck)
+### 1. Match data operations — the immediate bottleneck
 - Pass tagging and tactical event annotation on processed matches
-- Player identity correction and verification against the zero-duplicate
-  `(frame, display_track_id)` invariant
-- Quality review of pipeline output; log every case where the system got it wrong
-- Maintain the annotation standard so labels stay consistent between people
+- Player identity correction and verification (checking no frame has a duplicated player ID —
+  a systematic checking task, done in the existing notebooks and spreadsheets)
+- Reviewing pipeline output against the video and logging every case where it got it wrong
+- Keeping the annotation standard consistent, and writing it down as it develops
 
-### 2. Evaluation & measurement (high value, nobody is doing it)
-- Build the **ground-truth evaluation set** from annotated matches
-- Measure and report the automation ratio: mean identity duration before fragmentation,
-  % of frames with `homography_ok`, ID switches per player per minute, events correctly
-  auto-detected
-- Produce a per-match quality report
+### 2. Quality measurement — high value, currently nobody's job
+Spreadsheet work, not programming. Per match, track and report:
+- How long a player's identity holds before the system loses it
+- What percentage of frames had a valid pitch projection
+- How many identity switches happened per player per match
+- How many tactical events the system caught versus how many he had to add by hand
+- Total human hours spent per match
 
-*This is needed before Phase 4 technical due diligence and it does not exist yet. It is real
-engineering, it is measurable, and it is his to own.*
+**That last number is the most important metric in the company.** It is the automation
+ratio, it goes in Assignment #2, and it is what technical due diligence at Phase 4 will ask
+for. It does not exist yet. Give it to him and it becomes genuinely his.
 
-### 3. Pipeline engineering (grows over time)
-- Homography stabilization: add RANSAC and temporal smoothing — the cheapest quality win
-  available, days of work
-- Tooling to make annotation faster: batch review UI, keyboard-driven correction, semi-
-  automatic pre-labelling
-- **Automate the tactical notification layer** (phase and event detection). Currently
-  hand-labelled and "easy to automate" — and it needs no player Re-ID, so it is genuinely
-  achievable. Likely the highest-leverage build available.
-- Data infrastructure: storage, versioning, reproducible processing runs
+### 3. Research & operations support — useful this week
+- Building the academy and agency contact list (names, roles, emails, LinkedIn)
+- Competitor and pricing research — what Hudl, Metrica and regional tools actually charge
+- Interview scheduling, follow-ups, note-taking, transcription
+- Maintaining the outreach tracker
 
-### 4. Not his — keep these with the founder
-- Customer conversations and interviews
-- Metric definitions and the football logic behind them
-- Pricing, positioning, mentor syncs, the deck
-- Player Re-ID research (research-grade — this is the CV-lab Ask, not an internal task)
+### 4. Not his
+- Customer interviews and mentor syncs — founder only
+- Metric definitions and football logic — founder only
+- Pricing, positioning, the deck
+- Anything requiring code or model work
 
 ---
 
-## Progression — say this out loud when you offer the role
+## Progression
 | Stage | Focus |
 |---|---|
-| Weeks 1–4 | Annotation and quality review — learn the domain and the data |
-| Weeks 4–8 | Evaluation harness and metrics; annotation tooling |
-| Month 3+ | Homography stabilization, notification automation, pipeline ownership |
-| Later | Candidate for founding engineer as the company grows |
+| Weeks 1–2 | Learn the data; annotate under supervision; research support |
+| Weeks 3–6 | Own annotation quality; produce the per-match quality report |
+| Month 2+ | Own the automation-ratio measurement; define the annotation standard; potentially manage additional annotators as volume grows |
+
+If he later wants to learn the technical side, the path exists — but do not build the role
+on that assumption.
 
 ## First week — concrete
-1. Read `notebooks/HANDOVER.md` end to end. It is the best documentation of the data.
-2. Annotate one 10-minute clip to the existing standard. Compare against the founder's
-   labels; discuss every disagreement. That conversation *is* the annotation standard.
-3. Write down every ambiguity found — that becomes the annotation guide.
+1. Read `notebooks/HANDOVER.md`. It is the clearest description of what the data is.
+2. Watch one 10-minute clip alongside the system's output and write down everything wrong.
+3. Annotate that same clip. Compare with the founder's version, discuss every disagreement —
+   **that conversation is the annotation standard.**
 4. Report: how long did it take, and which step was slowest?
 
-That last number is the baseline everything else is measured against.
+Step 4 is the baseline. Everything after is measured against it.
 
 ## Practical
-- **Agree scope, hours and compensation in writing before starting.** Working with a friend
-  without written terms is how friendships and companies both break. Even an unpaid or
-  equity-light arrangement needs the expectations written down.
-- If equity is on the table, use **vesting with a cliff** — standard, protects both of you,
-  and is what any investor will expect to see at Phase 4.
-- Give him a real title and real ownership of the evaluation work. Engineers stay for
-  ownership, not for tasks.
+- **Agree scope, hours and compensation in writing before he starts.** Working with a friend
+  on a handshake is how both the friendship and the company get damaged.
+- If equity is discussed, use **vesting with a cliff** — protects both of you, and it is what
+  any investor will expect to see at Phase 4.
+- Give him genuine ownership of the quality report. People stay for ownership, not for tasks —
+  and this one is real, visible, and currently missing.
