@@ -10,6 +10,17 @@ Written 8 Sep 2026 at the end of the first working session, to be read by the ne
 5. `launchpad/TASKS.md` — running task log
 6. `launchpad/assignments/01-customer-discovery.md` — Assignment #1 working notes
 
+## Who you are talking to
+The team is now **two people**:
+- **Muwafag Hussain** — founder. Strategy, customers, metrics, pricing, the program.
+- **A Data Operations Specialist** — first team member, telecom-engineering background, no
+  longer in that field, **does not program**. Owns annotation, data quality measurement, and
+  research/outreach support. See `ROLE-data-operations-engineer.md` and
+  `ONBOARDING-TEAM.md`.
+
+Both use the same account, so **establish which of them you are speaking with at the start of
+a session** — their needs differ. The working agreement below is Muwafag's.
+
 ## Working agreement
 - Muwafag wants a co-pilot through the whole program — sessions, 1:1s, and assigned tasks —
   not one-off deliverables.
