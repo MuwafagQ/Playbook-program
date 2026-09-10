@@ -1,5 +1,5 @@
 # Interview guide — BUYERS (directors, owners, sporting directors)
-25–30 min. For interviews 4, 5 and 6. The user-side guide is `interview-guide.md`.
+**25–30 min. 8 core questions, plus a bank to draw from.** For interviews 4, 5 and 6. The user-side guide is `interview-guide.md`.
 
 ## Why this is a different conversation
 A director does not analyse matches. He decides about **people, money and risk**. So the
@@ -25,6 +25,43 @@ tool the academy bought.
   why I'm asking."*
 
 ---
+
+---
+
+# THE 8 QUESTIONS — this is the actual interview
+**25 minutes = ~20 minutes of questions. A real answer plus its follow-ups takes 2–3 minutes.
+That is 7–8 questions, not 36.** The long list further down is a *bank* to draw from when a
+thread opens or an answer runs dry — not a script to work through.
+
+**Memorise these eight. Everything else is optional.**
+
+| # | Question | What it gets you |
+|---|---|---|
+| 1 | "Tell me about your role — what are you actually responsible for?" | Warm-up, and whether he holds budget |
+| 2 | **"What's taking up most of your attention this season?"** | Priority ranking. If analytics doesn't come up unprompted, that is your finding |
+| 3 | **"Walk me through the last player who left your academy. How did you make the case for what he was worth?"** | The Verified Asset Ledger, tested against a real event |
+| 4 | "When the board asks why the team is performing the way it is, what do you show them?" | The evidence gap, and the emotional job |
+| 5 | "Who works with match video today, and what do they produce?" | Current solution and the habit |
+| 6 | **"What would have to happen for you to make this a top priority next month?"** | The trigger — the "why now" |
+| 7 | **"What was the last thing the academy bought that cost real money? How did that get decided, and who signed?"** | Budget signal and the signer, from past behaviour |
+| 8 | **"Would you let us analyse one of your matches so you can see what comes out?"** | Commitment. If yes, put a date in the diary during the call |
+
+**Then always:** *"Who else should I be speaking to? Could you introduce me to two people?"*
+
+## How to actually run it
+- **Ask the question, then stop talking.** The pause is where the real answer lives.
+- **Follow every answer with "why?" or "tell me more about that."** Three levels deep on one
+  good answer beats eight questions skimmed.
+- **Follow the energy.** If he starts telling you about a player sale that went badly, abandon
+  the order and stay there. That is the interview.
+- **Print the eight on one page.** Do not read from a laptop — Katya's rule.
+- If the conversation runs long and he's engaged, pull more from the bank below. If he's short
+  on time, **questions 3, 6 and 7 are the ones you cannot leave without.**
+
+---
+
+# THE QUESTION BANK
+*Reference only. Pull from these when a thread opens. Do not work through them in order.*
 
 ## 0. Open (2 min)
 > "Thank you for the time. I'm doing research, not selling — I want to understand how
