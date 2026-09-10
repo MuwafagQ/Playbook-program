@@ -26,7 +26,7 @@ Fill as they happen. This feeds Assignment #1 sections 7, 8 and 9–11 directly.
 
 | # | Date | Role / ICP | Main problem discussed | Key insight | Interest: yes / maybe / no |
 |---|---|---|---|---|---|
-| 1 | | Head coach (USER) | | | |
+| 1 | | Analyst, Al-Hilal U18 (USER) | Whole day per match on set-up, clipping and Photoshop, alone; no time or capacity for data | Job to be done is time back and recognition, not metrics; game analyst not data analyst | **maybe** |
 | 2 | | Assistant coach / analyst (USER) | | | |
 | 3 | | Scout (USER) | | | |
 | 4 | | Buyer — TBC | | | |
