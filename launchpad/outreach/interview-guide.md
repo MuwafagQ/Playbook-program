@@ -1,6 +1,19 @@
 # Interview guide — one page, hold this on the call
 **25 minutes. Target 4–6 completed by Tue 15 Sep.** Assignment #1 requires a minimum of 6.
 
+## Behaviour or feedback — decide before you dial
+*Katya de Freedericksz, Mom Test session:* **do not mix the two in one conversation, or the
+answers get distorted.**
+
+- **Generative interview** — learning their behaviour and world. **This is what all six of
+  ours are.** No product, no demo, no mockup.
+- **Evaluative interview** — testing whether a specific solution is desirable. A separate
+  conversation, on a separate day.
+
+If you want to show the dashboard, do it *after* you have closed the interview and said so
+out loud: *"That's the end of my questions — would you like to see what I've been building?"*
+Then it is a different conversation, and the research stays clean.
+
 ## The three rules
 1. **Never pitch.** If you describe the product, the interview is contaminated and the data
    is worthless. If they ask what you're building, say *"I'll show you at the end — I don't
@@ -11,6 +24,32 @@
    valuable half.
 
 Ask permission to record — Assignment #1 asks for *proof* of customer discovery.
+
+### Do
+- Thank them at the start and the end; build rapport before questions
+- Introduce yourself, the project, and the purpose of the research
+- Ask permission to record or take notes
+- Make them feel comfortable, safe, and in control of what they share
+- **Allow silence.** Give them time to think — the pause is where the real answer comes from
+- Tell them how useful their insight is, and that it stays anonymous
+- Ask **"why"** to consecutive answers, to get under the behaviour
+- Ask naive questions — the obvious ones often get unexpected answers
+- Encourage with small signals ("I see", a nod) without steering
+
+### Don't
+- Finish their sentences or correct them
+- Pitch, sell, or try to convince
+- Share your own opinions or show off your knowledge of football
+- Look at a laptop or phone during the call
+
+### Avoid leading questions
+❌ *"How frustrating was it when the analysis was late?"*
+✅ *"What were you feeling when the analysis was late?"*
+
+### And the hardest rule
+**Try to hear things you don't want to hear.** If you don't, you will find yourself selling,
+or hearing what you hoped for. The goal at this stage is validation *or invalidation* — not
+a sale.
 
 ---
 
@@ -62,29 +101,42 @@ Ask permission to record — Assignment #1 asks for *proof* of customer discover
 17. *(Only if they raise it — never lead)* Is there anything the Ministry or the federation
     requires you to have in place around data and analytics?
 
-## 5. Money — LAST, and only after they've described real pain (3 min)
-18. If something solved [repeat their exact words back], what would you expect it to cost?
-19. Would that be bought per team, or once for the whole academy?
-20. Who signs off on that number?
+## 5. Money — LAST, and asked about the PAST (3 min)
+*Corrected after Katya de Freedericksz's Mom Test session. The earlier version of this guide
+asked "what would you expect it to cost?" — that is a hypothetical, and the Mom Test rules it
+out. Ask what they have actually paid.*
 
-**Never say your price first.** If they ask, deflect once: *"I'm still working that out —
-what would feel right to you?"* Then let it go. You have never quoted anyone; these six
-conversations are your first real pricing data.
+| ❌ Don't ask | ✅ Ask instead |
+|---|---|
+| "How much would you pay for this?" | **"Have you paid for something like this before? What was it, and how much?"** |
+| "Would you pay for it?" | **"What's the last thing you bought for the academy that cost real money? How did that get approved?"** |
+| "Is there budget?" | **"How much does this problem cost you today — in hours, or in money?"** |
+
+18. Have you paid for anything like this before? What was it and what did it cost?
+19. How much does the current way of doing it cost you — time or money?
+20. Is there a budget allocated for tools like this? How big, and who holds it?
+21. The last software the academy bought — how did that decision get made, and who signed?
+
+**Never name your price first.** If they ask, deflect once: *"I'm still working that out — what
+have you seen things like this priced at?"* Then let it go.
+
+*"You can't quantify the value received without prodding their financial worldview."*
 
 ## 6. Close with COMMITMENT (2 min)
 *Darrena's script step 6. This is what separates real intent from polite interest — and it is
 what the assignment form's yes / maybe / no counts are actually measuring.*
 
-21. Is there anything I should have asked you and didn't?
-22. **"Would you be willing to be one of our first users on a real match of yours?"**
-23. **"Would you pay for early access?"**
-24. **"Could you introduce me to two others with this problem?"**
+22. Is there anything I should have asked you and didn't?
+23. **"Would you be willing to be one of our first users on a real match of yours?"** —
+    and if yes, put a date in the diary *now*. A yes without a date is a maybe.
+24. **"Would you pay for early access?"** — an ask for commitment, not for an opinion.
+25. **"Could you introduce me to two others with this problem?"** — get names, in the call.
 
 **Applause is not validation.** "This is so cool" is not a yes. A yes is a date in the diary,
 a name of a person to contact, or a number they said out loud. Score the interview on what
 they *committed* to, not on how warm the conversation felt — and record the honest answer.
 
-Q24 is how six interviews become twelve. Ask it every single time.
+Q25 is how six interviews become twelve. Ask it every single time.
 
 ---
 
