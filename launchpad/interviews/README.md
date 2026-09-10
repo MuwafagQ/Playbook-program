@@ -33,7 +33,11 @@ person who pays. Outreach is out; awaiting replies.
 1. Find targets — see `../outreach/linkedin-buyer-search.md`
 2. Send outreach — templates in `../outreach/outreach-kit.md`
 3. Log every send in `tracker.md`
-4. Run the interview — script in `../outreach/interview-guide.md`
+4. Run the interview — use the right guide:
+   - **Buyers (directors, owners, sporting directors):** `../outreach/interview-guide-BUYER.md`
+   - **Users (analysts, coaches, scouts):** `../outreach/interview-guide.md`
+   They are different conversations. A director does not analyse matches — do not ask him to
+   walk you through one.
 5. **Within 10 minutes of hanging up**, write the notes into `notes/interview-NN.md`
 6. Update `tracker.md`
 
