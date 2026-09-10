@@ -182,3 +182,55 @@ Metrics and formulas are very hard to patent. Realistic protection:
 - **Do not let secrecy block the six interviews.** The label is already visible to anyone
   who sees a demo. A one-line NDA is enough; showing the notification fire is worth far more
   than the risk.
+
+---
+
+## KEMO is the hire — the resolution to the adoption problem (10 Sep)
+
+**The contradiction that surfaced:** the value proposition says *"no analysts to hire."* But
+the product as designed needs someone to interact with it — and Muwafag's own words were
+*"it definitely needs a new hire, or the analyst will get another job on top of his duties."*
+
+Interview 01 shows exactly why that kills the sale: the analyst at Al-Hilal U18 is already
+overloaded, has asked repeatedly for a hire, and was refused. At the mid-league tier a data
+analyst is *"very rare."*
+
+**The resolution: KEMO is not a feature. KEMO is the hire.**
+
+> **You don't hire a data analyst. You get one.**
+
+Confirmed by Muwafag, 10 Sep:
+- **KEMO is real today**, not a roadmap item, and answers intelligently.
+- **A coach can question it with no analytical vocabulary.** It explains in simple words and
+  adapts to whoever it is speaking to.
+- **Players can interact with it too** — comparisons, insights, tracking their plans.
+- **Live analysis needs no operator.** Nobody courtside.
+- The only human role left is an **admin who uploads footage** — not an operator, not an
+  interpreter.
+
+### Why this matters commercially
+1. **It removes the adoption barrier**, which Interview 01 identifies as the real blocker —
+   not price, not features.
+2. **It reframes the competition.** We are not competing with Hudl. We are competing with
+   **a headcount request that management keeps refusing.**
+3. **It justifies the price** — a fraction of a salary the academy cannot get approved anyway.
+4. **It is legible to a director** who knows nothing about football analytics.
+5. It answers Alaa's *"they need education and have no time for it"* — the product teaches
+   while it works.
+
+### Consequences
+- **KEMO is not a Phase 3 feature. It is load-bearing**, and the product does not make sense
+  without it. This must be reflected in the Assignment #2 MVP roadmap.
+- Every buyer pitch should lead with the hire framing, not with the metrics.
+- **Test it in the buyer interviews**: does "you get a data analyst instead of hiring one"
+  land with a director? That is now the central hypothesis.
+
+### ⚠ Operational risk — the product codebase location is unknown
+The `app.playbookiq.ai` front end (dashboard, phase tabs, metrics table, notifications, KEMO)
+is **not in this repository**. It was built through Claude Code, in Streamlit, hosted on
+Firebase, and **Muwafag does not currently know where the source lives.**
+
+This is the company's core asset and it is unlocated. **Action: find it and push it to
+GitHub.** Check the GitHub repository list; Firebase console → Hosting; and the local machine
+for a folder containing `firebase.json`. Until it is in version control, the product exists
+only as a running deployment.
