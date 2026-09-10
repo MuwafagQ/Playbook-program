@@ -13,7 +13,7 @@ Owned by the Data Operations Specialist. Update after every send, reply and call
 | # | Name | Academy / org | Role | Segment | Channel | Sent | Followed up | Reply | Interview date | Notes file |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | Feiras Alahmad | Al-Fateh SC | Academy Technical Director | buyer | LinkedIn | 9 Sep | | | | |
-| 2 | | | | buyer | LinkedIn | 9 Sep | | | | |
+| 2 | Lizzie Fluke | Independent / SAOC, Malmö FF, Etihad Club | Director of Performance — governance & systems | **governance / expert informant** | LinkedIn | 9 Sep | | ✅ **booked** | **Sunday am** | prep: sessions/prep-lizzie-fluke.md |
 | 3 | | | | buyer | | | | | | |
 | 4 | | | | buyer / governance | | | | | | |
 | 5 | | | | buyer | | | | | | |
