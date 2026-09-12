@@ -43,18 +43,38 @@ governance, evidence-led decision making, value preserved.**
 and a documented development pathway that preserves player value at transfer.* That is her
 framing applied to your domain, and she will recognise it instantly.
 
-## The 8 questions
+## Read her Edition 5 first — it is captured in `../REGULATORY.md`
+She has published the answer to the question you were going to ask her. **Do not ask "is the
+governance mandate real" — you now know it is.** Ask better questions instead, and show her
+you have read her work properly. That is what earns a second conversation.
+
+Key facts from her Edition 5, in her own words: Royal Decree **M/121**, effective 11 June 2026,
+**National Sports Registry** transition ending **11 June 2027**, SAR 5m penalties; the **FCMM©**
+five-level maturity model; the **LDI** as the Ministry's capability-building arm; SAP as a
+corporate core that is *"not yet a fully realised sporting delivery layer."*
+
+## The 8 questions — revised after reading Edition 5
 
 | # | Question | Why |
 |---|---|---|
-| 1 | "Tell me about the systems you've built in Saudi — what does a performance department actually look like at a club here?" | Open, flattering, and maps the org chart you've been guessing at |
-| 2 | **"Where does technical and tactical analysis sit in that structure? Who owns it, and who does it report to?"** | Your product's home in the org — you don't know this |
-| 3 | **"You work with Boards and Presidents. When they ask whether the academy is working, what evidence do they actually accept?"** | The buyer's real decision criteria, from someone who sits in those rooms |
-| 4 | **"There's a Ministry requirement for clubs to implement data and analytics tools. How real is that, what does it require, and who's accountable for it?"** | ⭐ **THE question.** Your entire trigger hypothesis |
-| 5 | "You've preserved £500K a year through evidence-led decisions on the medical side. Is there an equivalent argument on the technical side, or does the money not work the same way?" | Uses her own number; tests your ROI story against an expert |
-| 6 | "At the mid-league and academy level — is there anyone who works with data, or is it all game analysts?" | Validates the ICP gap that Alaa suggested |
-| 7 | **"What have you seen fail when someone brings technology into these environments?"** | Your anxiety and habit forces, from someone who's watched it happen repeatedly |
-| 8 | **"Who should I be speaking to? And would you be open to looking at what we've built and telling me where it's wrong?"** | The ask — introductions and a standing advisory relationship |
+| 1 | "I read Edition 5 — the MHRSD comparison and the delivery-layer argument. I build tactical analysis for academies, and I think we sit in that delivery layer on the technical dimension. Does that read right to you, or am I claiming too much?" | Opens on her work, positions precisely, invites correction. Earns the rest of the call. |
+| 2 | **"In FCMM terms, my customers look like Level 2 on data maturity — intermittent collection, no data literacy, records in unlinked files. Is that what you see at mid-league clubs and academies?"** | Uses her model to validate the ICP. If she says yes, the ICP is confirmed by an authority. |
+| 3 | **"What actually moves a club from Level 2 to Level 3 on the data dimension — is it tooling, workforce, or governance first?"** | She warns digitalisation only accelerates when underpinned by governance and workforce. If tooling is last, that changes our sequencing entirely. |
+| 4 | **"With the M/121 registration deadline in June 2027 — what are clubs actually being asked to evidence? Does data capability come into accreditation, or is that a later-stage concern?"** | Calibrates the trigger precisely. Our claim may be too literal — this is where we find out. |
+| 5 | **"We process tracking data on identifiable youth players from match video. How should we be thinking about PDPL, consent and minors?"** | Shows we take her subject seriously, and closes a real gap in our product. She has written on exactly this. |
+| 6 | "Where does technical and tactical analysis sit in a Saudi club's structure — who owns it, and who does it report to?" | The org chart we've been guessing at |
+| 7 | **"You describe cognitive load from system gaps — people managing the system instead of delivering. I interviewed an analyst at a top academy who said the same thing in three words: 'time, time, time.' Is that universal at this level?"** | Pairs her system view with our floor-level evidence. Shows we do real research. |
+| 8 | **"Two asks: who should I be speaking to — and would you look at what we've built and tell me where it's wrong?"** | Introductions and a standing relationship |
+
+**If the call runs short, 2, 4 and 5 are the ones to protect.**
+
+## Also worth raising if there's room
+- **The LDI.** She names it as the Ministry's capability-building arm, training technical
+  directors to govern via data-driven workflows. We have an offered introduction to
+  معهد إعداد القادة from a previous interview. Ask: *"is the LDI a route worth pursuing, and
+  who there?"*
+- **SAP as corporate core, not delivery layer.** If she confirms the gap is real and
+  unclosed, that is a large strategic opening.
 
 ## Two things to be careful about
 1. **Her background is medical, physical and system-level, not tactical analytics.** Tactical
@@ -62,6 +82,12 @@ framing applied to your domain, and she will recognise it instantly.
    is itself a finding: it tells you which department owns your budget.
 2. **Do not pitch.** She is an educator and a publisher; she will engage with a good question
    and disengage from a sales call. Keep the Mom Test discipline exactly as with everyone else.
+3. **Her frameworks are trademarked** — FCMM©, Streetwise Governance™, Forensic Behavioural
+   Governance™. Attribute them to her by name when you use them. She will notice either way.
+4. **⚠ Do not raise Parts II–IV of Edition 5.** The safeguarding case study, the retaliation,
+   the whistleblowing and the online harassment are evidently her own experience. Engage with
+   Part I — systems, digital maturity, the delivery layer. Anything else would be intrusive
+   and would end the relationship.
 
 ## The ask at the end
 Q8 is the point of the call. Two specific things:
