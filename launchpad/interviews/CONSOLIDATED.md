@@ -88,8 +88,9 @@ step will be rejected regardless of how good the analysis is.`
 **Pain:** **Coaches and assistants have no security of tenure** — they move between clubs
 repeatedly, often several times.
 
-**Current solution:** **A competitor has been in place for two years.** His verdict: it **lacks
-accuracy and lacks support.**
+**Current solution:** **StepOut.ai — in place for two years.** Does **tracking and analysis**.
+His verdict: it **lacks accuracy and lacks support** — specifically **computer-vision
+accuracy**. He does not know the price; that sits with the directors.
 
 **Reaction to our product:** liked the **UI/UX**, the **AI assistant**, and **Arabic-first**.
 
@@ -105,19 +106,34 @@ assistant and the interface, not to the metrics.`
 **Interest: YES**
 
 **Strategic notes**
-- **First competitor confirmed in the wild**, and it is beatable on accuracy and support — the
-  two things our confidence-flagged output and service model are built for.
-- **Staff churn cuts both ways:** it shortens the life of any single relationship, but a coach
-  who likes the product carries it to his next club. Worth designing for.
+- **StepOut.ai is our first named competitor**, already inside a Saudi academy for two years.
+- **Their weakness is computer-vision accuracy** — which is also our hardest unsolved problem
+  (player re-identification). Read this honestly, two ways:
+  - *Encouraging:* a funded competitor has had two years and still has not solved it. This is
+    genuinely hard, not something we are uniquely failing at.
+  - *Sobering:* CV accuracy is the competitive battleground, and we cannot claim superiority we
+    have not demonstrated. Our advantage is that the **base tier does not depend on player
+    re-identification at all** — team shape, ball, phases and momentum are accurate today. That
+    is a real and defensible difference, but only if we say it precisely.
+- **Support is their other weakness** — and support is a service question, not a technology one.
+  That plays directly to the fractional-lab model.
+- **Price is invisible to the user** — the directors hold it. More evidence that the buyer is
+  the director, not the staff.
+- **Staff churn cuts both ways:** it shortens any single relationship, but a coach who likes the
+  product carries it to his next club.
 
 ---
 
 # 4 — Head coach, Al-Ansar (USER) ⭐ validates the no-hire thesis
 
+**Who he is:** **U16 head coach.**
+
 **Pain:** **Lack of awareness at board level.**
 
-**What we learned:** The staff is a **tight team; hiring is not an option.** He responded most
-strongly to the **momentum notifications** and the metrics.
+**What we learned:** The staff is a **tight team; hiring is not an option.** He has **asked
+several times for an assistant and been refused.** He also said **his current assistant's
+position is not guaranteed for the new season.** He responded most strongly to the **momentum
+notifications** and the metrics.
 
 **Q7:** `Interview 4 – Head coach, club academy: The board does not understand what analysis
 could provide, and the coaching staff is small and fixed, so any solution requiring an
@@ -131,7 +147,9 @@ conclusions over dashboards.`
 **Interest: YES**
 
 **Strategic note:** the strongest validation yet that **KEMO and the notification layer are the
-product**, not features — and that "no analysts to hire" is the load-bearing promise.
+product**, not features — and that "no analysts to hire" is the load-bearing promise. Two clubs
+have now independently confirmed that a headcount request gets refused: Al-Hilal and Al-Ansar.
+**We are not competing with Hudl; we are competing with a hire that management keeps declining.**
 
 ---
 
@@ -164,11 +182,13 @@ technical discussion.
 **Directors are often not capable in their positions.** The field operates **top-down when it
 should be bottom-up.**
 
-**Her background:** Performance analyst at Malmö FF; has a **GPS tracking solution and built an
-app for it**.
+**Her background:** Performance analyst at Malmö FF. She worked with a **GPS tracking solution
+and built an app for it** — as the **performance manager preparing the output for coaching
+staff**, i.e. she was the *user and packager* of that data, not a vendor selling it.
 
-**Reaction to our product:** shown the product, **loved it**, and **asked for a second interview
-to test it.**
+**Reaction to our product:** shown the product, **loved it**, and **asked for a second session to
+try it and see its capabilities**, after which **she could open doors.** She positioned herself
+as a **partner — and framed it as an investment opportunity for her.** She has a large network.
 
 **Q7:** `Interview 6 – Director of Performance and sport-systems specialist (KSA/MENA): The
 regional gap is knowledge and capability rather than technology — decision-makers frequently
@@ -187,11 +207,14 @@ the top may fail where building from the delivery layer upward would succeed.`
   directors are often not capable, and the system should be built bottom-up. **Both may be
   right** — sell to the buyer, but design for and demonstrate through the delivery layer.
   This tension belongs in Assignment #2.
-- **She has a competing or complementary product** (GPS tracking + app). GPS measures physical
-  load; we measure tactical decisions — historically complementary, not competitive. **Clarify
-  which she intends before sharing anything further.**
-- **The second session is the most valuable follow-up from all seven interviews.** Prepare it
-  properly and decide in advance what to show and what to hold.
+- **Not a competitor.** Her GPS work was as a performance manager preparing data for coaches —
+  physical load, where we cover tactical decisions. Complementary, and her experience packaging
+  data for coaching staff is exactly the problem we are solving.
+- **She raised investment / partnership.** Handle deliberately: an advisor with her standing and
+  network would be valuable, but **agree scope before equity is discussed**, and take advice on
+  any formal arrangement. Do not agree to anything in the second session.
+- **The second session is the most valuable follow-up from all seven interviews.** Decide in
+  advance what to show and what to hold back.
 
 ---
 
@@ -227,6 +250,29 @@ behaviour we must teach; it is a completion of one they already have.**
 
 ---
 
+# ⭐ The pattern nobody set out to find: everyone we spoke to is insecure
+
+Across three separate clubs, the people who would use this product are the least secure people
+in the building:
+- **Al-Hilal analyst:** works alone, repeatedly refused a hire, *"do the job or lose your
+  position."* Embarrassed about not engaging with data.
+- **Al-Ula assistant coach:** coaches and assistants have **no security of tenure** and move
+  between clubs repeatedly.
+- **Al-Ansar U16 coach:** asked several times for an assistant and was refused; **his
+  assistant's position is not guaranteed next season.**
+
+Two consequences, and both matter more than any feature:
+
+**1. The emotional job is career protection, not curiosity.** They do not want analytics. They
+want to look competent, be recognised, and keep their job. A product that makes them visibly
+better at their work is career insurance. That is what to sell them — and it explains why the
+notifications land and the metric tables do not.
+
+**2. Champions leave.** Any relationship built on one enthusiastic coach or analyst has a short
+half-life. This is a strong argument for **selling to the director** (who stays) while
+**designing for the staff** (who move) — and it reconciles Darrena's buyer-first ruling with
+Lizzie's bottom-up argument.
+
 # Cross-interview patterns
 
 1. **Every club has game analysts. None has a data analyst.** Confirmed at Al-Hilal, Al-Ittifaq
@@ -244,3 +290,10 @@ behaviour we must teach; it is a completion of one they already have.**
 7. **The incumbent is beatable on accuracy and support**, not price (Al-Ula).
 8. **Knowledge, not technology, is the regional barrier** (Lizzie) — so education is part of the
    product.
+9. **Named competitor: StepOut.ai**, two years inside a Saudi academy, weak on computer-vision
+   accuracy and on support.
+10. **Price is invisible to users.** Neither the analyst nor the assistant coach knew what their
+    tools cost — the directors hold it. Confirms where the buying conversation has to happen.
+11. **Still zero pricing evidence after seven interviews.** This remains the weakest part of the
+    business case and is the first priority for the next round — Mario (academy director) and
+    Sami (scouting agency owner) are both scheduled.
