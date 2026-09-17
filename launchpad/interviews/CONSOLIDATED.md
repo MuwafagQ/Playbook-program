@@ -190,15 +190,19 @@ staff**, i.e. she was the *user and packager* of that data, not a vendor selling
 try it and see its capabilities**, after which **she could open doors.** She positioned herself
 as a **partner — and framed it as an investment opportunity for her.** She has a large network.
 
-**Q7:** `Interview 6 – Director of Performance and sport-systems specialist (KSA/MENA): The
-regional gap is knowledge and capability rather than technology — decision-makers frequently
-lack the expertise their positions require, and systems are imposed top-down instead of being
-built from delivery upward.`
+**Q7:** `Interview 6 – Director of Performance and sport-systems specialist (KSA/MENA): Saudi
+sport has no digital delivery layer — data sits fragmented across paper, spreadsheets, email and
+WhatsApp with no centralised ownership — while clubs hold significant financial resources but
+lack the operational foundations and standards that mature systems require.`
 
-**Q8:** `Interview 6 – Director of Performance: The barrier in this market is comprehension, not
-product quality — which reframes education as part of the offering rather than as marketing.
-She also challenged our buyer-first targeting: if directors lack capability, selling only to
-the top may fail where building from the delivery layer upward would succeed.`
+**Q8:** `Interview 6 – Director of Performance: Sporting directors in Saudi Arabia hold more
+power than in other regions but frequently lack performance expertise, which confirms both who
+the buyer is and why the product must carry the expertise rather than assume it. She also
+described a head coach using total distance as his primary metric, which drove players to make
+unnecessary runs and led to poor contract decisions — the clearest evidence we have that the
+problem is not the absence of data but the absence of curation.`
+
+**Full write-up: `notes/interview-06-lizzie-fluke.md`** — ~2 hours, product demonstrated.
 
 **Interest: YES** — requested a follow-up session to test the product.
 
