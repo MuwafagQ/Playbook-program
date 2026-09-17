@@ -1,218 +1,363 @@
-# Assignment #1 — submission draft
-**Form:** Airtable, "Misk Launchpad 10.0: Send your assignment result"
-**Deadline: Thu 17 Sep, 8 PM KSA.** One submission per startup.
-Form guidance: *"Be specific and honest. The goal is not perfection, but to show progress,
-feedback loops, and engagement with users."*
+# Assignment #1 — FINAL SUBMITTED TEXT
+**Form:** Airtable — "Misk Launchpad 10.0: Send your assignment result"
+**Deadline:** Thu 17 Sep 2026, 8:00 PM KSA. One submission per startup.
+**Status:** all cells drafted and agreed. This is the text that went into the form.
 
-Fill each section below, then paste into the form.
+Form guidance: *"Be specific and honest. The goal is not perfection, but to show progress,
+feedback loops, and engagement with users."* · *"Keep your answers concise and focused."*
 
 ---
 
-## 1. Startup ID
-`[fill in]`
+## 1 · Startup ID
+Held by Muwafag.
 
-## 2. Assignment
+## 2 · Assignment
 Assignment #1 — JTBD, Value Proposition & MVP Proof
 
 ---
 
-## 3. Value proposition (their framework) — DRAFT, revise after the buyer interviews
+## 3 · Value proposition
 
-**For** private football academies in the GCC that develop and sell players, and are required
-to implement data-analytics tools under Ministry of Sport governance
-**Who** need to prove player progression and satisfy that requirement, but cannot afford the
-data department it would normally take — roughly 600,000 SAR a year in salaries
-**Our product is** a science lab and data department delivered as software
-**That** turns ordinary broadcast match footage into a curated set of tactical metrics, live
-in-match notifications in plain Arabic, and a verified record of every player's development —
-with no cameras, no hardware, and no analysts to hire
-**Unlike** Hudl and telestration tools, which hand you video and still require someone who
-knows what to look for, and unlike Catapult and GPS vests, which measure physical load but not
-decisions — we tell you *what happened and what was wrong with it*, in a sentence a coach can
-act on the same day
+**For** football clubs and academies that want their decisions backed by evidence — in the GCC
+and beyond, whether or not they already have a data department.
+
+**Who** are limited by the metrics available to them: the standard set every platform sells,
+identical for every client, disconnected from how their own team actually plays — and who have
+no way to build better ones in-house.
+
+**Our product is** a science lab and data department for football teams, delivered as software.
+Our core is a **metric engine built through a network of institutional researchers and sports
+science labs** — metrics that are either exclusive to us, or built specifically around a club's
+own playing philosophy.
+
+**That** turns ordinary broadcast match footage into those metrics and into a verified record of
+every player's development, delivered through an AI analyst trained on the club's own
+philosophy — one that answers management, coaching staff and players directly, in Arabic and
+English. Management gets evidence for its decisions; the coaching staff gets an analyst made far
+more capable rather than more work; the player gets to see, measure and understand his own
+development. No new hardware, no new hires.
+
+**Unlike** Hudl and telestration tools, which hand you video and leave the analysis to you;
+unlike GPS and wearables, which measure physical load rather than decisions; and unlike the
+regional analysis platforms already inside academies, which ship the same standard metrics to
+every client and were rated by our interviewees as weak on accuracy and support — our metrics
+are researched, bespoke, and continuously improved through our global lab and research network.
+**That cycle is the business, not a feature of it.**
 
 ---
 
-## 4. JTBD Canvas
+## 4 · JTBD Canvas
 
-**Context**
-An academy plays 3–4 matches a month per age group. Someone films them. A game analyst — if
-there is one — watches the footage and clips moments by hand. There is no data capability,
-no analyst who works with numbers, and no budget to build one. Meanwhile the Ministry of Sport
-funds certain academies and requires them to implement advanced analytics, audited as a
-governance matter, and the academy's commercial future depends on developing players it can
-sell for a defensible price.
+**CONTEXT**
+Private academies and mid-league clubs in the GCC. Each age-group team plays 3–4 matches a
+month; someone films them. Analysis is done by a game analyst on video and graphics tools, or
+not at all. There is no digital layer beneath it — data lives on paper, spreadsheets, email and
+WhatsApp with no central ownership. Sporting directors hold more decision-making power here than
+in other regions, and decisions flow top-down. The new Saudi Sports Law is pushing every entity
+toward registration, accreditation and demonstrable governance capability. And underneath all of
+it, **the player is the asset**: their development is what the club sells, and what the board
+judges the academy on.
 
-**Where is the customer now?**
-Decisions about selection, tactics and player value are made from opinion and memory. Analysis
-is limited to what one person notices while watching. Most matches are never analysed at all.
-When a player is sold, the price is argued, not evidenced. Compliance with the data
-requirement is handled with whatever tool can be pointed at, not with real capability.
+**WHERE IS THE CUSTOMER NOW?**
+Selection, tactical and player-value decisions are made from impression and memory. The data
+held is administrative — attendance, minutes, injuries, consistency — with nothing describing
+what happened on the pitch. Where analysis exists, one overloaded person produces it: a full
+working day per match, so most matches are never reviewed. The metrics available are the same
+standard set every vendor ships to every client, disconnected from how this team actually plays.
+Players are told they are improving; nobody can show them. When a player is sold, the price is
+argued rather than evidenced.
 
-**Where does the customer want to get to? (desired outcome)**
-Every match analysed, consistently, without hiring anyone. Decisions supported by evidence.
-A documented record of each player's development that a buying club cannot dismiss. The
-governance requirement genuinely satisfied rather than superficially ticked.
+**WHERE DOES THE CUSTOMER WANT TO GET?**
+Every match analysed consistently, without hiring anyone. Metrics that reflect their own playing
+philosophy rather than a generic template. Their existing analyst made more capable, not
+replaced. Players who can see and understand their own development — measured, compared and
+explained. A documented record each buying club takes seriously, and decisions the sporting
+director can defend to a board.
 
-**Functional components**
+**FUNCTIONAL COMPONENTS**
 - Analyse every match, not only the ones someone has time for
-- Get the analysis the same day, not the following week
-- Understand it without employing a data scientist
-- Produce evidence of player progression over a season
-- Produce evidence of tool adoption for governance and audit
+- Get metrics built around this club's philosophy, not a standard set
+- Understand the output without employing a data scientist
+- Give each player a view of his own performance over time, against teammates and opponents,
+  with the reasons behind the numbers
+- Evidence a player's progression across a season
+- Do it with no cameras, no hardware and no new headcount
 
-**Emotional components**
-- Stop feeling that decisions are guesswork
-- Stop feeling left behind by clubs that have data departments
-- Confidence at the negotiating table when selling a player
-- Relief that a compliance obligation is genuinely handled
+**EMOTIONAL COMPONENTS**
+- Management: stop feeling that decisions are guesswork, and stop feeling left behind by clubs
+  with real data departments
+- Sporting director: confidence at the table when selling a player
+- Analyst: be recognised and developed, and feel secure in a role that is never guaranteed
+- Player: know where I actually stand, and know that selection rests on something measured
+  rather than on opinion
 
-**Social components**
+**SOCIAL COMPONENTS**
 - Be seen as a professional, modern academy by parents, sponsors and the federation
 - Be taken seriously by buying clubs
-- The technical director looks credible to the board and to the Ministry
+- The sporting director looks credible to the board and to the Ministry
+- The analyst looks capable to his own coaching staff
+- The player can evidence his own case — to his coach, to a buying club, to his family
 
-**What forces can stop the customer from switching?**
-*Structured as Sher Gafar's 4 Forces of Progress (JTBD masterclass, 7 Sep). Two forces push
-toward us, two hold them back — and the deck's own lesson is that you win by reducing the
-anxiety and breaking the habit, not by adding more product.*
+**WHAT FORCES CAN STOP THE CUSTOMER FROM SWITCHING?**
+*Using the 4 Forces of Progress — two push toward us, two hold them back.*
 
-| Force | For our customer |
-|---|---|
-| **Push of the situation** | "I'm making decisions on instinct. Most matches are never analysed. When I sell a player I can't prove what he's worth. And the Ministry is asking what analytics tools we've implemented." |
-| **Pull of the new solution** | "Every match analysed automatically, from the footage we already have. No cameras, no hires. It tells me what went wrong in a sentence I understand, in Arabic." |
-| **Anxiety of the new solution** | "Who on my staff will actually run this? Will the numbers be right? These people are new — what if they disappear? Is this just Hudl with a different name at a different price?" |
-| **Habit of the present** | "Our analyst clips the video the way he always has. The coach trusts his own eyes. We've managed for years without this. Nothing forces a decision this season." |
+- **Push of the situation:** decisions made on instinct, most matches unanalysed, no way to prove
+  a player's worth, and a regulatory deadline approaching.
+- **Pull of the new solution:** every match analysed from footage they already have, metrics
+  built around their own philosophy, in Arabic, with no hardware and no hire — and players who
+  can finally see their own progress.
+- **Anxiety:** *"A lot of startups knock the door but never come again."* Will the numbers be
+  accurate — the incumbent tool in one academy has been criticised for exactly that for two
+  years. Who on staff will run it. Is this just another video tool under a different name. And a
+  specific one: coaches and management may not want players seeing comparative data on each
+  other — these are minors, so parents, consent and data protection are live concerns.
+- **Habit:** the analyst clips video the way he always has; the coach trusts his own eyes;
+  approval is vertical and slow; the club has managed for years without this.
 
-**And the largest competitor is a decision to do nothing.** (Sher Gafar, slide 26.)
+**Our largest competitor is a decision to do nothing.**
 
-**How will you address it?**
-*Push and pull are already strong. The work is on anxiety and habit.*
+**HOW WILL YOU ADDRESS IT?**
 
-**Reducing anxiety**
-1. **No interpretation required.** We deliver conclusions, not dashboards — plain-language
-   notifications a coach acts on. Nobody needs hiring; the product does the analyst's thinking.
-2. **Show our uncertainty.** Every output carries its own confidence flags. We can say when we
-   are unsure — which is why our numbers can be trusted at all.
-3. **Nothing to install, nothing to integrate.** Start with one match. If it's wrong, they've
-   lost nothing.
-4. **Backed by science-lab partners**, so the metrics aren't one founder's opinion — and the
-   MISK Launchpad and Ministry of Sport track give an early vendor institutional credibility.
+*Reducing anxiety*
+1. **Deliver conclusions, not dashboards.** An AI analyst trained on the club's own philosophy
+   answers management, coaching staff and players directly — no interpretation required, and it
+   develops the existing analyst rather than adding to his workload.
+2. **Answer the accuracy objection with evidence.** Every output carries its own confidence
+   flags; we can state when we are unsure. Accuracy and support are precisely where the incumbent
+   is weakest.
+3. **Answer the longevity objection structurally.** Our metrics come from a standing network of
+   institutional researchers and sports science labs in a continuous improvement cycle — plus
+   accreditation through MISK and the Ministry of Sport SportTech track.
+4. **Keep the club in control of the player layer.** Role-based access: the club decides exactly
+   what each player sees, and comparison views are enabled by the coaching staff rather than on
+   by default. Consent for youth players handled properly, in line with Saudi data protection
+   requirements.
+5. **Remove the cost of trying.** One match, no installation, no integration, no commitment.
 
-**Breaking the habit**
-5. **Reposition out of the video category.** Hudl gives you footage to watch; we tell you what
-   happened and what was wrong with it. Lead every demo with a notification firing, never with
-   a metrics table — the comparison to telestration tools is what keeps them where they are.
-6. **Use the trigger.** Where the Ministry mandate applies, doing nothing stops being free.
-   That is the "why now" and we should qualify for it early.
-7. **Fit the existing workflow.** They already have footage and a game analyst. We add to what
-   they do rather than asking them to work differently.
-
----
-
-## 5. Customer persona / ICP
-*Form asks for age, gender, geo, role — and to list the ICPs actually interviewed.*
-
-**Primary ICP (buyer):** Academy owner or technical director. Male, 35–55, Saudi Arabia and
-the wider GCC. Controls or influences the academy budget. Answerable to a board, to parents
-and — where the mandate applies — to the Ministry.
-
-**Secondary ICP (users, interviewed):** Performance/game analyst, first-team or age-group
-coach, and scout. Male, 25–45, Saudi Arabia. Work with match video daily; no budget authority.
-
-**Third segment explored:** Players' agents — scouting and player valuation. Different sales
-cycle, and dependent on individual-player tracking.
+*Breaking habit*
+6. **Reposition out of the video category.** Hudl hands you footage; we tell you what happened
+   and what was wrong with it.
+7. **Use the trigger.** With the registration and accreditation deadline approaching, doing
+   nothing stops being free.
+8. **Sell into the vertical, deliver through the circle.** Decisions flow top-down through the
+   sporting director, so the sale goes there — but delivery works around the athlete across
+   coaching, analysis and performance, which is where the value actually appears.
 
 ---
 
-## 6. Number of interviews conducted
-`6` (minimum required). All conducted during Phase 1 — see `../interviews/tracker.md`.
+## 5 · Customer Persona / ICP
+
+**PRIMARY ICP (the buying organisation)**
+Private football academies and mid-league clubs in Saudi Arabia and the wider GCC, running
+multiple age-group teams, that develop and sell players. They film their matches, employ game
+analysts rather than data analysts, and the sporting director or management holds the budget.
+
+Within that organisation we sell to three distinct people, and we interviewed the first two:
+
+**1 — THE BUYER · Sporting Director / club management**
+Age ~35–55 · Male · Saudi Arabia · Holds or controls the budget; answers to a board.
+Interviewed: 1 (Sporting Director of a Saudi Pro League club).
+Cares about evidence for decisions, player valuation, governance and accreditation. Typically
+strong on process and administration; often not deep in performance methodology. In Saudi this
+role holds more power than its equivalent in other regions, and decisions flow top-down
+through it.
+
+**2 — THE TECHNICAL USER · Performance/game analyst, coach, assistant coach, scout**
+Age ~25–45 · Male · Saudi Arabia · Works with match video daily; no budget authority.
+Interviewed: 5 — two performance analysts, one assistant coach, one U16 head coach, one scout.
+Cares about time, workload and recognition. Works on video and graphics tools with no data layer
+beneath them. Job security is genuinely fragile across this group, which shapes what they will
+and will not adopt.
+
+**3 — THE BENEFICIARY · The player and the team**
+Age ~14–19 (academy) · Male · Saudi Arabia.
+**Not yet interviewed.** The player is the club's asset and the ultimate subject of the product.
+A player-facing view is part of the design, but this persona is a hypothesis we have not tested.
+Interviewing players and parents is a priority for the next round, alongside the consent and
+data-protection questions that come with minors.
+
+**ALSO INTERVIEWED — expert informant, not a customer**
+A Director of Performance and sport-systems specialist working across Saudi/MENA, Europe and
+Olympic sport (female, senior). Interviewed for governance, system maturity and how performance
+departments in the region are structured — not as a prospective buyer.
+
+**Honest note on the evidence.** Five of our seven interviews were with technical users and only
+one with a buyer, so the buyer side is the thinnest part of this round. That reflects a real
+constraint: **directors are genuinely hard to reach.** Cold outreach converts poorly, and the
+channel that works is asynchronous — our sporting-director interview was conducted over LinkedIn
+messages rather than a call, and that conversation remains open. Two further buyer-side
+interviews are scheduled: an academy manager and a scouting agency owner. Access — not question
+quality — is the constraint we are solving for.
 
 ---
 
-## 7. Main problems discussed
-*Format: Interview N – [ICP / Interviewee Type]: [main problem]*
-
-```
-Interview 1 – Academy owner / technical director (buyer): [fill from tracker]
-Interview 2 – Academy owner / technical director (buyer): [fill]
-Interview 3 – Sporting director / academy manager (buyer): [fill]
-Interview 4 – Governance / internal audit lead: [fill]
-Interview 5 – Performance analyst or head coach (user): [fill]
-Interview 6 – Players' agent: [fill]
-```
-
-## 8. Key insight from the interviews
-*Format: Interview N – [ICP / Interviewee Type]: [key insight]*
-
-```
-Interview 1 – Academy owner / technical director: [fill]
-Interview 2 – Academy owner / technical director: [fill]
-Interview 3 – Sporting director: [fill]
-Interview 4 – Governance lead: [fill]
-Interview 5 – Analyst / coach: [fill]
-Interview 6 – Players' agent: [fill]
-```
-
-**Write these as what you LEARNED, not what they liked.** "Liked the notifications" is not an
-insight. "The analyst spends a full day per match and only analyses two of four matches, so
-half the season is never reviewed" is.
-
-## 9–11. Yes / Maybe / No counts
-- Clear interest (yes): `[ ]`
-- Maybe / undecided: `[ ]`
-- Not interested (no): `[ ]`
-
-**Do not inflate these.** A perfect 6/0/0 reads as a founder who pitched rather than listened.
-Honest maybes are more credible than manufactured enthusiasm, and the form explicitly says
-these responses are valuable.
-
-## 12. Reasons behind the "no" responses
-`[fill — and if there were none, say so and explain why you think that is]`
-
-## 13. Proof of interviews
-`[Yes — prepare: notes, dates, roles, and recordings where consent was given]`
-
-## 14. One major learning
-*One paragraph summarising all interviews. Draft to be rewritten from real findings:*
-
-> The people who use match analysis and the people who pay for it want different things. Users
-> want time back and clarity; buyers want evidence — for a transfer negotiation, for a board,
-> or for a governance requirement. Our differentiator is not the depth of the metrics but the
-> fact that the product delivers a conclusion rather than a dashboard: academies have game
-> analysts, not data analysts, so anything requiring interpretation will not be used. This is
-> pushing us to lead with plain-language tactical notifications rather than with the metric
-> table, and to sequence the product so that everything in the base tier works without human
-> intervention.
-
-## 15. Planning to change the MVP based on the interviews?
-`[Yes]` — see notes.
-
-## 16. Notes and comments
-
-> Three of these conversations were held earlier in the product's development, before this
-> programme. They were long — over an hour each — with notes retained, and they shaped the
-> current prototype. The remaining interviews were conducted during Phase 1, focused on the
-> buyer side, which our earlier research had not covered.
->
-> Our main change from this round is one of sequencing rather than direction. Individual
-> player tracking across a full match is still a research-grade computer-vision problem for
-> us, so we are separating the product into a base tier of team-level tactical metrics and
-> notifications that run automatically today, and a premium tier of individual-player metrics
-> and custom KPIs delivered with our science-lab partners. We would rather ship something
-> unattended and honest than promise automation we cannot yet deliver.
+## 6 · Number of interviews conducted
+**7** — six with club-side personas (five technical users, one buyer) and one with an expert
+informant on regional sport systems and governance.
 
 ---
 
-## Note on earlier research (decided 9 Sep)
-Three long conversations held more than six months ago — with an analyst, a coach and a scout —
-are **parked and not counted**. They shaped the current prototype, but they were user-side only,
-predate this programme, and cannot answer what now matters: pricing, who signs, and the
-governance mandate. **All six interviews for this assignment are fresh and buyer-weighted.**
+## 7 · Main problems discussed
 
-Mention the earlier research in section 16 as background if useful, but do not count it.
+**Interview 1 – Technical user · Performance analyst, "Big Four" club U18 academy:** One full
+working day is consumed per match by camera set-up, clipping and manual graphics, run
+single-handed — leaving no time for analysis itself and no capacity to work with data at all.
+Repeated requests for an additional hire have been refused.
 
-## On Darrena's 20–30
-She was describing what it takes to *know* an ICP in general, not what this assignment requires.
-The assignment requires 6. Do 6–8 well, and describe the ICP as a **hypothesis** rather than a
-finding — saying so explicitly shows you understood her point.
+**Interview 2 – Technical user · Performance analyst, Pro League club academy:** Fully occupied
+producing game-analysis output, with no time and no awareness to move toward data; anything new
+is judged first on whether it adds to the workload.
+
+**Interview 3 – Technical user · Assistant coach, recently privatised / investor-owned club
+academy:** Has used an analysis tool for two years that the staff consider inaccurate —
+specifically on computer-vision accuracy — and poorly supported, while coaches and assistants
+themselves move between clubs frequently, so neither the tools nor the people stay in place.
+
+**Interview 4 – Technical user · Head coach, U16 club academy:** The board does not understand
+what analysis could provide, and the staff is small and fixed — repeated requests for an
+assistant have been refused, so any solution requiring another person is impossible regardless
+of its value.
+
+**Interview 5 – Technical user · Scout, "Big Four" club:** No data capability exists for scouting
+at all, to the point that he has started building his own solution rather than buying one.
+
+**Interview 6 – Buyer · Sporting Director, Pro League club:** Player decisions rest on general
+records — attendance, minutes played, injuries, consistency and mentality over two to three
+seasons — with no targeted performance data, so comparing two similar players comes down to
+impression.
+
+**Interview 7 – Expert informant (not a customer) · Director of Performance and sport-systems
+specialist, KSA/MENA:** Saudi sport has no digital delivery layer — data sits fragmented across
+paper, spreadsheets, email and WhatsApp with no central ownership — and clubs hold significant
+financial resources while lacking the operational foundations and standards that mature systems
+require.
+
+**Note on segment spread:** these interviews span both ends of the Saudi market — two of the
+"Big Four" clubs, the best-resourced in the country, and a recently privatised investor-owned
+club, alongside smaller club academies. **The same gap appears at every level.** The best-funded
+academy in the sample has a single overloaded analyst and no data capability; the investor-backed
+club has a tool it does not trust. **The problem is not a budget problem.**
+
+---
+
+## 8 · Key insights
+
+**Interview 1 – Performance analyst, "Big Four" U18 academy:** wants his day back and recognition
+from management, not better metrics — he is a game analyst, not a data analyst, and cannot
+evaluate advanced analytics.
+
+**Interview 2 – Performance analyst, Pro League academy:** adoption is governed by workload, not
+capability — anything that adds a step is rejected regardless of quality.
+
+**Interview 3 – Assistant coach, privatised club academy:** dislikes the incumbent tool on
+accuracy and support, not price — and responded to the Arabic AI assistant and the interface, not
+the metrics.
+
+**Interview 4 – Head coach, U16 academy:** no new hire is possible at any budget level, and he
+engaged most with the momentum notifications rather than the metric tables.
+
+**Interview 5 – Scout, "Big Four" club:** scouting is a real second market, but this persona
+judges the computer-vision technology rather than the outcome — a harder, more technical sale.
+
+**Interview 6 – Sporting Director, Pro League club:** already keeps longitudinal player records
+across two to three seasons — the development record exists, only the performance layer is
+missing.
+
+**Interview 7 – Expert informant, Director of Performance (KSA/MENA):** sporting directors hold
+the power but often lack performance expertise, so the product must carry it — and her example of
+total distance misused for contract decisions shows the problem is absent curation, not absent
+data.
+
+---
+
+## 9 · Clear interest (yes)
+**4** — assistant coach, head coach, sporting director, and the performance director (who asked
+for a second session to test the product).
+
+## 10 · Maybe
+**3** — the two analysts and the scout.
+
+## 11 · Not interested (no)
+**0**
+
+## 12 · Reasons behind the "maybe" responses
+– **"Not my decision."** Two of the three are technical users with no budget authority; interested
+in the problem but cannot buy.
+– **"I wouldn't know how to judge it."** One analyst works with video and graphics only and could
+not assess data-driven analytics — his interest is in getting his day back, not the metrics.
+– **"Depends on how strong the computer vision is."** The scout is building his own solution and
+is evaluating our underlying technology rather than our service — closer to a no than a yes.
+– In two cases we deliberately did not present the product, following Mom Test discipline, so
+their interest is in the problem rather than in our solution.
+
+## 13 · Reasons behind the "no" responses
+No interviewee gave a clear "no."
+
+We do not read that as strong validation. In most of these conversations we deliberately did not
+present the product, so there was nothing to reject — and the three "maybe" responses carry the
+real signal. Our next round is designed to produce a genuine yes or no: we are asking clubs to
+send us one real match to analyse, which is a commitment rather than an opinion.
+
+---
+
+## 14 · Proof of interviews
+Shared Google Drive folder — one file per interview, names redacted, dates and timestamps
+retained.
+
+- **Interview 6 (performance director)** — three session summaries plus short recordings from a
+  conversation of roughly two hours across multiple sessions. The fullest evidence in the set.
+- **Interview 7 (sporting director)** — LinkedIn conversation thread; conducted asynchronously by
+  message, which we found is how directors in this market actually respond.
+- **Interviews 3, 4 and 5** — scheduling threads showing the call arrangements and meeting links.
+- **Interviews 1 and 2** — written notes only; held earlier and not recorded.
+
+Full recordings were not retained for every session due to storage limitations.
+
+---
+
+## 15 · One major learning
+**The gap is not analytical, it is infrastructural — and it exists at every level of the market.**
+The best-resourced academy in our sample has one overloaded analyst and no data capability; a
+newly privatised, investor-backed club has a tool it does not trust; a sporting director who
+describes himself as data-driven holds only attendance and injury records. Nobody we spoke to has
+a data analyst, no club can get a new hire approved, and the person who holds the budget often
+lacks the performance expertise to judge what he is buying. So the product cannot be a tool handed
+to someone who knows how to use it — **it has to carry the expertise itself**, deliver conclusions
+rather than dashboards, and make the existing staff more capable rather than adding to their
+workload. This is not a budget problem; it is an absence of the layer beneath the video.
+
+---
+
+## 16 · Changing the MVP based on the interviews?
+**Yes** — in emphasis and sequencing, not in direction. The core product is unchanged: broadcast
+footage in, curated tactical metrics and a player development record out. What the interviews
+changed is what leads and what waits.
+
+The AI assistant moves from a feature to the centre of the product — two clubs confirmed that no
+new hire is possible at any budget level, so the assistant is not a convenience, it is the
+capability the club cannot otherwise get. Demos now lead with plain-language notifications rather
+than metric tables, because that is what coaches responded to and what analysts can actually
+evaluate. The player development record is repositioned as completing a longitudinal record clubs
+already keep, rather than introducing a new one. Scouting moves from a parallel segment to a later
+one. And a player-facing layer has been added to the roadmap, with club-controlled access and
+proper consent handling for minors.
+
+---
+
+## 17 · Notes and comments
+**On proof.** Interview 1 was conducted in person — I visited the analyst three times during
+training sessions and once at a match. It was a one-to-one conversation in the field, which is why
+there is no recording.
+
+**On access.** Reaching buyers is hard here. Cold outreach to directors converted poorly;
+asynchronous messaging worked — our sporting-director interview happened entirely over LinkedIn
+and is still open. Warm introductions beat volume.
+
+**On our own evidence.** Five of seven interviews were with technical users, only one with a
+buyer, and nobody said no — partly because we did not present the product in most conversations.
+We do not read that as validation. Two buyer interviews are scheduled, and our next round asks
+clubs to send a real match so we get a commitment rather than an opinion.
+
+**One ask.** Introductions to academy directors, technical directors or federation contacts would
+be the most useful thing the programme could give us. The Ministry of Sport track is the natural
+route.
