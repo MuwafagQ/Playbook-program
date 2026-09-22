@@ -94,45 +94,69 @@ claim is *"mathematical proof of player progression"* (the Verified Asset Ledger
 able to state the uncertainty on every number is not a footnote — it is the thing that
 makes "proof" defensible to a buying club's analysts. Lead with it.
 
-## What can be fully automated TODAY — the honest MVP scope
+## ⚠ CORRECTION (22 Sep 2026) — the camera constraint
 
-The insight that unlocks Phase 2: **not every valuable metric needs persistent individual
-identity.** Anything computed from detection + team classification + homography alone is
-already automatic and already reliable:
+An earlier version of this file claimed a "Tier 1" of team-level metrics that needed no
+Re-ID and ran automatically today. **That claim was wrong**, and the founder corrected it
+directly: those metrics require a **tactical (wide / panoramic) camera view**, and
+Playbook-IQ currently works from **broadcast footage only**.
 
-- Team territory / occupation heatmaps
-- Team centroid, block height, width, compactness over time
-- Defensive line height and inter-line distances
-- Pressing intensity by zone (players in zone × phase)
-- Formation shape and its evolution by match phase
-- Space control / pitch-control surfaces
-- Phase segmentation (build-up / transition / finishing) at team level
+Broadcast footage is a fundamentally harder input:
 
-**None of these need Re-ID.** All of them are things a youth-academy coach genuinely
-cares about, and none of them exist affordably in this market today.
+- The camera **pans, zooms and cuts**, so homography must be re-estimated every frame.
+- **Never all 22 players are in frame.** Anything computed over the whole team —
+  compactness, block height, inter-line distance, pitch control, formation shape — is
+  undefined or misleading when a third of the players are off-screen.
+- Players **leave and re-enter frame constantly**, which is precisely what makes Re-ID
+  from broadcast the hardest version of the identity problem.
 
-Individual-player metrics (xT contribution, PR, individual pass networks, the Verified
-Asset Ledger) then become the **premium tier delivered with an analyst in the loop** —
-which is exactly the "Custom Metric Library" upsell already in the business model.
+So there is **no free automated tier**. The team-level metric set is not "nearly free
+given what already runs" — it is blocked on an input Playbook-IQ does not have.
 
-**Proposed reframe for the MVP Scope Canvas session (Thu 17 Sep):**
-> Tier 1 (automated, self-serve): team-level tactical intelligence.
-> Tier 2 (lab, analyst-assisted): individual player ledger and custom KPIs.
+### What this changes
 
-This is a defensible, honest, deliverable Phase 2 MVP — and it does not shrink the vision,
-it sequences it.
+**Re-ID is must-have, not a premium upsell.** Walid was right. And the interviews agree:
+clubs have seen the competitor fail on unstable IDs and are uncomfortable buying because
+of it. Stable identity is the purchase condition, not a nice-to-have.
+
+**Two distinct routes out, and they are not the same kind of problem:**
+
+| | Route A — solve Re-ID from broadcast | Route B — change the input |
+|---|---|---|
+| Nature | Research problem | Access / business problem |
+| Horizon | Months to years | Weeks, if a club shares footage |
+| Mechanism | CV lab partnership (KAUST / SoccerNet) | Get tactical-cam footage from one club |
+| Risk | May not resolve in time to sell anything | Depends on someone saying yes |
+
+These are not alternatives — Route B buys the time that Route A needs. A club that already
+films its own matches with a fixed wide camera (Veo, Pixellot, or a club-owned tactical
+cam) can unlock the team-level metric set in weeks, while the lab partnership works the
+identity problem on the broadcast path in parallel.
+
+**KAUST is therefore central, not opportunistic.** Their CV lab, SoccerNet partnership and
+FIFA connections sit exactly on the blocking problem. This is the mechanism that makes
+"a wide network of researchers is the core of the business" true rather than aspirational.
+
+### What is still genuinely true
+
+The quality instrumentation stands and remains the real differentiator: every output row
+carries `homography_ok`, `inlier_ratio`, `reproj_err`, `conf` and `ball_interpolated`.
+**The pipeline knows when it is unsure.** Against a competitor whose IDs silently drift,
+being able to show a club exactly which frames are trustworthy is a defensible claim —
+and it is one no one else in this market is making.
 
 ## Recommended technical priorities
 
 1. **Homography RANSAC + temporal smoothing.** Cheapest quality win. Days.
-2. **Build the Tier-1 team-level metric set.** It is nearly free given what already runs,
-   and it turns "prototype" into "product" for Phase 2.
+2. **Secure tactical-camera footage from one club** (Route B above). This, not code, is
+   what unlocks the team-level metric set. Treat it as a sprint goal with a named target.
 3. **Quantify the automation ratio honestly.** Run the pipeline unattended on one full
    half and measure: mean identity duration before fragmentation, % frames with
    `homography_ok`, ID switches per player per minute. You need these numbers before any
    technical due diligence — and having them makes you the rare founder who does.
 4. **Automatic pass detection** (ball possession-change from trajectory + nearest player)
    to replace manual tagging. Harder, but it is what unlocks xT at scale.
-5. **Re-ID is the CV-lab ask.** Do not try to solve it solo. It is a research problem
-   (jersey-number OCR, long-horizon appearance galleries, tactical-role priors). This is
-   correctly an Ask, not a sprint.
+5. **Re-ID is the CV-lab ask — and it is must-have, not optional.** Do not try to solve
+   it solo. It is a research problem (jersey-number OCR, long-horizon appearance
+   galleries, tactical-role priors) and clubs have already rejected a competitor over it.
+   The sprint goal is **securing the lab partnership** (KAUST), not solving the problem.
