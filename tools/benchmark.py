@@ -176,12 +176,11 @@ def jump_events(
     df: pd.DataFrame, id_col: str, fps: float,
     max_speed_mps: float, max_body_heights_per_frame: float, max_gap: int,
 ) -> pd.DataFrame:
-    """Frame-to-frame jumps of the same id that no human can make.
+    """Frame-to-frame image jumps of the same id that no human can make.
 
-    image_jump: bottom-centre moves > N body-heights/frame in the image. Independent
-                of the homography, so it points at an ID swap (or a bad box).
-    pitch_jump: implied ground speed > max_speed_mps while the image motion is
-                plausible, so it points at homography jitter rather than identity.
+    The bottom-centre moves > N body-heights/frame in the image. Independent of the
+    homography, so it points at an ID swap (or a bad box). Pitch-space motion is not
+    used here: per-frame homography jitter swamps it (see pitch_jitter_metrics).
     """
     sub = df[df.class_id.isin((PLAYER, GK)) & (pd.to_numeric(df[id_col], errors="coerce") >= 0)].copy()
     if sub.empty:
@@ -202,13 +201,46 @@ def jump_events(
         sub["speed_mps"] = dm / (sub.dframe / fps)
     else:
         sub["speed_mps"] = np.nan
-    img = sub.body_heights_per_frame > max_body_heights_per_frame
-    pitch = (sub.speed_mps > max_speed_mps) & ~img
-    sub["kind"] = np.where(img, "image_jump", np.where(pitch, "pitch_jump", ""))
-    ev = sub[sub.kind != ""]
+    ev = sub[sub.body_heights_per_frame > max_body_heights_per_frame].assign(kind="image_jump")
     return ev[["frame", "class_id", "_id", "kind", "dframe", "body_heights_per_frame", "speed_mps"]].rename(
         columns={"_id": id_col}
     ).sort_values(["kind", "frame"])
+
+
+def pitch_jitter_metrics(df: pd.DataFrame, id_col: str, fps: float, max_speed_mps: float) -> dict:
+    """How noisy the pitch coordinates are.
+
+    Real players barely change speed within a second, so for a clean projection the
+    median frame-to-frame speed matches the median speed over one second. Jitter
+    inflates the first but not the second; jitter_ratio = frame-to-frame / 1-second.
+    """
+    if "x_m" not in df.columns:
+        return {}
+    sub = df[(df.class_id == PLAYER) & (pd.to_numeric(df[id_col], errors="coerce") >= 0)]
+    sub = sub.dropna(subset=["x_m", "y_m"])
+    win = max(1, int(round(fps)))
+    ff, net = [], []
+    for _, g in sub.groupby(pd.to_numeric(sub[id_col], errors="coerce").astype(int)):
+        g = g.drop_duplicates("frame").set_index("frame").reindex(range(g.frame.min(), g.frame.max() + 1))
+        xy = g[["x_m", "y_m"]].to_numpy(float) / 100.0
+        d1 = np.linalg.norm(np.diff(xy, axis=0), axis=1) * fps
+        ff.append(d1[np.isfinite(d1)])
+        if len(xy) > win:
+            dn = np.linalg.norm(xy[win:] - xy[:-win], axis=1) * fps / win
+            net.append(dn[np.isfinite(dn)])
+    ff = np.concatenate(ff) if ff else np.array([])
+    net = np.concatenate(net) if net else np.array([])
+    pitch = df[df.class_id.isin(PEOPLE)].dropna(subset=["x_m", "y_m"])
+    off = (pitch.x_m < -500) | (pitch.x_m > 12500) | (pitch.y_m < -500) | (pitch.y_m > 7500)
+    med_ff = float(np.median(ff)) if len(ff) else None
+    med_net = float(np.median(net)) if len(net) else None
+    return {
+        "speed_frame_to_frame_median_mps": med_ff,
+        "speed_1s_median_mps": med_net,
+        "jitter_ratio": (med_ff / med_net) if med_ff and med_net else None,
+        f"frame_pairs_over_{int(max_speed_mps)}mps_share": float((ff > max_speed_mps).mean()) if len(ff) else None,
+        "people_rows_over_5m_off_pitch_share": float(off.mean()) if len(pitch) else None,
+    }
 
 
 def team_flip_metrics(df: pd.DataFrame, id_col: str) -> dict:
@@ -290,16 +322,13 @@ def build_report(args) -> dict:
     player_minutes = (
         df[df.class_id == PLAYER].groupby("frame").size().sum() / fps / 60.0
     )
-    counts = ev["kind"].value_counts().to_dict() if len(ev) else {}
     report["jumps"] = {
         "player_minutes_observed": player_minutes,
-        "image_jumps": int(counts.get("image_jump", 0)),
-        "pitch_jumps": int(counts.get("pitch_jump", 0)),
-        "image_jumps_per_player_minute": counts.get("image_jump", 0) / max(player_minutes, 1e-9),
-        "pitch_jumps_per_player_minute": counts.get("pitch_jump", 0) / max(player_minutes, 1e-9),
-        "thresholds": {"max_speed_mps": args.max_speed_mps,
-                       "max_body_heights_per_frame": args.max_body_heights_per_frame},
+        "image_jumps": int(len(ev)),
+        "image_jumps_per_player_minute": len(ev) / max(player_minutes, 1e-9),
+        "thresholds": {"max_body_heights_per_frame": args.max_body_heights_per_frame},
     }
+    report["pitch_jitter"] = pitch_jitter_metrics(df, args.id_col, fps, args.max_speed_mps)
     if kpi:
         report["pipeline_kpi"] = kpi
 
@@ -346,6 +375,8 @@ def render_md(r: dict) -> str:
     for role, d in r.get("identity_raw_tracker", {}).items():
         table(f"Identity — {role} (raw BoT-SORT id)", d)
     table("Impossible jumps", r["jumps"])
+    if r.get("pitch_jitter"):
+        table("Pitch-coordinate jitter", r["pitch_jitter"])
     table("Duplicates", r["duplicates"])
     if r.get("team"):
         table("Team labels", r["team"])

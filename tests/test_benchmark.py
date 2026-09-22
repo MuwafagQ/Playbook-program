@@ -57,15 +57,13 @@ def test_run_detects_known_defects(tmp_path):
     assert ident["unique_ids"] == 3
     assert ident["segments"] == 4  # ids 1 and 2 whole, id 3 split in two
 
-    jumps = rep["jumps"]
-    assert jumps["image_jumps"] == 1  # id 2 at frame 100
-    assert jumps["pitch_jumps"] == 1  # id 1 at frame 150
-
+    assert rep["jumps"]["image_jumps"] == 1  # id 2 at frame 100; id 1's pitch-only jump is not one
     suspects = pd.read_csv(tmp_path / "out" / "suspects.csv")
-    img = suspects[suspects.kind == "image_jump"].iloc[0]
-    assert (img.frame, img.display_track_id) == (100, 2)
-    pit = suspects[suspects.kind == "pitch_jump"].iloc[0]
-    assert (pit.frame, pit.display_track_id) == (150, 1)
+    assert len(suspects) == 1 and (suspects.frame[0], suspects.display_track_id[0]) == (100, 2)
+
+    jit = rep["pitch_jitter"]  # everyone moves 10 cm/frame = 2.5 m/s at 25 fps
+    assert abs(jit["speed_frame_to_frame_median_mps"] - 2.5) < 1e-6
+    assert abs(jit["jitter_ratio"] - 1.0) < 0.05
 
     assert rep["team"]["ids_with_team_flip"] == 1
     assert rep["duplicates"]["duplicate_id_rows_in_same_frame"] == 0

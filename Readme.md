@@ -246,6 +246,17 @@ frame alignment and box scale, and warns if they look off. Caveat: the truth box
 from the same detector, so detection recall/precision here reflect the cleanup, not true
 detector misses; the identity numbers are the ones to trust.
 
+Record once, replay many times. The models are the slow part (about 1 frame/s on a T4).
+Record their outputs once, then re-run tracking/Re-ID experiments with no models or GPU:
+
+   python main.py --source-video half1.mp4 --start-frame 1066 --end-frame 3333 --out-dir runs/rec --record-cache runs/rec/cache --no-video
+   python main.py --replay-cache runs/rec/cache --replay-video proxy_half1.mp4 --out-dir runs/exp1 --no-video --enable-team
+
+--replay-video is a reduced-resolution clip of just the window (frame 0 = start frame;
+the notebook makes it); without it the replay reads --source-video. A replay warns if
+detection settings differ from the recording. Every run prints and saves per-stage
+timing (kpi_summary.json: time_ms_per_frame_*).
+
 Secondary: proxy metrics without ground truth (any video, e.g. a full half later).
 Protocol:
 1. Baseline run — one full, untouched half (not a pre-trimmed clip), baseline.env settings,
