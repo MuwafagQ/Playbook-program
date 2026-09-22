@@ -15,9 +15,12 @@ Other partner challenges in the cohort: Foodics (FoodTech), GEA (Creative Econom
 | Filtration 2/2 | Filtration | 29 Nov – 19 Dec 2026 | 3 | → 34 |
 | Phase 4: Growth & Investment Readiness | Program | 20 Dec 2026 – 2 Jan 2027 | 2 | 34 |
 
-**Funnel reality: 250 → 125 → 34.** That is a 13.6% survival rate to Phase 4.
-(Note: Muwafag recalls "50 of 253 reach funding" — the official timeline says 34 at Phase 4.
-Worth confirming on the dashboard which number governs.)
+**Funnel: 250 → 125 → 50.** The Ministry of Sport partner deck states the Phase 2 filtration as
+**"125 to 50"** — so Muwafag's original recollection of 50 was correct and the timeline CSV's
+figure of 34 at Phase 4 does not match. Treat **50** as the number for our track.
+
+**SportTech track specifics (Ministry of Sport deck):** 1000+ applications received · 95+ SportTech
+startups applied · **31 shortlisted and 31 onboarded to Phase 1.** We are one of 31 on this track.
 
 Post-program: further support resources, but **only for advanced companies.**
 
