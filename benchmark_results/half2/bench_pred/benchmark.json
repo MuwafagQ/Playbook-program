@@ -1,0 +1,176 @@
+{
+  "input": {
+    "csv": "/content/bench/half2/run/per_frame_tracks.csv",
+    "id_col": "display_track_id",
+    "fps": 30.0,
+    "frame_first": 4270,
+    "frame_last": 5720,
+    "duration_min": 0.8061,
+    "rows": 23644
+  },
+  "detection": {
+    "goalkeepers_per_frame": {
+      "mean": 0.0503,
+      "median": 0.0,
+      "p10": 0.0,
+      "p90": 0.0
+    },
+    "players_per_frame": {
+      "mean": 13.5582,
+      "median": 14.0,
+      "p10": 8.0,
+      "p90": 17.0
+    },
+    "frames_with_zero_players": 0,
+    "referees_per_frame": {
+      "mean": 1.7581,
+      "median": 2.0,
+      "p10": 1.0,
+      "p90": 2.0
+    }
+  },
+  "ball": {
+    "frames_with_ball": 0.9283,
+    "frames_with_multiple_ball_rows": 0,
+    "frames_with_real_ball_detection": 0.5534,
+    "frames_with_interpolated_ball": 0.3749,
+    "ball_rows_off_pitch": 0.1029
+  },
+  "homography": {
+    "homography_ok_rate": 0.989,
+    "homography_state_share": {
+      "ok": 0.989,
+      "none": 0.011
+    },
+    "kp_used_median": 6.0,
+    "frames_kp_used_lt4": 0,
+    "people_rows_with_pitch_xy": 0.9884
+  },
+  "identity": {
+    "goalkeeper": {
+      "unique_ids": 2,
+      "expected_ids": 2,
+      "ids_over_expected": 1.0,
+      "new_ids_per_minute": 2.481,
+      "segments": 5,
+      "segment_seconds_mean": 0.4867,
+      "segment_seconds_median": 0.0667,
+      "segment_seconds_p90": 1.2667,
+      "row_share_in_ids_lasting_60s": 0.0
+    },
+    "player": {
+      "unique_ids": 26,
+      "expected_ids": 20,
+      "ids_over_expected": 1.3,
+      "new_ids_per_minute": 32.2536,
+      "segments": 205,
+      "segment_seconds_mean": 3.1826,
+      "segment_seconds_median": 0.2667,
+      "segment_seconds_p90": 9.0533,
+      "row_share_in_ids_lasting_60s": 0.0
+    },
+    "referee": {
+      "unique_ids": 2,
+      "expected_ids": 1,
+      "ids_over_expected": 2.0,
+      "new_ids_per_minute": 2.481,
+      "segments": 10,
+      "segment_seconds_mean": 8.8467,
+      "segment_seconds_median": 3.7833,
+      "segment_seconds_p90": 23.1333,
+      "row_share_in_ids_lasting_60s": 0.0
+    }
+  },
+  "duplicates": {
+    "duplicate_id_rows_in_same_frame": 513
+  },
+  "team": {
+    "players_with_team_label": 25,
+    "ids_with_team_flip": 0,
+    "team_flips_total": 0,
+    "unknown_team_row_share": 0.0482
+  },
+  "identity_raw_tracker": {
+    "goalkeeper": {
+      "unique_ids": 6,
+      "expected_ids": 2,
+      "ids_over_expected": 3.0,
+      "new_ids_per_minute": 7.4431,
+      "segments": 6,
+      "segment_seconds_mean": 0.4056,
+      "segment_seconds_median": 0.05,
+      "segment_seconds_p90": 1.1333,
+      "row_share_in_ids_lasting_60s": 0.0
+    },
+    "player": {
+      "unique_ids": 106,
+      "expected_ids": 20,
+      "ids_over_expected": 5.3,
+      "new_ids_per_minute": 131.4955,
+      "segments": 199,
+      "segment_seconds_mean": 3.3764,
+      "segment_seconds_median": 0.2333,
+      "segment_seconds_p90": 9.0733,
+      "row_share_in_ids_lasting_60s": 0.0
+    },
+    "referee": {
+      "unique_ids": 56,
+      "expected_ids": 1,
+      "ids_over_expected": 56.0,
+      "new_ids_per_minute": 69.4693,
+      "segments": 133,
+      "segment_seconds_mean": 0.7546,
+      "segment_seconds_median": 0.2,
+      "segment_seconds_p90": 1.68,
+      "row_share_in_ids_lasting_60s": 0.0
+    }
+  },
+  "jumps": {
+    "player_minutes_observed": 10.9294,
+    "image_jumps": 520,
+    "pitch_jumps": 5231,
+    "image_jumps_per_player_minute": 47.5779,
+    "pitch_jumps_per_player_minute": 478.6154,
+    "thresholds": {
+      "max_speed_mps": 12.0,
+      "max_body_heights_per_frame": 1.0
+    }
+  },
+  "pipeline_kpi": {
+    "source_video": "/content/HIL-HAZ_half2.mp4",
+    "source_fps": 30.0,
+    "processed_frames": 1451,
+    "effective_fps": 0.9857,
+    "avg_players_per_frame": 13.5582,
+    "ball_detect_coverage": 0.5534,
+    "ball_interp_coverage": 0.3749,
+    "ball_roi_recovery_rate": 0.0455,
+    "homography_ok_rate": 0.989,
+    "homography_available_rate": 0.989,
+    "valid_projection_ratio": 0.9884,
+    "unique_tracks": 33,
+    "short_track_ratio": 0.0606,
+    "team_unknown_ratio": 0.0385,
+    "display_evictions_player": 0,
+    "display_evictions_goalkeeper": 3,
+    "display_evictions_referee": 98,
+    "stab_player_p1_frame_continuity": 21455,
+    "stab_player_p2_raw_continuity": 1827,
+    "stab_player_p3_hungarian": 59,
+    "stab_player_p4_spatial_rescue": 24,
+    "stab_player_new_ids": 26,
+    "stab_player_capped_forced_reuse": 107,
+    "stab_goalkeeper_p1_frame_continuity": 256,
+    "stab_goalkeeper_p2_raw_continuity": 157,
+    "stab_goalkeeper_p3_hungarian": 24,
+    "stab_goalkeeper_p4_spatial_rescue": 8,
+    "stab_goalkeeper_new_ids": 3,
+    "stab_goalkeeper_capped_forced_reuse": 18,
+    "stab_referee_p1_frame_continuity": 1537,
+    "stab_referee_p2_raw_continuity": 276,
+    "stab_referee_p3_hungarian": 29,
+    "stab_referee_p4_spatial_rescue": 2,
+    "stab_referee_new_ids": 4,
+    "stab_referee_capped_forced_reuse": 24
+  }
+}

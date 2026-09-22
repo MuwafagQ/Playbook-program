@@ -1,0 +1,16 @@
+,half1,half2
+minutes,1.26,0.81
+IDF1 (shown ids),0.5525,0.683
+IDF1 (stable ids),0.5525,0.683
+ID switches,251,60
+switches / player-min,9.961,3.7216
+ids covering 2+ players,25,17
+real players,20,20
+ids used,26,26
+MOTA,0.9216,0.8521
+det recall,0.9784,0.9818
+det precision,0.9522,0.886
+image jumps / player-min (pred),17.035,47.5779
+image jumps / player-min (truth),3.1726,2.7373
+homography ok,0.9872,0.989
+warnings,—,—

@@ -1,0 +1,105 @@
+{
+  "input": {
+    "csv": "/content/bench/half2/gt_window.csv",
+    "id_col": "display_track_id",
+    "fps": 30.0,
+    "frame_first": 4270,
+    "frame_last": 5720,
+    "duration_min": 0.8061,
+    "rows": 20756
+  },
+  "detection": {
+    "goalkeepers_per_frame": {
+      "mean": 0.0861,
+      "median": 0.0,
+      "p10": 0.0,
+      "p90": 0.0
+    },
+    "players_per_frame": {
+      "mean": 12.2364,
+      "median": 13.0,
+      "p10": 8.0,
+      "p90": 16.0
+    },
+    "frames_with_zero_players": 0,
+    "referees_per_frame": {
+      "mean": 0.9821,
+      "median": 1.0,
+      "p10": 0.0,
+      "p90": 2.0
+    }
+  },
+  "ball": {
+    "frames_with_ball": 1.0,
+    "frames_with_multiple_ball_rows": 0,
+    "frames_with_real_ball_detection": 0.5479,
+    "frames_with_interpolated_ball": 0.4521,
+    "ball_rows_off_pitch": 0.0915
+  },
+  "homography": {
+    "homography_ok_rate": 0.989,
+    "homography_state_share": {
+      "ok": 0.9828,
+      "none": 0.011,
+      "manual": 0.0062
+    },
+    "kp_used_median": 6.0,
+    "frames_kp_used_lt4": 0,
+    "people_rows_with_pitch_xy": 0.9877
+  },
+  "identity": {
+    "goalkeeper": {
+      "unique_ids": 1,
+      "expected_ids": 2,
+      "ids_over_expected": 0.5,
+      "new_ids_per_minute": 1.2405,
+      "segments": 5,
+      "segment_seconds_mean": 0.8467,
+      "segment_seconds_median": 0.4,
+      "segment_seconds_p90": 1.8333,
+      "row_share_in_ids_lasting_60s": 0.0
+    },
+    "player": {
+      "unique_ids": 20,
+      "expected_ids": 20,
+      "ids_over_expected": 1.0,
+      "new_ids_per_minute": 24.8105,
+      "segments": 90,
+      "segment_seconds_mean": 6.6152,
+      "segment_seconds_median": 4.1667,
+      "segment_seconds_p90": 17.5667,
+      "row_share_in_ids_lasting_60s": 0.0
+    },
+    "referee": {
+      "unique_ids": 5,
+      "expected_ids": 1,
+      "ids_over_expected": 5.0,
+      "new_ids_per_minute": 6.2026,
+      "segments": 18,
+      "segment_seconds_mean": 2.6981,
+      "segment_seconds_median": 1.9667,
+      "segment_seconds_p90": 6.71,
+      "row_share_in_ids_lasting_60s": 0.0
+    }
+  },
+  "duplicates": {
+    "duplicate_id_rows_in_same_frame": 0
+  },
+  "team": {
+    "players_with_team_label": 20,
+    "ids_with_team_flip": 0,
+    "team_flips_total": 0,
+    "unknown_team_row_share": 0.0
+  },
+  "jumps": {
+    "player_minutes_observed": 9.8639,
+    "image_jumps": 27,
+    "pitch_jumps": 4956,
+    "image_jumps_per_player_minute": 2.7373,
+    "pitch_jumps_per_player_minute": 502.4387,
+    "thresholds": {
+      "max_speed_mps": 12.0,
+      "max_body_heights_per_frame": 1.0
+    }
+  }
+}
