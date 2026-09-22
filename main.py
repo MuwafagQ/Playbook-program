@@ -252,6 +252,7 @@ def main(
     display_sid_to_slot: dict[int, dict[int, int]] = {cid: {} for cid in display_caps}
     display_slot_to_sid: dict[int, dict[int, int]] = {cid: {} for cid in display_caps}
     stable_last_seen: dict[int, int] = {}
+    display_evictions: dict[int, int] = {cid: 0 for cid in display_caps}
     official_role_memory: dict[int, tuple[int, np.ndarray, int, int]] = {}
     official_classes = {REFEREE_ID, GOALKEEPER_ID}
     official_lock_horizon = max(int(s.TRACK_LOST_BUFFER), 600)
@@ -293,6 +294,7 @@ def main(
             )
             old_sid = int(slot_map[free_slot])
             sid_map.pop(old_sid, None)
+            display_evictions[cid] += 1
 
         sid_map[sid] = int(free_slot)
         slot_map[int(free_slot)] = sid
@@ -351,7 +353,7 @@ def main(
     csvw = CSVWriter(
         csv_path,
         fieldnames=[
-            "frame", "track_id", "display_track_id", "class_id", "conf",
+            "frame", "raw_tracker_id", "track_id", "display_track_id", "class_id", "conf",
             "x1", "y1", "x2", "y2",
             "x_m", "y_m",
             "team_id",
@@ -862,8 +864,14 @@ def main(
                 row_team_id = team_by_track.get(track_id, -1) if class_id == PLAYER_ID else -1
                 track_len[track_id] = track_len.get(track_id, 0) + 1
 
+                raw_tid = (
+                    int(tracks.tracker_id[i])
+                    if tracks.tracker_id is not None and i < len(tracks.tracker_id)
+                    else -1
+                )
                 row = {
                     "frame": frame_idx,
+                    "raw_tracker_id": raw_tid,
                     "track_id": track_id,
                     "display_track_id": int(display_track_ids[i]) if i < len(display_track_ids) else -1,
                     "class_id": class_id,
@@ -889,6 +897,7 @@ def main(
                 x1, y1, x2, y2 = ball_det.xyxy[j].tolist()
                 row = {
                     "frame": frame_idx,
+                    "raw_tracker_id": -1,
                     "track_id": -1,
                     "display_track_id": -1,
                     "class_id": int(ball_det.class_id[j]),
@@ -983,6 +992,7 @@ def main(
     short_tracks = sum(1 for _, n in track_len.items() if n <= 5)
     metrics = {
         "source_video": source_video,
+        "source_fps": float(video_info.fps),
         "processed_frames": processed_frames,
         "effective_fps": fps,
         "avg_players_per_frame": player_total / max(processed_frames, 1),
@@ -998,7 +1008,17 @@ def main(
             sum(1 for t in team_by_track.values() if int(t) < 0) / max(len(team_by_track), 1)
             if enable_team else 1.0
         ),
+        "display_evictions_player": display_evictions.get(PLAYER_ID, 0),
+        "display_evictions_goalkeeper": display_evictions.get(GOALKEEPER_ID, 0),
+        "display_evictions_referee": display_evictions.get(REFEREE_ID, 0),
     }
+    for role, stab in (
+        ("player", id_stabilizer_players),
+        ("goalkeeper", id_stabilizer_goalkeepers),
+        ("referee", id_stabilizer_referees),
+    ):
+        for k, v in stab.stats.items():
+            metrics[f"stab_{role}_{k}"] = int(v)
     kpi_json, kpi_csv = write_kpi_summary(str(out_dir_p), metrics)
     print(f"KPI JSON: {kpi_json}")
     print(f"KPI CSV: {kpi_csv}")

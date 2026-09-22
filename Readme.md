@@ -228,6 +228,50 @@ View the annotated output
 
 Download the CSV
 
+6b) Benchmarking (tools/benchmark.py)
+Measures a run from its own output — no ground-truth labels needed — and becomes the
+regression test for every later change (homography smoothing, Re-ID work, etc.).
+
+Protocol:
+1. Baseline run — one full, untouched half (not a pre-trimmed clip), baseline.env settings,
+   MAX_FRAMES=0, no manual edits:
+
+   python main.py --source-video half1_full.mp4 --out-dir runs/baseline --enable-team
+
+2. Score it:
+
+   python -m tools.benchmark run --csv runs/baseline/per_frame_tracks.csv --kpi runs/baseline/kpi_summary.json --out-dir runs/baseline/bench
+
+   Writes benchmark.json / benchmark.md, suspects.csv (every impossible jump, frame + id,
+   ready to review), and spotcheck.csv (12 random 20 s windows).
+
+3. Human spot-check (the only way to catch silent swaps that don't cause a jump): open
+   annotated.mp4 at each spotcheck.csv window, fill players_checked and id_switches_found, then:
+
+   python -m tools.benchmark score-spotcheck --spotcheck runs/baseline/bench/spotcheck.csv --fps 25
+
+   Gives ID switches per player-minute with a 95% confidence interval.
+
+4. Reference point — run step 2 on the hand-cleaned per_frame_tracks_half*_unified.csv files
+   (fps 25) to see how far unattended output is from the manually cleaned result.
+
+5. After any pipeline change, re-run steps 1-2 on the same video and diff:
+
+   python -m tools.benchmark compare runs/baseline/bench/benchmark.json runs/candidate/bench/benchmark.json
+
+What the metrics mean:
+- identity.*: unique ids vs expected, new ids per minute, mean/median continuous segment
+  length — the fragmentation picture. identity_raw_tracker shows the same for raw BoT-SORT
+  ids, so the gain from IDStabilizer is visible.
+- jumps.image_jumps: the same id moves more than a body-height per frame in the image —
+  physically impossible, independent of the homography, so almost always an ID swap.
+- jumps.pitch_jumps: implied ground speed over 12 m/s while image motion is normal —
+  homography jitter, not identity.
+- team.ids_with_team_flip: an id whose team label changes — a swap or a classifier error.
+- pipeline_kpi.stab_player_*: how IDStabilizer assigned ids (per matching pass, new ids,
+  forced reuses when the id cap is hit); display_evictions_*: on-screen label slots
+  handed to a different player.
+
 7) Troubleshooting
 A) “System hangs / very slow”
 Common causes:
