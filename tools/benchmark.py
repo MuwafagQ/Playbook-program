@@ -473,6 +473,30 @@ def _frame_boxes(sub: pd.DataFrame) -> dict[int, tuple[np.ndarray, np.ndarray]]:
     }
 
 
+def _switch_attribution(matches: list[tuple[int, str, str, int]]) -> dict:
+    """Split identity changes between the base tracker and the ID stabiliser.
+
+    matches: (frame, gt_key, pred_key, raw_tracker_id) for every matched box.
+    """
+    if not matches:
+        return {}
+    m = pd.DataFrame(matches, columns=["frame", "gt", "pid", "raw"]).sort_values(["gt", "frame"])
+    g = m.groupby("gt")
+    m["prev_raw"], m["prev_pid"], m["gap"] = g.raw.shift(), g.pid.shift(), g.frame.diff()
+    ev = m.dropna(subset=["prev_pid"])
+    raw_ch = ev.raw != ev.prev_raw
+    pid_ch = ev.pid != ev.prev_pid
+    failed = ev[raw_ch & pid_ch]
+    bins = pd.cut(failed.gap, [0, 5, 30, 90, np.inf], labels=["<=5", "6-30", "31-90", ">90"])
+    return {
+        "tracker_id_changes": int(raw_ch.sum()),
+        "stabilizer_bridged": int((raw_ch & ~pid_ch).sum()),
+        "stabilizer_failed_to_bridge": int(len(failed)),
+        "stabilizer_caused": int((~raw_ch & pid_ch).sum()),
+        "failed_bridges_by_gap_frames": {str(k): int(v) for k, v in bins.value_counts().sort_index().items()},
+    }
+
+
 def _best_offset(pred: dict, gt: dict, search: int, iou_thr: float) -> dict[int, int]:
     frames = sorted(gt)[:: max(1, len(gt) // 300)]
     scores = {}
@@ -508,6 +532,12 @@ def score_against_gt(
         gt_df = gt_df[~fabricated]
     gt = _people(gt_df, gt_id_col, classes)
     pred = _people(pred_df, pred_id_col, classes)
+    has_raw = "raw_tracker_id" in pred.columns and pred_id_col != "raw_tracker_id"
+    raw_by_frame = (
+        {int(f): pd.to_numeric(g["raw_tracker_id"], errors="coerce").fillna(-1).astype(int).to_numpy()
+         for f, g in pred.groupby("frame")} if has_raw else {}
+    )
+    matches = []
     pred_fb = _frame_boxes(pred)
     gt_fb_all = _frame_boxes(gt)
 
@@ -552,6 +582,8 @@ def score_against_gt(
                 idsw += 1
                 switches.append({"frame": f, "gt_id": gk, "from_pred_id": prev, "to_pred_id": pk})
             last_match[gk] = pk
+            if has_raw:
+                matches.append((f, gk, pk, int(raw_by_frame[f - frame_offset][c])))
 
     # IDF1: best global one-to-one gt<->pred identity mapping.
     g_list = sorted(gt_count)
@@ -612,6 +644,8 @@ def score_against_gt(
         "gt_boxes": gt_total, "pred_boxes": pred_total, "TP": tp, "FP": fp, "FN": fn,
         "merged_pred_ids": merged,
     }
+    if has_raw:
+        res["switch_attribution"] = _switch_attribution(matches)
     warnings = []
     if best_off != frame_offset and offset_scores.get(best_off, 0) > 1.2 * offset_scores.get(frame_offset, 0):
         warnings.append(f"frames look misaligned: best-fitting offset is {best_off}, not {frame_offset}")

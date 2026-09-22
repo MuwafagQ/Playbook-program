@@ -144,3 +144,19 @@ def test_compare(tmp_path):
     b.write_text(json.dumps({"jumps": {"image_jumps": 4}}))
     out = bm.compare(str(a), str(b))
     assert "| jumps.image_jumps | 10 | 4 | -6 |" in out
+
+
+def test_switch_attribution():
+    gt, pred = [], []
+    for f in range(40):
+        gt.append(_box(f, 1, 100))
+        # tracker renames the player at 10 (stabiliser bridges it: same shown id), again at 20
+        # (stabiliser fails: new shown id), and at 30 the stabiliser changes the id on its own.
+        raw = 1 if f < 10 else (2 if f < 20 else 3)
+        shown = 7 if f < 20 else (8 if f < 30 else 9)
+        pred.append({**_box(f, shown, 100), "raw_tracker_id": raw})
+    res, _, _ = bm.score_against_gt(pd.DataFrame(pred), pd.DataFrame(gt), offset_search=0)
+    att = res["switch_attribution"]
+    assert (att["tracker_id_changes"], att["stabilizer_bridged"],
+            att["stabilizer_failed_to_bridge"], att["stabilizer_caused"]) == (2, 1, 1, 1)
+    assert att["failed_bridges_by_gap_frames"]["<=5"] == 1
