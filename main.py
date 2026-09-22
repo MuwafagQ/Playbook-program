@@ -62,6 +62,8 @@ def main(
     fit_team_stride: int = 60,
     fit_team_max_frames: int = 30,
     enable_team: bool = True,
+    start_frame: int = 0,
+    end_frame: int | None = None,
 ):
     s = load_settings()
 
@@ -80,18 +82,40 @@ def main(
     # Video
     print(f"[stage] Opening video: {source_video}")
     video_info = sv.VideoInfo.from_video_path(source_video)
-    frame_limit = int(s.MAX_FRAMES) if int(s.MAX_FRAMES) > 0 else int(video_info.total_frames)
-    progress_total = min(int(video_info.total_frames), frame_limit)
-    print(f"[stage] Video ready. total_frames={video_info.total_frames}, processing={progress_total}")
+    # Optional window [start_frame, end_frame] (inclusive). frame_idx and the CSV keep
+    # the source video's absolute frame numbers, so a window run lines up with any
+    # other CSV from the same video (e.g. the hand-cleaned ground truth).
+    total_frames = int(video_info.total_frames)
+    start_frame = max(0, int(start_frame))
+    stop = total_frames if end_frame is None else min(total_frames, int(end_frame) + 1)
+    frame_limit = max(0, stop - start_frame)
+    if int(s.MAX_FRAMES) > 0:
+        frame_limit = min(frame_limit, int(s.MAX_FRAMES))
+    progress_total = frame_limit
+    print(
+        f"[stage] Video ready. total_frames={total_frames}, processing={progress_total} "
+        f"(frames {start_frame}-{start_frame + frame_limit - 1})"
+    )
 
     _prefetch_q: queue.Queue = queue.Queue(maxsize=8)
 
     def _prefetch_worker():
-        for _i, _f in enumerate(sv.get_video_frames_generator(source_video)):
-            if _i >= frame_limit:
-                break
-            _prefetch_q.put(_f)
-        _prefetch_q.put(None)
+        # Skip to start_frame with grab() (exact; container seeks can land a few frames
+        # off). supervision's iterative_seek is not used: it returns `end` frames
+        # instead of `end - start`.
+        cap = cv2.VideoCapture(source_video)
+        try:
+            for _ in range(start_frame):
+                if not cap.grab():
+                    break
+            for _ in range(frame_limit):
+                ok, _f = cap.read()
+                if not ok:
+                    break
+                _prefetch_q.put(_f)
+        finally:
+            cap.release()
+            _prefetch_q.put(None)
 
     _prefetch_thread = threading.Thread(target=_prefetch_worker, daemon=True)
     _prefetch_thread.start()
@@ -399,8 +423,8 @@ def main(
     GK_GOAL_ZONE_X_M = 1500.0  # cm; 15m from each goal line
     print("[stage] Starting frame loop...")
     with VideoWriter(out_video_path, video_info) as vw:
-        for frame_idx, frame in tqdm(enumerate(frames), total=progress_total):
-            if frame_idx >= frame_limit:
+        for frame_idx, frame in tqdm(enumerate(frames, start=start_frame), total=progress_total):
+            if frame_idx >= start_frame + frame_limit:
                 break
 
             processed_frames += 1
@@ -1029,6 +1053,14 @@ if __name__ == "__main__":
     parser.add_argument("--source-video", required=True, help="Path to input mp4")
     parser.add_argument("--out-dir", default="outputs", help="Output directory")
     parser.add_argument("--enable-team", action="store_true", help="Enable team classifier")
+    parser.add_argument("--start-frame", type=int, default=0, help="First frame to process (absolute)")
+    parser.add_argument("--end-frame", type=int, default=None, help="Last frame to process, inclusive")
     args = parser.parse_args()
 
-    main(args.source_video, out_dir=args.out_dir, enable_team=args.enable_team)
+    main(
+        args.source_video,
+        out_dir=args.out_dir,
+        enable_team=args.enable_team,
+        start_frame=args.start_frame,
+        end_frame=args.end_frame,
+    )

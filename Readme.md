@@ -229,9 +229,24 @@ View the annotated output
 Download the CSV
 
 6b) Benchmarking (tools/benchmark.py)
-Measures a run from its own output — no ground-truth labels needed — and becomes the
-regression test for every later change (homography smoothing, Re-ID work, etc.).
+The regression test for every later change (homography smoothing, Re-ID work, etc.).
 
+Primary: accuracy on the hand-verified windows (notebooks/benchmark_windows.ipynb, Colab GPU).
+Runs the pipeline unattended on half1 frames 1066-3333 and half2 frames 4270-5720 of the
+full half videos (main.py --start-frame/--end-frame keeps absolute frame numbers), then
+scores it against per_frame_tracks_half*_unified.csv:
+
+   python -m tools.benchmark score-gt --pred run/per_frame_tracks.csv --gt per_frame_tracks_half1_unified.csv
+
+Reports IDF1 (share of player-frames carrying the right identity), ID switches per
+player-minute, ids that cover 2+ real players (mid-track swaps), MOTA, and per-player
+id accuracy (gt_per_player.csv) with every switch listed (gt_switches.csv). GT rows
+fabricated by gap interpolation (notes=idfix_interp) are excluded. It also checks the
+frame alignment and box scale, and warns if they look off. Caveat: the truth boxes come
+from the same detector, so detection recall/precision here reflect the cleanup, not true
+detector misses; the identity numbers are the ones to trust.
+
+Secondary: proxy metrics without ground truth (any video, e.g. a full half later).
 Protocol:
 1. Baseline run — one full, untouched half (not a pre-trimmed clip), baseline.env settings,
    MAX_FRAMES=0, no manual edits:

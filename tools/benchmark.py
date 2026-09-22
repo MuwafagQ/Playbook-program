@@ -1,9 +1,12 @@
-"""Benchmark a pipeline run from its per_frame_tracks.csv (no ground truth needed).
+"""Benchmark a pipeline run from its per_frame_tracks.csv.
 
 Subcommands:
-  run              compute metrics -> benchmark.json + benchmark.md (+ suspects.csv, spotcheck.csv)
+  run              proxy metrics, no ground truth -> benchmark.json + benchmark.md
+                   (+ suspects.csv, spotcheck.csv)
+  score-gt         real tracking accuracy (IDF1, ID switches, MOTA) against a
+                   hand-verified CSV such as per_frame_tracks_half*_unified.csv
   score-spotcheck  turn a human-filled spotcheck.csv into a measured ID-switch rate
-  compare          side-by-side of two benchmark.json files (baseline vs candidate)
+  compare          side-by-side of two benchmark/score json files (baseline vs candidate)
 
 Works on raw pipeline output and on the hand-cleaned *_unified.csv files, so the
 gap between "unattended" and "after manual cleanup" can be measured the same way.
@@ -388,6 +391,208 @@ def score_spotcheck(path: str, fps: float) -> dict:
     })
 
 
+# ---------------------------------------------------------------------------
+# Ground-truth scoring (CLEAR-MOT + IDF1)
+# ---------------------------------------------------------------------------
+
+def _iou_matrix(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    if len(a) == 0 or len(b) == 0:
+        return np.zeros((len(a), len(b)))
+    ix1 = np.maximum(a[:, None, 0], b[None, :, 0])
+    iy1 = np.maximum(a[:, None, 1], b[None, :, 1])
+    ix2 = np.minimum(a[:, None, 2], b[None, :, 2])
+    iy2 = np.minimum(a[:, None, 3], b[None, :, 3])
+    inter = np.clip(ix2 - ix1, 0, None) * np.clip(iy2 - iy1, 0, None)
+    area_a = (a[:, 2] - a[:, 0]) * (a[:, 3] - a[:, 1])
+    area_b = (b[:, 2] - b[:, 0]) * (b[:, 3] - b[:, 1])
+    return inter / (area_a[:, None] + area_b[None, :] - inter + 1e-9)
+
+
+def _assign_max(weights: np.ndarray) -> list[tuple[int, int]]:
+    """One-to-one assignment maximising total weight (Hungarian, greedy fallback)."""
+    if weights.size == 0:
+        return []
+    try:
+        from scipy.optimize import linear_sum_assignment
+        r, c = linear_sum_assignment(-weights)
+        return list(zip(r.tolist(), c.tolist()))
+    except Exception:
+        order = np.dstack(np.unravel_index(np.argsort(-weights, axis=None), weights.shape))[0]
+        used_r, used_c, out = set(), set(), []
+        for r, c in order:
+            if r not in used_r and c not in used_c:
+                used_r.add(r)
+                used_c.add(c)
+                out.append((int(r), int(c)))
+        return out
+
+
+def _people(df: pd.DataFrame, id_col: str, classes: tuple[int, ...]) -> pd.DataFrame:
+    ids = pd.to_numeric(df[id_col], errors="coerce")
+    sub = df[df.class_id.isin(classes) & (ids >= 0)].copy()
+    # Namespace ids by class: display ids restart per class (player 1 vs GK 1).
+    sub["_key"] = sub.class_id.astype(str) + ":" + ids[sub.index].astype(int).astype(str)
+    return sub.dropna(subset=["x1", "y1", "x2", "y2"])
+
+
+def _frame_boxes(sub: pd.DataFrame) -> dict[int, tuple[np.ndarray, np.ndarray]]:
+    return {
+        int(f): (g[["x1", "y1", "x2", "y2"]].to_numpy(float), g["_key"].to_numpy())
+        for f, g in sub.groupby("frame")
+    }
+
+
+def _best_offset(pred: dict, gt: dict, search: int, iou_thr: float) -> dict[int, int]:
+    frames = sorted(gt)[:: max(1, len(gt) // 300)]
+    scores = {}
+    for off in range(-search, search + 1):
+        n = 0
+        for f in frames:
+            p = pred.get(f - off)
+            if p is None:
+                continue
+            n += int((_iou_matrix(gt[f][0], p[0]) >= iou_thr).any(axis=1).sum())
+        scores[off] = n
+    return scores
+
+
+def score_against_gt(
+    pred_df: pd.DataFrame, gt_df: pd.DataFrame, pred_id_col: str = "display_track_id",
+    gt_id_col: str = "display_track_id", classes: tuple[int, ...] = (PLAYER,),
+    iou_thr: float = 0.5, frame_offset: int = 0, offset_search: int = 3,
+    drop_gt_interp: bool = True, min_merge_frames: int = 10, fps: float = 25.0,
+) -> tuple[dict, pd.DataFrame, pd.DataFrame]:
+    """Score predicted tracks against hand-verified tracks.
+
+    frame_offset: pred frame + offset = gt frame (0 when both use absolute frames).
+    Detection-level numbers (FP/FN, MOTA) partly reflect the manual cleanup itself
+    (junk rows removed, gaps filled); the identity numbers (IDF1, ID switches,
+    merged ids) are the ones that measure ID assignment.
+    """
+    gt_df = gt_df.copy()
+    n_interp = 0
+    if drop_gt_interp and "notes" in gt_df.columns:
+        fabricated = gt_df["notes"].astype(str).str.contains("idfix_interp", na=False)
+        n_interp = int(fabricated.sum())
+        gt_df = gt_df[~fabricated]
+    gt = _people(gt_df, gt_id_col, classes)
+    pred = _people(pred_df, pred_id_col, classes)
+    pred_fb = _frame_boxes(pred)
+    gt_fb_all = _frame_boxes(gt)
+
+    lo = max(min(gt_fb_all, default=0), min(pred_fb, default=0) + frame_offset)
+    hi = min(max(gt_fb_all, default=-1), max(pred_fb, default=-1) + frame_offset)
+    gt_fb = {f: v for f, v in gt_fb_all.items() if lo <= f <= hi}
+    offset_scores = _best_offset(pred_fb, gt_fb, offset_search, iou_thr) if offset_search else {}
+    best_off = max(offset_scores, key=offset_scores.get) if offset_scores else frame_offset
+
+    tp = fp = fn = idsw = 0
+    gt_total = pred_total = 0
+    last_match: dict[str, str] = {}
+    co = {}  # (gt_key, pred_key) -> frames with IoU >= thr
+    gt_count: dict[str, int] = {}
+    pred_count: dict[str, int] = {}
+    matched_gt: dict[str, int] = {}
+    switches = []
+    h_ratio = []
+    for f in range(lo, hi + 1):
+        g_boxes, g_keys = gt_fb.get(f, (np.zeros((0, 4)), np.array([])))
+        p_boxes, p_keys = pred_fb.get(f - frame_offset, (np.zeros((0, 4)), np.array([])))
+        gt_total += len(g_keys)
+        pred_total += len(p_keys)
+        for k in g_keys:
+            gt_count[k] = gt_count.get(k, 0) + 1
+        for k in p_keys:
+            pred_count[k] = pred_count.get(k, 0) + 1
+        iou = _iou_matrix(g_boxes, p_boxes)
+        for gi, pi in zip(*np.where(iou >= iou_thr)):
+            key = (g_keys[gi], p_keys[pi])
+            co[key] = co.get(key, 0) + 1
+        pairs = [(r, c) for r, c in _assign_max(iou) if iou[r, c] >= iou_thr]
+        tp += len(pairs)
+        fn += len(g_keys) - len(pairs)
+        fp += len(p_keys) - len(pairs)
+        for r, c in pairs:
+            gk, pk = g_keys[r], p_keys[c]
+            matched_gt[gk] = matched_gt.get(gk, 0) + 1
+            h_ratio.append((p_boxes[c, 3] - p_boxes[c, 1]) / max(g_boxes[r, 3] - g_boxes[r, 1], 1e-9))
+            prev = last_match.get(gk)
+            if prev is not None and prev != pk:
+                idsw += 1
+                switches.append({"frame": f, "gt_id": gk, "from_pred_id": prev, "to_pred_id": pk})
+            last_match[gk] = pk
+
+    # IDF1: best global one-to-one gt<->pred identity mapping.
+    g_list = sorted(gt_count)
+    p_list = sorted(pred_count)
+    gi_ = {k: i for i, k in enumerate(g_list)}
+    pi_ = {k: i for i, k in enumerate(p_list)}
+    w = np.zeros((len(g_list), len(p_list)))
+    for (gk, pk), n in co.items():
+        w[gi_[gk], pi_[pk]] = n
+    mapping = {g_list[r]: p_list[c] for r, c in _assign_max(w) if w[r, c] > 0}
+    idtp = int(sum(w[gi_[g], pi_[p]] for g, p in mapping.items()))
+
+    per_player = []
+    for gk in g_list:
+        row_w = w[gi_[gk]]
+        mp = mapping.get(gk)
+        per_player.append({
+            "gt_id": gk,
+            "gt_frames": gt_count[gk],
+            "matched_frames": matched_gt.get(gk, 0),
+            "frames_with_correct_id": int(row_w[pi_[mp]]) if mp else 0,
+            "id_accuracy": (row_w[pi_[mp]] / gt_count[gk]) if mp else 0.0,
+            "mapped_pred_id": mp,
+            "distinct_pred_ids": int((row_w > 0).sum()),
+            "id_switches": sum(1 for s in switches if s["gt_id"] == gk),
+        })
+    per_player_df = pd.DataFrame(per_player).sort_values("id_accuracy") if per_player else pd.DataFrame()
+
+    # Pred ids that cover 2+ real players for a meaningful stretch = mid-track swaps.
+    merged = []
+    for pk in p_list:
+        col = w[:, pi_[pk]]
+        players = [(g_list[i], int(col[i])) for i in np.where(col >= min_merge_frames)[0]]
+        if len(players) >= 2:
+            merged.append({"pred_id": pk, "gt_players": players})
+
+    minutes = (hi - lo + 1) / fps / 60.0
+    res = {
+        "frames_scored": hi - lo + 1,
+        "frame_range": [lo, hi],
+        "classes": list(classes),
+        "iou_threshold": iou_thr,
+        "gt_rows_dropped_as_fabricated": n_interp,
+        "frame_offset_used": frame_offset,
+        "frame_offset_best_fit": best_off,
+        "pred_to_gt_box_height_ratio_median": float(np.median(h_ratio)) if h_ratio else None,
+        "gt_players": len(g_list),
+        "pred_ids": len(p_list),
+        "IDF1": 2 * idtp / max(gt_total + pred_total, 1),
+        "IDP": idtp / max(pred_total, 1),
+        "IDR": idtp / max(gt_total, 1),
+        "id_switches": idsw,
+        "id_switches_per_player_minute": idsw / max(len(g_list) * minutes, 1e-9),
+        "pred_ids_covering_2plus_players": len(merged),
+        "MOTA": 1 - (fn + fp + idsw) / max(gt_total, 1),
+        "detection_recall": tp / max(gt_total, 1),
+        "detection_precision": tp / max(tp + fp, 1),
+        "gt_boxes": gt_total, "pred_boxes": pred_total, "TP": tp, "FP": fp, "FN": fn,
+        "merged_pred_ids": merged,
+    }
+    warnings = []
+    if best_off != frame_offset and offset_scores.get(best_off, 0) > 1.2 * offset_scores.get(frame_offset, 0):
+        warnings.append(f"frames look misaligned: best-fitting offset is {best_off}, not {frame_offset}")
+    r_h = res["pred_to_gt_box_height_ratio_median"]
+    if r_h is not None and not 0.9 <= r_h <= 1.1:
+        warnings.append(f"box sizes differ (pred/gt height {r_h:.2f}): different video resolution?")
+    if res["detection_recall"] < 0.3:
+        warnings.append("very few boxes match: check the video, frame window and resolution")
+    res["warnings"] = warnings
+    return _clean(res), per_player_df, pd.DataFrame(switches)
+
+
 def _flatten(d: dict, prefix: str = "") -> dict:
     out = {}
     for k, v in d.items():
@@ -438,6 +643,20 @@ def main(argv=None):
     s.add_argument("--spotcheck", required=True)
     s.add_argument("--fps", type=float, default=25.0)
 
+    g = sp.add_parser("score-gt", help="IDF1 / ID switches / MOTA against a hand-verified CSV")
+    g.add_argument("--pred", required=True, help="per_frame_tracks.csv from an unattended run")
+    g.add_argument("--gt", required=True, help="hand-verified CSV, e.g. per_frame_tracks_half1_unified.csv")
+    g.add_argument("--out-dir", default="benchmark_gt")
+    g.add_argument("--pred-id-col", default="display_track_id")
+    g.add_argument("--gt-id-col", default="display_track_id")
+    g.add_argument("--classes", default="2", help="comma list: 2=players, 1=GK, 3=referee")
+    g.add_argument("--iou", type=float, default=0.5)
+    g.add_argument("--frame-offset", type=int, default=0, help="pred frame + offset = gt frame")
+    g.add_argument("--offset-search", type=int, default=3)
+    g.add_argument("--fps", type=float, default=25.0)
+    g.add_argument("--keep-gt-interp", action="store_true",
+                   help="keep GT rows fabricated by gap interpolation (notes=idfix_interp)")
+
     c = sp.add_parser("compare", help="compare two benchmark.json files")
     c.add_argument("baseline")
     c.add_argument("candidate")
@@ -447,6 +666,26 @@ def main(argv=None):
         rep = build_report(args)
         print(render_md(rep))
         print(f"\nWrote {Path(args.out_dir) / 'benchmark.json'} and benchmark.md")
+    elif args.cmd == "score-gt":
+        res, per_player, switches = score_against_gt(
+            load_tracks(args.pred), load_tracks(args.gt),
+            pred_id_col=args.pred_id_col, gt_id_col=args.gt_id_col,
+            classes=tuple(int(c) for c in args.classes.split(",")),
+            iou_thr=args.iou, frame_offset=args.frame_offset,
+            offset_search=args.offset_search, drop_gt_interp=not args.keep_gt_interp,
+            fps=args.fps,
+        )
+        out = Path(args.out_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "score_gt.json").write_text(json.dumps(res, indent=2))
+        per_player.to_csv(out / "gt_per_player.csv", index=False)
+        switches.to_csv(out / "gt_switches.csv", index=False)
+        summary = {k: v for k, v in res.items() if k != "merged_pred_ids"}
+        print(json.dumps(summary, indent=2))
+        if len(per_player):
+            print("\nWorst-tracked players:")
+            print(per_player.head(8).to_string(index=False))
+        print(f"\nWrote {out}/score_gt.json, gt_per_player.csv, gt_switches.csv")
     elif args.cmd == "score-spotcheck":
         print(json.dumps(score_spotcheck(args.spotcheck, args.fps), indent=2))
     elif args.cmd == "compare":

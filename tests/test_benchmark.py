@@ -77,6 +77,51 @@ def test_run_detects_known_defects(tmp_path):
     assert len(pd.read_csv(tmp_path / "out" / "spotcheck.csv")) == 3
 
 
+def _box(frame, tid, x, notes=""):
+    return {"frame": frame, "display_track_id": tid, "class_id": 2,
+            "x1": x - 15, "y1": 420, "x2": x + 15, "y2": 500, "notes": notes}
+
+
+def test_score_gt_known_errors():
+    X = {"A": 100, "B": 400, "C": 700}
+    gt, pred = [], []
+    for f in range(100):
+        gt.append(_box(f, 1, X["A"]))
+        gt.append(_box(f, 2, X["B"]))
+        # C's last row was fabricated by gap interpolation -> dropped from scoring.
+        gt.append(_box(f, 3, X["C"], notes="idfix_interp" if f == 99 else ""))
+        # A and C swap labels from frame 60 (mid-track swap, the raw14 bug class).
+        # No pred box on C at frame 99 (after the swap C is labelled 10).
+        if f < 99:
+            pred.append(_box(f, 10, X["A"] if f < 60 else X["C"]))
+        pred.append(_box(f, 13, X["C"] if f < 60 else X["A"]))
+        # B fragments into a new id at frame 50.
+        pred.append(_box(f, 11 if f < 50 else 12, X["B"]))
+    pred.append(_box(5, 99, 1000))  # one false positive
+
+    res, per_player, switches = bm.score_against_gt(pd.DataFrame(pred), pd.DataFrame(gt), offset_search=2)
+
+    assert res["gt_rows_dropped_as_fabricated"] == 1
+    assert (res["TP"], res["FP"], res["FN"]) == (299, 1, 0)
+    assert res["id_switches"] == 3  # B fragment + A and C swapping
+    assert res["pred_ids_covering_2plus_players"] == 2
+    assert abs(res["IDF1"] - 2 * 170 / (299 + 300)) < 1e-3
+    assert abs(res["MOTA"] - (1 - 4 / 299)) < 1e-3
+    assert res["frame_offset_best_fit"] == 0
+    assert res["warnings"] == []
+    acc = dict(zip(per_player.gt_id, per_player.id_accuracy))
+    assert abs(acc["2:1"] - 0.6) < 1e-6 and abs(acc["2:2"] - 0.5) < 1e-6
+    assert sorted(switches.frame.tolist()) == [50, 60, 60]
+
+
+def test_score_gt_flags_frame_misalignment():
+    gt = [_box(f, 1, 100 + 12 * f) for f in range(100)]
+    pred = [_box(f - 2, 7, 100 + 12 * f) for f in range(100)]  # pred numbered 2 frames early
+    res, _, _ = bm.score_against_gt(pd.DataFrame(pred), pd.DataFrame(gt), offset_search=3)
+    assert res["frame_offset_best_fit"] == 2
+    assert any("misaligned" in w for w in res["warnings"])
+
+
 def test_score_spotcheck(tmp_path):
     sc = pd.DataFrame([
         {"window_id": 1, "start_frame": 0, "end_frame": 1499, "players_checked": 10, "id_switches_found": 2},
