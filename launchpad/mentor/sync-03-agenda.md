@@ -7,7 +7,14 @@ Three things have changed since sync #2, and two of them revise advice Walid gav
 the reasoning and push back **before** Assignment #2 is submitted. This is not a status update —
 it is **four decisions and two asks.**
 
-Shape: **5 min update · 25 min decisions · 15 min asks · 5 min close.**
+Shape: **5 min update · 30 min decisions · 12 min asks · 3 min close.**
+
+Six decisions will not fit in 30 minutes. **Ranked — if time runs short, drop from the bottom:**
+1 (Re-ID) · 5 (tactical camera) · 3 (network model) · 2 (sprints) · 6 (benchmark) · 4 (youth).
+**Ask 1 is non-negotiable** — protect the last ten minutes for it.
+
+**Send him the roadmap on Saturday**, so his input can land in Assignment #2 before it is
+submitted on Sunday evening.
 
 ---
 
@@ -81,6 +88,69 @@ as a solo founder outsourcing the hard parts? He has seen the diligence.
 
 **Ask him:** is narrowing to youth and grassroots right for Phase 2, or does it shrink the story
 in front of the Ministry and the judges?
+
+---
+
+## Decision 5 — the tactical camera question
+
+**The constraint:** whole-team metrics — compactness, block height, defensive line, pitch
+control — need a **tactical (wide) camera view**. Broadcast never shows all 22 players, so those
+metrics are not computable from our current input at all. Broadcast is fine for ball-local events,
+which is most of our metric set, but the team-shape layer is locked behind a different camera.
+
+**What makes it hard:** even if an academy already films with a fixed wide camera, their footage
+needs **new detection and pitch-keypoint models** — the camera angle, player scale and pitch
+geometry are all different. It is weeks of machine-learning work, not a plug-in. And the cameras
+that academies own pan, so the cheap shortcut (calibrate the pitch once, reuse it all match) does
+not apply.
+
+**The business question for Walid — this is the real one:**
+
+> Do we stay **video-only**, taking whatever footage a club already has, or do we get into
+> **hardware** — telling academies to install a camera, or reselling one?
+
+| | Video-only | Camera involved |
+|---|---|---|
+| Friction to first customer | None — they already have footage | Capex, procurement, installation, permission |
+| Data quality | Limited to ball-local events | Unlocks the whole team-shape layer |
+| Sales motion | Software sale | Becomes partly a hardware sale |
+| Moat | Weak — anyone can take broadcast | Stronger — we are in their stadium |
+| Competitors | Veo, Pixellot already sell cameras into academies | We would be reselling or competing with them |
+
+**Ask him:** at our stage, with zero signed clubs, is adding a hardware dependency a distraction
+or the thing that makes the product defensible? And does a Saudi academy have the budget and the
+authority to install a camera at all?
+
+---
+
+## Decision 6 — KAUST, SoccerNet, and "Game State Reconstruction"
+
+**Explain it to him in one line:** the exact thing we do — turning broadcast football video into
+player positions and identities on a 2D pitch — is an established academic research task with a
+public name (**Game State Reconstruction**), a public dataset, an open reference implementation,
+and an annual competition. **SoccerNet** is the body that runs it. **KAUST is a partner in it.**
+
+That has three consequences worth his view:
+
+**1. Our hardest problem is a known hard problem.** Identity across a full match from one moving
+camera is an open research question that well-funded groups have not solved. That reframes it from
+"the founder cannot finish his pipeline" to "we are working at the edge of a public benchmark."
+
+**2. We can score ourselves publicly.** Their evaluation metric would give us a number, comparable
+to published results.
+
+> **Ask him:** is publishing a benchmark score good or dangerous for us? It is real credibility
+> with technical judges and diligence — but if the number is well below the state of the art, we
+> have handed a weakness to anyone who asks. Which way does that cut at Phase 4?
+
+**3. It is the natural opening for KAUST.** They already work in this space, so the conversation
+starts with shared vocabulary rather than an explanation. Lizzie is introducing us. The ask is not
+"help us with Re-ID" — it is "be the computer vision arm of our research network."
+
+> **Ask him:** does he know anyone at KAUST, and would Misk or the Ministry of Sport open that
+> door faster than a personal introduction? A programme-backed approach may carry more weight
+> than a founder's email — or it may make us look like a programme participant rather than a
+> company.
 
 ---
 
