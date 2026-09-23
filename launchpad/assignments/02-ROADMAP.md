@@ -1,6 +1,9 @@
 # Playbook-IQ — MVP Roadmap
 ### Misk Launchpad Cohort 10 · Assignment #2 · Sprints to 30 October 2026
 
+> **Working draft — rev. 2, 23 Sep 2026.** Being revised up to the mentor sync on Sunday
+> 27 Sep. The version sent to Walid on Saturday is the one that goes into the form.
+
 **Product stage:** Prototype
 **Sprint cadence:** 1 week (per mentor guidance, Walid)
 **Number of sprints:** 5
@@ -10,47 +13,83 @@
 
 ## The goal of these five sprints
 
-Run **one real pilot**: 3–4 consecutive matches of a single youth team, analysed and
-delivered to the coaching staff before each next training session, to answer the one
-question seven customer interviews did not — **will anyone pay for this?**
+Run **one real pilot**: four consecutive matches of a single youth academy team, analysed and
+delivered to the coaching staff before each next training session, to answer the question seven
+customer interviews did not — **will anyone pay for this?**
 
-Analysis is produced at **Layer 1 (manual event tagging)**. The metrics that define the
-product are mostly event-based, so Layer 1 delivers the real product, not a mock-up.
-See `../MVP-STRATEGY.md`.
+**Why four matches, not one.** The product measures **development**, not single-match
+performance. Development only appears in **aggregation**, so four consecutive games is the
+minimum that produces a trend a coach can act on. A one-match pilot would under-sell what we do
+and would not test the actual claim.
 
-**Why 3–4 matches and not one:** the value proposition at youth level is *development*,
-and development is invisible in a single match. Only a trend across fixtures tests the
-real claim.
+---
+
+## How the work is produced — Layer 1, the hybrid
+
+| | |
+|---|---|
+| **Automatic (the pipeline)** | Detection, tracking and homography → every visible player's position on a 2D pitch, every frame, with a confidence score per row. No player identity required for this stage. |
+| **Manual (founder + trainee)** | Assign real identities to tracklets, and mark the events — which frame, which two players. |
+
+The human never measures a position. xP and the other metrics compute from the positions already
+on the pitch at the event frame.
+
+**Consequence: pipeline quality sets the pilot's labour budget.** Fixing detection is not a
+parallel nice-to-have — it is what makes four matches affordable in five weeks. See
+`../DETECTION-PLAN.md`.
+
+---
+
+## Three tracks
+
+| Track | Buys us |
+|---|---|
+| **A — Pilot** | Evidence. The willingness-to-pay answer we do not have |
+| **B — Models** | Cost. Every point of detection recall reduces manual identity work |
+| **C — Benchmarking** | Proof. A number comparable to published research, and the basis for a research partnership |
 
 ---
 
 ## Sprint plan
 
-| # | Dates | Goal | Done when |
-|---|---|---|---|
-| **1** | 28 Sep – 4 Oct | Lock the pilot. Select the academy and the coach/analyst. Freeze the event-tagging schema and the report template. Open the KAUST conversation. | Pilot team confirmed, footage access confirmed, tagging schema written, KAUST contact reached |
-| **2** | 5 – 11 Oct | **Match 1** tagged and delivered before the next training session. Measure human-hours per match. | Report delivered on time; hours logged; first coach feedback captured |
-| **3** | 12 – 18 Oct | **Match 2** delivered. Coach uses KEMO to ask questions in Arabic. Measure the automation baseline on one unattended half. | Report delivered; KEMO session held; ID-switch rate, `homography_ok` %, mean identity duration recorded |
-| **4** | 19 – 25 Oct | **Match 3** delivered. First cross-match view: the same players and team across three fixtures. | Trend view delivered; coach asked what he would change in training |
-| **5** | 26 – 30 Oct | **Match 4** + development report across the pilot. Willingness-to-pay conversation with the academy's decision-maker. KAUST meeting held. | Pilot report delivered; a price named and a reaction recorded; KAUST meeting complete |
+| # | Dates | Track A — Pilot | Track B — Models | Track C — Benchmark |
+|---|---|---|---|---|
+| **1** | 28 Sep – 4 Oct | Pilot academy approached, footage secured | Processing capacity secured · CVAT annotations migrated · detector retraining started | GSR benchmark set up, reference baseline reproduced |
+| **2** | 5 – 11 Oct | **Match 1** delivered before next training session · hours logged | Retrained detector in place · recall and identity-break rate measured against baseline | Our footage converted to ground truth with verified identities |
+| **3** | 12 – 18 Oct | **Match 2** delivered · coach asking his own questions through the Arabic assistant | Pitch model validated on pilot footage | **Pipeline scored against the public benchmark** — first comparable number |
+| **4** | 19 – 25 Oct | **Match 3** delivered · first cross-match development trend | Review tooling in use · identity work per match measurably reduced | Failure modes ranked: where we lose accuracy and why |
+| **5** | 26 – 30 Oct | **Match 4** + full pilot development report · **a price named to the decision-maker and the reaction recorded** | **Human-hours per match** reported as a measured number | Results written up and taken to a research group as the basis for a first joint problem |
 
-**Running through all five sprints:** buyer interviews (academy director, scouting agency
-owner), and a PDPL consent note for under-18 player data.
+**Every sprint ends in a measured result or something delivered to a real user.**
+
+Running through all five: buyer interviews (academy director, scouting agency owner) and a PDPL
+consent note for under-18 player data.
+
+---
+
+## Main dependency — compute for match processing
+
+Training runs on Roboflow (plan upgrade in Sprint 1). The pilot itself needs inference over
+**4 matches × 90 minutes × 25 fps ≈ 540,000 frames**, on the order of **10–25 GPU-hours** across
+the five weeks. This gates Sprints 2–5.
+
+Routes being pursued: Roboflow hosted batch processing (may cover the detection pass entirely),
+cloud startup credits, the programme, and a research partner.
 
 ---
 
 ## Key planned features
 
-| Feature | Sprint | Layer |
+| Feature | Sprint | Track |
 |---|---|---|
-| Event-tagging schema (ball events + positional notes) | 1 | 1 |
-| Match report template | 1 | 1 |
-| Match analysis | 2 | 1 |
-| Team analysis (collective player data) | 2–3 | 1 |
-| Player analysis | 3 | 1 |
-| KEMO question-answering over the delivered analysis, in Arabic | 3 | 1 |
-| Cross-match development trend | 4 | 1 |
-| Automation baseline measurement (ID switches, homography confidence) | 3 | 2 (research) |
+| Player profiles in the prototype | shipped | A |
+| Retrained player detector (RF-DETR) | 1–2 | B |
+| Event-tagging schema and match report template | 1 | A |
+| Match, team and player analysis on pilot footage | 2–3 | A |
+| Arabic assistant answering the coach's own questions | 3 | A |
+| Tracklet review tooling (jersey-number assisted) | 3–4 | B |
+| Cross-match development trend | 4 | A |
+| GSR benchmark score on our own footage | 3–4 | C |
 | PDPL consent note for minors | 4 | — |
 
 ---
@@ -59,13 +98,30 @@ owner), and a PDPL consent note for under-18 player data.
 
 | | Horizon | What |
 |---|---|---|
-| **Layer 2 — Tracking** | Research track, opened now | Stable player identities from broadcast footage. Blocked on Re-ID, which clubs have already rejected a competitor over. Pursued as a **CV lab collaboration** (KAUST — computer vision lab, SoccerNet partnership, FIFA connections), not solo. |
-| **Layer 3 — Automation** | Triggered by demand | Layer 1 capacity is ~3 teams. Automation becomes urgent at **customer #4**, not before. |
+| **Automatic identity** | Research track | Stable player identity across a match from a single moving broadcast camera. Pursued with a research partner, not solo. The **outcome** is must-have; **automating** it is should-have. |
+| **Full automation** | Triggered by demand | Layer 1 capacity is roughly three teams. Automation becomes urgent at **customer #4**, not before. |
+| **The research network** | Ongoing | Specialist partners by domain — computer vision, tactical modelling, sports science — with Playbook-IQ holding the club relationships, deployment and product. *"Football by the book."* |
 
 ---
 
 ## What these sprints deliberately do **not** attempt
 
-Solving Re-ID. It is a research problem measured in months to years, and five weeks
-of founder time spent on it would produce neither a solution nor a customer. It is
-pursued in parallel through a research partnership while the pilot tests demand.
+Solving player re-identification. It is an open research problem with a public benchmark that
+well-funded groups have not closed, and five weeks of founder time would produce neither a
+solution nor a customer. It is pursued in parallel through benchmarking and a research
+partnership while the pilot tests demand.
+
+---
+
+## Changes in rev. 2
+
+- **Layer 1 corrected to the hybrid.** Rev. 1 described it as manual event tagging, which cannot
+  produce xP — positions come from the pipeline.
+- **Detection moved to Sprint 1.** Measurement showed the detector misses 27% of players and is
+  the root cause of the manual identity work.
+- **Benchmarking added as its own track**, replacing "open KAUST" — the benchmark is work we
+  control and it makes the lab conversation concrete.
+- **Sprint 5 no longer promises a partnership.** It promises a scoped joint problem, which is
+  ours to drive.
+- **Compute named as the main dependency**, with the frame count and hour estimate.
+- **The four-match rationale stated:** development is only visible in aggregation.
