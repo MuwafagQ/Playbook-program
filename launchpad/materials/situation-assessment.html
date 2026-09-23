@@ -106,7 +106,7 @@
 
 <div class="wrap">
 
-  <div class="eyebrow">Playbook-IQ · Honest assessment · 23 September 2026</div>
+  <div class="eyebrow">Playbook-IQ · Honest assessment · 23 September 2026 &middot; rev. 2</div>
   <h1>Where we actually stand</h1>
   <p class="dek">Everything on the board at once: what works, what is blocked, what we believed yesterday that turned out to be wrong, and what the next five weeks should buy us. Written to be argued with.</p>
 
@@ -222,7 +222,7 @@
       <div class="card">
         <span class="tag t-ok"><span class="pip"></span>Works today</span>
         <ul>
-          <li>Detection and team classification on broadcast footage</li>
+          <li>Team classification on broadcast footage</li>
           <li>Tracking and per-frame homography, with confidence flags on every output row — <strong>the pipeline knows when it is unsure</strong></li>
           <li>KEMO, Arabic and English, confirmed working</li>
           <li>Dashboard and API (FastAPI, Streamlit, Firebase auth)</li>
@@ -237,6 +237,7 @@
           <li><strong>Team-shape metrics.</strong> Need a tactical camera view; broadcast never shows all 22</li>
           <li><strong>Tactical footage.</strong> Clubs have it, but the camera pans — so it needs new detection and keypoint models, not just access</li>
           <li><strong>Automatic event tagging.</strong> Downstream of the above</li>
+          <li><strong>Player detection recall is 72.5%</strong> &mdash; trained on 78 images, and the preprocessing stretches 16:9 into a square. This is upstream of everything and is now priority #1</li>
         </ul>
       </div>
       <div class="card">
@@ -316,29 +317,29 @@
       <div class="prow">
         <div class="rank">1</div>
         <div>
-          <h3>Run one pilot: 3–4 matches, one youth team</h3>
-          <p class="why">Delivered before each next training session, at Layer 1. It is the only thing here that produces the evidence seven interviews did not. Roughly 36–48 person-hours — it fits.</p>
+          <h3>Fix the player detector — the Re-ID problem is largely a detection problem</h3>
+          <p class="why">Recall is 72.5% on a model trained on 78 images, so more than one player in four is missed. 883 of the 1,802 gaps inside tracks are only 1&ndash;5 frames long &mdash; that is the detector blinking, not occlusion, and it is where the 952 fragments come from. The preprocessing also stretches 16:9 into a square, squashing every player. Cheapest item on the board and it attacks the cause, not the symptom.</p>
         </div>
       </div>
       <div class="prow">
         <div class="rank">2</div>
+        <div>
+          <h3>Run one pilot: 3&ndash;4 matches, one youth team</h3>
+          <p class="why">Delivered before each next training session, at Layer 1. The only thing here that produces the evidence seven interviews did not. Roughly 36&ndash;48 person-hours &mdash; it fits.</p>
+        </div>
+      </div>
+      <div class="prow">
+        <div class="rank">3</div>
         <div>
           <h3>Name a price to a decision-maker and record the reaction</h3>
           <p class="why">It does not need to be the right number. If October ends without one real reaction to one real price, we finish the month with the same hole we started it with.</p>
         </div>
       </div>
       <div class="prow">
-        <div class="rank">3</div>
-        <div>
-          <h3>Open KAUST in week one</h3>
-          <p class="why">Academic calendars are slow. The ask is a collaboration — a deployment site and club access in exchange for work on Re-ID under broadcast conditions — not a request for help.</p>
-        </div>
-      </div>
-      <div class="prow">
         <div class="rank">4</div>
         <div>
-          <h3>Measure our own failure rate</h3>
-          <p class="why">ID switches per player per minute, percentage of frames with good homography, mean identity duration before fragmentation. A few hours of compute. It converts the KAUST ask from “we have gaps” into “here is exactly where we break.”</p>
+          <h3>Open KAUST in week one</h3>
+          <p class="why">Academic calendars are slow. The ask is a collaboration &mdash; a deployment site and club access in exchange for work on identity under broadcast conditions &mdash; not a request for help. Score ourselves on the SoccerNet GSR benchmark first so the ask carries a number.</p>
         </div>
       </div>
       <div class="prow">
@@ -346,6 +347,13 @@
         <div>
           <h3>Log human hours per match, every match</h3>
           <p class="why">This single number sets what turnaround we can promise and what price is survivable. Without it, pricing is guesswork dressed as strategy.</p>
+        </div>
+      </div>
+      <div class="prow">
+        <div class="rank">6</div>
+        <div>
+          <h3>Resolve the model licences</h3>
+          <p class="why">The player detector in production is yolov8n &mdash; Ultralytics, AGPL-3.0, which triggers on network use. Ultralytics require an Enterprise licence for proprietary commercial products, and that applies to YOLO26 too, at any Roboflow plan tier. Retraining as RF-DETR fixes the accuracy and the licence in one job. Verify every trained model&rsquo;s licence badge before deploying it.</p>
         </div>
       </div>
     </div>
@@ -415,6 +423,6 @@
     </div>
   </section>
 
-  <p class="foot">Sources: TECH_REALITY.md · MVP-STRATEGY.md · RISKS.md · BUSINESS_MODEL.md · REGULATORY.md · interviews/CONSOLIDATED.md · materials/sessions/DIGEST.md</p>
+  <p class="foot">Sources: TECH_REALITY.md · MVP-STRATEGY.md · RISKS.md · BUSINESS_MODEL.md · REGULATORY.md · interviews/CONSOLIDATED.md · materials/sessions/DIGEST.md &middot; DETECTION-PLAN.md &middot; REID-REVIEW-TOOL.md &middot; SN-GAMESTATE.md</p>
 
 </div>
