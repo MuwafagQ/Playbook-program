@@ -1,90 +1,105 @@
-# The KAUST ask — note to Lizzie Fluke + forwardable brief
+# KAUST — introduction via Lizzie Fluke
 
-*Drafted 23 Sep 2026. Lizzie offered to pass a request to her KAUST connections.*
+*Rewritten 23 Sep 2026. The first draft asked for one contained project. That is a good way to
+start work and a bad way to start a relationship: it makes the founder a person with a problem,
+and when the problem is solved the relationship ends.*
 
-## Why this matters beyond Re-ID
+## The actual position
 
-Playbook-IQ's positioning is **a bridge between research labs and football teams** — the
-researcher network is the core of the business, not a workaround. So the KAUST relationship is
-**the first instance of the business model working**, not a favour to fix one technical problem.
+Playbook-IQ is building **a network of research arms, each owning one domain** — computer vision,
+tactical modelling, sports science — with Playbook-IQ holding the football relationships, the
+deployment and the product. KAUST is the candidate for computer vision; Barça Innovation Hub is
+the candidate for tactical research.
 
-Three consequences for how we approach it:
+That is not a workaround for a small team. It is the company. Tagline: **"Football by the book."**
 
-1. **Pursue the relationship, not the fix.** Do not open with our bottleneck.
-2. **Do not gate it on having a benchmark score.** Get the meeting now; the number makes the
-   *second* conversation concrete.
-3. **It is an asset the day it exists.** "A research partnership with KAUST" is a credential a
-   club, the Ministry and an investor all understand — before a single line of code improves.
+So the ask is not *"help us with Re-ID."* It is **"be the computer vision partner in this
+network."** A standing channel, not a project. Go in as **Playbook-IQ**, with Misk and the
+Ministry of Sport as credentials rather than as the identity.
+
+## Method: ask for an introduction, do not send a brief to forward
+
+A forwarded pitch arrives as a document and the answer is yes or no to one thing. An introduction
+arrives as a person, and the first exchange is a conversation. It also costs Lizzie less — two
+sentences instead of reading and endorsing a brief.
+
+Two steps, in order.
 
 ---
 
-## 1 — The note to Lizzie
+## Step 1 — the message to Lizzie
 
 > Hi Lizzie,
 >
-> Thank you again — the Catapult introduction is already useful.
+> Thank you again for Filippo — that's already proving useful.
 >
-> You mentioned you have strong connections at KAUST. I've written the ask below as something
-> you can forward directly, so it costs you one click rather than an explanation. Please change
-> anything that doesn't sound right to you.
+> Could I ask you for an introduction at KAUST? Not for a specific favour. I'm building
+> Playbook-IQ around a network of research partners, each covering one domain — computer vision,
+> tactical modelling, sports science — and KAUST's vision group is the obvious candidate for the
+> first of those. I'd rather start that conversation properly than cold.
 >
-> The short version: their computer vision group works on the exact problem we're stuck on, and
-> they have the SoccerNet partnership. What I can offer them is something academic labs rarely
-> get — a working pipeline deployed with real Saudi clubs, and users who will say whether the
-> output is actually useful.
->
-> No rush, and no obligation if it isn't the right moment.
+> Whoever you think is the right person. Say as much or as little about us as you're comfortable
+> with.
 >
 > Muwafag
 
 ---
 
-## 2 — The forwardable brief
+## Step 2 — the email, once introduced
 
-**Subject: Research collaboration — athlete tracking and identification in Saudi football broadcast**
+**Subject: Playbook-IQ — computer vision partner for Saudi football**
 
-> I lead Playbook-IQ, a Saudi sports-analytics venture currently in the Misk Launchpad
-> accelerator, on the SportTech track run with the Ministry of Sport.
+> Dear Professor [name],
 >
-> We run a computer vision pipeline over broadcast football footage — player detection, tracking,
-> pitch calibration and homography — producing player positions and tactical metrics on a 2D
-> pitch. It is deployed with Saudi clubs and youth academies today.
+> Thank you to Lizzie for the introduction.
 >
-> **Where we are stuck is the problem your field knows as Game State Reconstruction: maintaining
-> stable player identity across a match from a single moving broadcast camera.** Our positions
-> and calibration are sound; identity fragments, and it is currently repaired by hand.
+> Playbook-IQ is a Saudi football analytics company. We take broadcast match footage and turn it
+> into tactical and player-development analysis for clubs and academies. We're currently on the
+> Misk Launchpad SportTech track, run with the Ministry of Sport.
 >
-> I would like to explore a research collaboration. What I think we can offer is the part that is
-> usually hardest for a lab to obtain:
+> The company is built on a particular idea: the analysis clubs actually need does not come from
+> one team of engineers — it comes from research. So rather than trying to own every discipline,
+> we're building a network of specialist partners, each holding one domain: computer vision,
+> tactical modelling, sports science. We hold the club relationships, the deployment and the
+> product. Our tagline is "Football by the book," and we mean it literally.
 >
-> - **A deployment site.** A working production pipeline, not a benchmark script.
-> - **Real evaluation.** Clubs and coaches who will say whether an output is useful, not just
->   whether a metric improved.
-> - **Saudi broadcast conditions** — a domain the public datasets do not cover.
-> - **Annotated ground truth from our own footage**, which we own outright and can share freely.
-> - **Openness.** I am happy to share the pipeline, the models and the data with collaborators,
->   and to co-author and publish.
+> I'd like to explore whether your group could be the computer vision partner in that network.
 >
-> A well-scoped first step exists: the public SoccerNet Game State Reconstruction baseline has no
-> documented path for running on footage outside its own dataset. Building that adapter and
-> scoring our pipeline against the benchmark is a contained piece of work that would immediately
-> tell both of us where the real gap is.
+> What that would mean from your side:
 >
-> Would a short conversation be of interest? I can come to you.
+> - **A continuous flow of real problems** from Saudi clubs and academies — not hypotheticals, and
+>   not one project.
+> - **A live deployment site.** A production pipeline with users, rather than a benchmark script.
+> - **Evaluation by the people who use the output** — coaches, analysts, academy directors.
+> - **Saudi broadcast footage and our own annotations**, which we own outright and can share
+>   freely. A domain the public datasets do not cover.
+> - **Publication.** We would co-author, and we would rather the work be public than closed.
 >
-> Muwafag Hussain — Founder, Playbook-IQ
+> To make it concrete: our current work sits in what your field calls Game State Reconstruction —
+> recovering player positions and identities from a single moving broadcast camera. Our positions
+> and pitch calibration are sound; identity across a full match is where we lose, and it remains
+> an open problem in the literature. I mention it as an illustration of the kind of work, not as
+> the ask.
+>
+> Would you be open to a conversation about whether this fits your group's direction? I would be
+> glad to come to KAUST.
+>
+> Muwafag Hussain
+> Founder, Playbook-IQ
 > [email] · [LinkedIn]
 
 ---
 
-## Before sending — settle these
+## Before the meeting — settle these
 
-- **Intellectual property.** Agree it in writing *before* any work starts. Universities have
-  tech transfer offices and default positions. With no budget, the realistic shape is a
-  collaborative agreement with a co-authored paper plus an explicit licence to use the outputs —
-  and the commercial moat stays in our own data and product layer, not in the research output.
-- **Publication is the commercialisation route, not a threat to it.** A published method is one
-  we can implement freely. Say yes to publishing.
-- **Do not promise SoccerNet data.** Their videos are NDA-gated and non-commercial. What we offer
-  is *our* footage and *our* annotations.
-- **Ask for a named person, not "KAUST".** A lab with a PI and a research direction.
+- **Intellectual property, in writing, before any work starts.** Universities have tech transfer
+  offices with default positions. With no budget the realistic shape is a collaborative agreement
+  plus an explicit licence to use the outputs. **The moat stays in the club relationships, the
+  data and the product layer** — not in the research output. That is what makes the network model
+  safe to run openly.
+- **Say yes to publishing.** A published method is one anyone can implement, including us.
+  Publication is the commercialisation route, not a threat to it.
+- **Do not offer SoccerNet data.** It is NDA-gated and non-commercial. Offer our footage and our
+  annotations.
+- **Ask for a named person and a research direction**, not "KAUST".
+- **Do not lead with the bottleneck.** Re-ID is an illustration. The subject is the partnership.
