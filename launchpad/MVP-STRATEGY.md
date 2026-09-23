@@ -13,9 +13,27 @@ not being solved.
 
 | Layer | How data is produced | Status |
 |---|---|---|
-| **1 — Manual events** | Founder + Data Operations Specialist tag ball events and positional notes by hand | **Now.** ~12 person-hours per match |
-| **2 — Tracking** | Automated player tracking with stable identities | Blocked on Re-ID; research track |
+| **1 — Hybrid** | Pipeline produces **positions** automatically; humans assign **identity** and tag **events** | **Now.** ~12 person-hours per match |
+| **2 — Tracking** | Identity assigned automatically too | Blocked on Re-ID; research track |
 | **3 — Full automation** | End-to-end, unattended | After layer 2 |
+
+> ⚠ **Correction (23 Sep 2026).** An earlier version of this file described Layer 1 as purely
+> manual event tagging. That was wrong: **xP needs player positions on the pitch**, and no
+> amount of manual event tagging produces those. Positions come from detection plus homography —
+> the pipeline — which runs automatically and needs no identity.
+>
+> So Layer 1 is **not** "the pipeline switched off". It is:
+>
+> - **Automatic:** detection, tracking, homography → every visible player's pitch position, every
+>   frame, with tracklet IDs. No identity required.
+> - **Manual:** assign real identities to tracklets (needed for per-player aggregation, which is
+>   the whole youth value proposition), and mark the events — which frame, which two tracklets.
+>
+> The human never measures a position. xP then computes itself from the positions already on the
+> pitch at the event frame.
+>
+> This also means **pipeline quality directly sets the pilot's labour cost.** Fixing detection
+> recall is not a parallel nice-to-have; it is the pilot's budget.
 
 Two facts make layer 1 viable rather than a stunt:
 
