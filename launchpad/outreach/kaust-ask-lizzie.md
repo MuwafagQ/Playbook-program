@@ -67,12 +67,16 @@ Two steps, in order.
 >
 > What that would mean from your side:
 >
-> - **A continuous flow of real problems** from Saudi clubs and academies — not hypotheticals, and
->   not one project.
-> - **A live deployment site.** A production pipeline with users, rather than a benchmark script.
-> - **Evaluation by the people who use the output** — coaches, analysts, academy directors.
+> - **A production pipeline, not a benchmark script.** Working code with an end-to-end path from
+>   raw broadcast video to analysis a coach reads.
 > - **Saudi broadcast footage and our own annotations**, which we own outright and can share
 >   freely. A domain the public datasets do not cover.
+> - **A route into Saudi football.** We are running our first academy pilot in October —
+>   four matches with one youth team — and we have direct access to analysts and coaching staff
+>   at several Pro League clubs through the interviews behind it. That is the channel we are
+>   building, and it is what we bring that a lab cannot easily get on its own.
+> - **Evaluation by the people who use the output**, once the pilot is running: coaches,
+>   analysts, academy directors telling us whether a metric changed a decision.
 > - **Publication.** We would co-author, and we would rather the work be public than closed.
 >
 > To make it concrete: our current work sits in what your field calls Game State Reconstruction —
@@ -80,6 +84,11 @@ Two steps, in order.
 > and pitch calibration are sound; identity across a full match is where we lose, and it remains
 > an open problem in the literature. I mention it as an illustration of the kind of work, not as
 > the ask.
+>
+> I should be straightforward about our stage: the pilot begins in October and we do not yet have
+> a signed club. What we have is a working pipeline, permissioned footage, and the access to put
+> it in front of the right people. If the direction is interesting, the pilot is the natural
+> moment for your group to see whether the problem is worth your time.
 >
 > Would you be open to a conversation about whether this fits your group's direction? I would be
 > glad to come to KAUST.
@@ -103,3 +112,9 @@ Two steps, in order.
   annotations.
 - **Ask for a named person and a research direction**, not "KAUST".
 - **Do not lead with the bottleneck.** Re-ID is an illustration. The subject is the partnership.
+- ⚠ **Do not claim club relationships we do not have.** As of 23 Sep 2026 there are **zero signed
+  clubs**. What exists: a working pipeline, permissioned Ministry footage, direct access to
+  analysts and coaching staff at several Pro League clubs from the customer interviews, and a
+  four-match academy pilot beginning in October. Stating the stage plainly is stronger than
+  implying a customer base — a researcher who asks "which clubs?" and gets a vague answer
+  will not take a second meeting.
