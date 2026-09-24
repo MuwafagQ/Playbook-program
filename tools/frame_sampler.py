@@ -164,9 +164,19 @@ def hardness(detections: list, frame_h: int, uncertain=(0.15, 0.5), small_frac: 
     return 0.15 * n_unsure + 0.05 * n_small + 0.10 * n_overlap
 
 
-def split_matches(matches: list[str], valid_frac: float = 0.2, seed: int = 0) -> dict[str, str]:
-    """Whole matches go to one split. At least one validation match when there are 2+."""
+def split_matches(matches: list[str], valid_frac: float = 0.2, seed: int = 0,
+                  valid_matches: list[str] | None = None) -> dict[str, str]:
+    """Whole matches go to one split. At least one validation match when there are 2+.
+
+    valid_matches: hold out exactly these (e.g. night games, the target condition)
+    instead of a random choice.
+    """
     ms = sorted(set(matches))
+    if valid_matches:
+        unknown = sorted(set(valid_matches) - set(ms))
+        if unknown:
+            raise ValueError(f"validation matches not found: {unknown}; known: {ms}")
+        return {m: ("valid" if m in set(valid_matches) else "train") for m in ms}
     rng = np.random.default_rng(seed)
     rng.shuffle(ms)
     n_valid = 0 if len(ms) < 2 else max(1, int(round(valid_frac * len(ms))))

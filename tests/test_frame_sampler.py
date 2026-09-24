@@ -92,3 +92,11 @@ def test_export_coco_split_by_match(tmp_path):
     assert total == 3
     fs.contact_sheet(picks, str(tmp_path / "sheet.jpg"))
     assert (tmp_path / "sheet.jpg").exists()
+
+
+def test_split_matches_fixed_validation():
+    s = fs.split_matches(["m_2", "m_3", "m_4", "m_9"], valid_matches=["m_2", "m_4"])
+    assert s == {"m_2": "valid", "m_3": "train", "m_4": "valid", "m_9": "train"}
+    import pytest
+    with pytest.raises(ValueError):
+        fs.split_matches(["m_2"], valid_matches=["m_7"])
