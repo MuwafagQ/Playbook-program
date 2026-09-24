@@ -2,7 +2,7 @@
 
 Stages (the Colab notebook notebooks/sample_frames_for_annotation.ipynb runs them):
   1. scan_video      sample one frame every N seconds as a thumbnail; measure how much
-                     of it is pitch (drops close-ups, crowd shots, graphics) and sharpness
+                     of it is pitch (drops crowd shots, graphics, studio) and sharpness
   2. select_diverse  per-match quotas, minimum time gap, and farthest-point sampling in
                      an appearance feature space, so frames differ from each other
   3. hardness        score detector predictions: uncertain boxes, small players, crowding
@@ -93,9 +93,13 @@ def scan_video(video: str, match: str, every_s: float = 1.0, thumb_width: int = 
     return out
 
 
-def filter_broadcast(cands: list[Candidate], min_green: float = 0.35,
+def filter_broadcast(cands: list[Candidate], min_green: float = 0.12,
                      min_sharp_pct: float = 15.0) -> list[Candidate]:
-    """Keep game-view shots: enough pitch visible and not among the blurriest frames."""
+    """Drop frames with almost no pitch (crowd close-ups, graphics, studio) and the blurriest.
+
+    The threshold is deliberately low: a zoomed-out shot during play (goal kick, long ball)
+    shows the stands and only a strip of pitch, yet it holds the smallest, hardest players.
+    """
     keep = [c for c in cands if c.green >= min_green]
     if not keep:
         return []

@@ -100,3 +100,14 @@ def test_split_matches_fixed_validation():
     import pytest
     with pytest.raises(ValueError):
         fs.split_matches(["m_2"], valid_matches=["m_7"])
+
+
+def test_zoomed_out_play_is_kept():
+    """A wide shot with stands filling most of the frame and a thin strip of pitch."""
+    wide = np.full((180, 320, 3), (110, 100, 120), np.uint8)
+    wide[140:] = (40, 150, 40)  # ~22% pitch
+    crowd = np.full((180, 320, 3), (110, 100, 120), np.uint8)
+    mk = lambda img, t: fs.Candidate("M", "v", t, float(t), fs.pitch_green_ratio(img), 50.0,
+                                     fs.appearance_feature(img), img)
+    kept = fs.filter_broadcast([mk(wide, 0), mk(crowd, 1)], min_sharp_pct=0)
+    assert [c.time_s for c in kept] == [0.0]
