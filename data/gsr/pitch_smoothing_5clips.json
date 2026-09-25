@@ -1,0 +1,56 @@
+{
+ "note": "tools/pitch_smooth.py (camera window 25 frames, straight-line local fit, cut-aware; per-track window 5) on the recorded runs of 5 SoccerNet clips. Jitter ratio = median frame-to-frame speed / median 1-second speed (SoccerNet ground truth: 1.0-1.2). Error = median metres vs ground truth for matched people.",
+ "per_clip": {
+  "SNGS-055": {
+   "jitter_raw": 4.54,
+   "jitter_smoothed": 1.31,
+   "err_raw_m": 8.0,
+   "err_smoothed_m": 8.02,
+   "camera_cuts": 9
+  },
+  "SNGS-040": {
+   "jitter_raw": 3.22,
+   "jitter_smoothed": 1.09,
+   "err_raw_m": 5.85,
+   "err_smoothed_m": 5.76,
+   "camera_cuts": 0
+  },
+  "SNGS-021": {
+   "jitter_raw": 4.16,
+   "jitter_smoothed": 1.21,
+   "err_raw_m": 3.93,
+   "err_smoothed_m": 3.82,
+   "camera_cuts": 4
+  },
+  "SNGS-029": {
+   "jitter_raw": 4.97,
+   "jitter_smoothed": 1.41,
+   "err_raw_m": 4.24,
+   "err_smoothed_m": 3.88,
+   "camera_cuts": 8
+  },
+  "SNGS-056": {
+   "jitter_raw": 12.76,
+   "jitter_smoothed": 1.53,
+   "err_raw_m": 14.94,
+   "err_smoothed_m": 15.01,
+   "camera_cuts": 1
+  }
+ },
+ "ladder_hota": {
+  "raw": {
+   "image_hota": 47.4,
+   "pitch": 12.8,
+   "+role": 12.3,
+   "+team": 10.4,
+   "gs_hota": 5.7
+  },
+  "smoothed": {
+   "image_hota": 47.4,
+   "pitch": 13.3,
+   "+role": 12.8,
+   "+team": 10.8,
+   "gs_hota": 5.8
+  }
+ }
+}

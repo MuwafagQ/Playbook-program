@@ -257,6 +257,16 @@ the notebook makes it); without it the replay reads --source-video. A replay war
 detection settings differ from the recording. Every run prints and saves per-stage
 timing (kpi_summary.json: time_ms_per_frame_*).
 
+Pitch smoothing. Per-frame homographies jitter (keypoint noise), which made frame-to-frame
+player speeds 3-13x their real value. `--smooth-pitch` (with --record-cache or --replay-cache)
+re-fits the camera over time (cut-aware, 1 s window) and lightly smooths each player's path;
+raw positions stay in x_m_raw / y_m_raw. Also runnable afterwards on any recorded run:
+
+   python -m tools.pitch_smooth --run runs/exp1
+
+On 5 SoccerNet clips: jitter ratio 3.2-12.8 -> 1.1-1.5 (ground truth 1.0-1.2), position
+error unchanged or slightly better.
+
 Secondary: proxy metrics without ground truth (any video, e.g. a full half later).
 Protocol:
 1. Baseline run — one full, untouched half (not a pre-trimmed clip), baseline.env settings,

@@ -141,3 +141,26 @@ def test_replay_from_half_res_proxy(pipeline, tmp_path):
     assert rep["frame"].min() == START and rep["frame"].max() == START + N - 1
     assert len(rep) == len(rec)
     assert (rec["display_track_id"].to_numpy() == rep["display_track_id"].to_numpy()).mean() > 0.95
+
+
+def test_replay_with_pitch_smoothing(pipeline, tmp_path):
+    m, stamped = pipeline
+    video = tmp_path / "v.avi"
+    _make_video(video)
+    stamped.next_idx = START
+    m.main(str(video), out_dir=str(tmp_path / "rec"), start_frame=START, end_frame=START + N - 1,
+           record_cache=str(tmp_path / "cache"), write_video=False)
+    stamped.next_idx = START
+    m.main(str(video), out_dir=str(tmp_path / "rep"), replay_cache=str(tmp_path / "cache"),
+           write_video=False, smooth_pitch=True)
+    rep = pd.read_csv(tmp_path / "rep" / "per_frame_tracks.csv")
+    assert {"x_m_raw", "y_m_raw"} <= set(rep.columns)
+    people = rep[rep.class_id == 2].dropna(subset=["x_m", "x_m_raw"])
+    assert len(people) > 0
+    # Static camera. The fixture detects every 2nd frame (FAST_MODE), so players move in
+    # 80 cm stair-steps (2 px/frame at 20 cm/px); smoothing straightens the steps but must
+    # never move anyone by more than half a step.
+    moved = abs(people.x_m - people.x_m_raw)
+    assert moved.quantile(0.95) < 40 and abs(people.y_m - people.y_m_raw).max() < 5
+    kpi = json.loads((tmp_path / "rep" / "kpi_summary.json").read_text())
+    assert kpi["pitch_smoothed"] is True

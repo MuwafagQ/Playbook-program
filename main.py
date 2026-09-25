@@ -70,6 +70,7 @@ def main(
     replay_cache: str | None = None,
     replay_video: str | None = None,
     write_video: bool = True,
+    smooth_pitch: bool = False,
 ):
     """Run the pipeline.
 
@@ -79,6 +80,8 @@ def main(
     replay_video: frames for a replay, from a reduced-resolution proxy clip whose
         frame 0 is the recorded start frame; frames are upscaled to the recorded size.
     write_video: False skips drawing and writing annotated.mp4 (faster experiments).
+    smooth_pitch: after the run, smooth pitch positions over time (tools/pitch_smooth.py);
+        needs record_cache or replay_cache. Raw positions are kept as x_m_raw / y_m_raw.
     """
     s = load_settings()
     timer = StageTimer()
@@ -1107,6 +1110,19 @@ def main(
             "settings": {k: getattr(s, k, None) for k in DETECTION_SETTINGS},
         })
         print(f"Model-output cache: {record_cache}")
+    smooth_stats = None
+    if smooth_pitch:
+        smooth_cache = record_cache or replay_cache
+        if smooth_cache is None:
+            print("[WARN] --smooth-pitch needs --record-cache or --replay-cache; pitch positions left unsmoothed.")
+        else:
+            import pandas as pd
+            from tools.pitch_smooth import smooth_run
+
+            tracks_df = pd.read_csv(csv_path, low_memory=False)
+            tracks_df, smooth_stats = smooth_run(tracks_df, smooth_cache, settings=s)
+            tracks_df.to_csv(csv_path, index=False)
+            print(f"[stage] Pitch positions smoothed over time: {smooth_stats}")
     print(f"Done. Output video: {out_video_path if write_video else '(skipped)'}")
     print(f"CSV: {csv_path}")
     print(f"Processed frames: {processed_frames}")
@@ -1150,6 +1166,9 @@ def main(
         for k, v in stab.stats.items():
             metrics[f"stab_{role}_{k}"] = int(v)
     metrics["replay"] = bool(cache_in is not None)
+    metrics["pitch_smoothed"] = smooth_stats is not None
+    if smooth_stats:
+        metrics["pitch_smooth_camera_cuts"] = smooth_stats["camera_cuts"]
     for k, v in timer.per_frame_ms(processed_frames).items():
         metrics[f"time_ms_per_frame_{k}"] = v
     kpi_json, kpi_csv = write_kpi_summary(str(out_dir_p), metrics)
@@ -1169,6 +1188,8 @@ if __name__ == "__main__":
     parser.add_argument("--replay-video", default=None,
                         help="Proxy clip for a replay (frame 0 = recorded start frame); default: --source-video")
     parser.add_argument("--no-video", action="store_true", help="Skip drawing/writing annotated.mp4")
+    parser.add_argument("--smooth-pitch", action="store_true",
+                        help="Smooth pitch positions over time after the run (needs --record-cache or --replay-cache)")
     args = parser.parse_args()
     if not args.source_video and not (args.replay_cache and args.replay_video):
         parser.error("--source-video is required unless replaying from --replay-cache with --replay-video")
@@ -1183,4 +1204,5 @@ if __name__ == "__main__":
         replay_cache=args.replay_cache,
         replay_video=args.replay_video,
         write_video=not args.no_video,
+        smooth_pitch=args.smooth_pitch,
     )
