@@ -97,3 +97,6 @@ outputs_test/
 # -------------------------
 *.tmp
 *.bak
+
+# CVAT ground truth (tracking truth and training frame lists) is versioned
+!data/cvat/**/*.csv

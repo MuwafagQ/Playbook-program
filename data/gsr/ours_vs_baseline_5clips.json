@@ -1,0 +1,108 @@
+{
+ "note": "Our pipeline (baseline.env, unattended, Colab T4) vs the SoccerNet GSR baseline (published April 2024 tracker state) on 5 validation clips, scored with tools/gsr_eval.py. HOTA %.",
+ "environment": "Colab runtime 2025.10 (newest Python 3.13 runtime failed installs); onnxruntime-gpu version pulled by inference-gpu (1.20.1 unavailable); transformers 5.9.0, protobuf 7.x.",
+ "orientation_check_SNGS-055": {
+  "flip_x=False,flip_y=False": 8.0,
+  "flip_x=False,flip_y=True": 23.8,
+  "flip_x=True,flip_y=False": 35.4,
+  "flip_x=True,flip_y=True": 48.9
+ },
+ "runtime": {
+  "minutes_per_750_frames": [
+   14.0,
+   13.3,
+   12.8,
+   12.4,
+   11.8
+  ],
+  "peak_ram_gb": 3.8
+ },
+ "ours": {
+  "combined": {
+   "image_hota": 47.4,
+   "pitch": 12.8,
+   "+role": 12.3,
+   "+team": 10.4,
+   "gs_hota": 5.7
+  },
+  "SNGS-055": {
+   "image_hota": 38.6,
+   "pitch": 6.5,
+   "+role": 5.8,
+   "+team": 4.3,
+   "gs_hota": 2.0
+  },
+  "SNGS-040": {
+   "image_hota": 31.9,
+   "pitch": 9.2,
+   "+role": 8.2,
+   "+team": 7.9,
+   "gs_hota": 1.7
+  },
+  "SNGS-021": {
+   "image_hota": 48.6,
+   "pitch": 17.4,
+   "+role": 16.7,
+   "+team": 15.6,
+   "gs_hota": 11.0
+  },
+  "SNGS-029": {
+   "image_hota": 49.6,
+   "pitch": 11.1,
+   "+role": 10.8,
+   "+team": 10.3,
+   "gs_hota": 5.2
+  },
+  "SNGS-056": {
+   "image_hota": 66.3,
+   "pitch": 15.4,
+   "+role": 15.4,
+   "+team": 9.7,
+   "gs_hota": 0.1
+  }
+ },
+ "baseline_2024": {
+  "combined": {
+   "image_hota": 52.9,
+   "pitch": 40.6,
+   "+role": 32.3,
+   "+team": 24.8,
+   "gs_hota": 15.0
+  },
+  "SNGS-055": {
+   "image_hota": 47.5,
+   "pitch": 6.0,
+   "+role": 4.4,
+   "+team": 4.3,
+   "gs_hota": 1.2
+  },
+  "SNGS-040": {
+   "image_hota": 33.9,
+   "pitch": 26.1,
+   "+role": 14.5,
+   "+team": 9.4,
+   "gs_hota": 1.9
+  },
+  "SNGS-021": {
+   "image_hota": 55.9,
+   "pitch": 32.8,
+   "+role": 32.8,
+   "+team": 32.8,
+   "gs_hota": 24.2
+  },
+  "SNGS-029": {
+   "image_hota": 55.3,
+   "pitch": 52.4,
+   "+role": 52.3,
+   "+team": 52.2,
+   "gs_hota": 23.0
+  },
+  "SNGS-056": {
+   "image_hota": 70.1,
+   "pitch": 72.3,
+   "+role": 45.3,
+   "+team": 13.6,
+   "gs_hota": 8.9
+  }
+ }
+}

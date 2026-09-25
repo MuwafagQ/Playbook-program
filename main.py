@@ -1,4 +1,5 @@
 from __future__ import annotations
+import contextlib
 import time
 import argparse
 import queue
@@ -13,11 +14,13 @@ from tqdm import tqdm
 from sports.configs.soccer import SoccerPitchConfiguration
 
 from core.config import load_settings
-from vision.models import load_roboflow_models
+from core.timing import StageTimer
+from vision.det_cache import DETECTION_SETTINGS, DetCacheReader, DetCacheWriter, iter_frames
 from vision.detect import (
     infer_players_and_ball_upscaled,
     infer_field_keypoints,
     recover_ball_in_roi,
+    infer_ball_tiles,
     tiny_box_filter,
     class_conf_filter,
     BALL_ID, PLAYER_ID, REFEREE_ID, GOALKEEPER_ID,
@@ -62,43 +65,144 @@ def main(
     fit_team_stride: int = 60,
     fit_team_max_frames: int = 30,
     enable_team: bool = True,
+    start_frame: int = 0,
+    end_frame: int | None = None,
+    record_cache: str | None = None,
+    replay_cache: str | None = None,
+    replay_video: str | None = None,
+    write_video: bool = True,
+    smooth_pitch: bool = False,
+    record_ball_tiles: bool = False,
 ):
+    """Run the pipeline.
+
+    record_cache: also save every model output there (see vision/det_cache.py).
+    replay_cache: take model outputs from a recorded cache instead of running the
+        models (no API key/GPU needed); the window defaults to the recorded one.
+    replay_video: frames for a replay, from a reduced-resolution proxy clip whose
+        frame 0 is the recorded start frame; frames are upscaled to the recorded size.
+    write_video: False skips drawing and writing annotated.mp4 (faster experiments).
+    smooth_pitch: after the run, smooth pitch positions over time (tools/pitch_smooth.py);
+        needs record_cache or replay_cache. Raw positions are kept as x_m_raw / y_m_raw.
+    record_ball_tiles: while recording, also run the detector on native-resolution tiles
+        and store the ball candidates (cache tiles.csv.gz) for offline ball experiments.
+        Research only: ~6 extra detector calls per frame, not used by tracking.
+    """
     s = load_settings()
+    timer = StageTimer()
 
     out_dir_p = Path(out_dir)
     out_dir_p.mkdir(parents=True, exist_ok=True)
 
-    print("[stage] Loading models...")
-    # Models
-    player_model, field_model = load_roboflow_models(
-        api_key=s.ROBOFLOW_API_KEY,
-        player_model_id=s.PLAYER_MODEL_ID,
-        field_model_id=s.FIELD_MODEL_ID
-    )
-    print("[stage] Models loaded.")
+    cache_in = None
+    cache_out = None
+    player_model = field_model = None
+    if replay_cache:
+        cache_in = DetCacheReader(replay_cache)
+        meta = cache_in.meta
+        for msg in cache_in.settings_mismatch(s):
+            print(f"[WARN] replay setting differs from recording — {msg}")
+        if enable_team and str(s.TEAM_MODE).lower() == "embedding":
+            raise ValueError("TEAM_MODE=embedding needs the detector; use TEAM_MODE=color for replays.")
+        if start_frame == 0 and end_frame is None:
+            start_frame = int(meta["start_frame"])
+            end_frame = int(meta["start_frame"]) + int(meta["frames"]) - 1
+        video_info = sv.VideoInfo(
+            width=int(meta["width"]), height=int(meta["height"]),
+            fps=float(meta["fps"]), total_frames=int(meta["total_frames"]),
+        )
+        print(f"[stage] Replaying model outputs from {replay_cache} (no models loaded).")
+    else:
+        from vision.models import load_roboflow_models
 
-    # Video
-    print(f"[stage] Opening video: {source_video}")
-    video_info = sv.VideoInfo.from_video_path(source_video)
-    frame_limit = int(s.MAX_FRAMES) if int(s.MAX_FRAMES) > 0 else int(video_info.total_frames)
-    progress_total = min(int(video_info.total_frames), frame_limit)
-    print(f"[stage] Video ready. total_frames={video_info.total_frames}, processing={progress_total}")
+        print("[stage] Loading models...")
+        player_model, field_model = load_roboflow_models(
+            api_key=s.ROBOFLOW_API_KEY,
+            player_model_id=s.PLAYER_MODEL_ID,
+            field_model_id=s.FIELD_MODEL_ID
+        )
+        print("[stage] Models loaded.")
+        print(f"[stage] Opening video: {source_video}")
+        video_info = sv.VideoInfo.from_video_path(source_video)
+        if record_cache:
+            cache_out = DetCacheWriter(record_cache)
+
+    # Optional window [start_frame, end_frame] (inclusive). frame_idx and the CSV keep
+    # the source video's absolute frame numbers, so a window run lines up with any
+    # other CSV from the same video (e.g. the hand-cleaned ground truth).
+    total_frames = int(video_info.total_frames)
+    start_frame = max(0, int(start_frame))
+    stop = total_frames if end_frame is None else min(total_frames, int(end_frame) + 1)
+    frame_limit = max(0, stop - start_frame)
+    if int(s.MAX_FRAMES) > 0:
+        frame_limit = min(frame_limit, int(s.MAX_FRAMES))
+    progress_total = frame_limit
+    print(
+        f"[stage] Video ready. total_frames={total_frames}, processing={progress_total} "
+        f"(frames {start_frame}-{start_frame + frame_limit - 1})"
+    )
+
+    # Model calls. In replay they return the recorded outputs for the frame.
+    if cache_in is not None:
+        def run_detect(fi, img):
+            return cache_in.dets(fi)
+
+        def run_keypoints(fi, img):
+            return cache_in.kp(fi)
+
+        def run_ball_roi(fi, img, center):
+            return cache_in.roi(fi)
+    else:
+        def run_detect(fi, img):
+            return infer_players_and_ball_upscaled(player_model, img, s.DET_CONF, s.DETECT_UPSCALE)
+
+        def run_keypoints(fi, img):
+            return infer_field_keypoints(field_model, img, s.FIELD_CONF)
+
+        def run_ball_roi(fi, img, center):
+            return recover_ball_in_roi(
+                player_model, img, center,
+                roi_px=s.BALL_ROI_PX, upscale=s.BALL_ROI_UPSCALE, conf=s.BALL_ROI_CONF,
+            )
+    def run_ball_tiles(fi, img):
+        return infer_ball_tiles(player_model, img, conf=0.10)
+
+    run_detect = timer.wrap("model_detect", run_detect)
+    run_ball_tiles = timer.wrap("model_ball_tiles", run_ball_tiles)
+    if record_ball_tiles and cache_out is None:
+        print("[WARN] --record-ball-tiles only works while recording (--record-cache); ignored.")
+        record_ball_tiles = False
+    run_keypoints = timer.wrap("model_keypoints", run_keypoints)
+    run_ball_roi = timer.wrap("model_ball_roi", run_ball_roi)
 
     _prefetch_q: queue.Queue = queue.Queue(maxsize=8)
 
     def _prefetch_worker():
-        for _i, _f in enumerate(sv.get_video_frames_generator(source_video)):
-            if _i >= frame_limit:
-                break
-            _prefetch_q.put(_f)
-        _prefetch_q.put(None)
+        # Exact frame positioning via grab() (container seeks can land a few frames
+        # off; supervision's iterative_seek returns `end` frames instead of `end - start`).
+        if replay_video:
+            gen = iter_frames(replay_video, 0, frame_limit, out_size=(video_info.width, video_info.height))
+        else:
+            gen = iter_frames(source_video, start_frame, frame_limit)
+        try:
+            while True:
+                t0 = time.perf_counter()
+                _f = next(gen, None)
+                timer.add("decode", time.perf_counter() - t0)
+                if _f is None:
+                    break
+                _prefetch_q.put(_f)
+        finally:
+            _prefetch_q.put(None)
 
     _prefetch_thread = threading.Thread(target=_prefetch_worker, daemon=True)
     _prefetch_thread.start()
 
     def _buffered_frames():
         while True:
+            t0 = time.perf_counter()
             _f = _prefetch_q.get()
+            timer.add("wait_for_frame", time.perf_counter() - t0)
             if _f is None:
                 return
             yield _f
@@ -252,6 +356,7 @@ def main(
     display_sid_to_slot: dict[int, dict[int, int]] = {cid: {} for cid in display_caps}
     display_slot_to_sid: dict[int, dict[int, int]] = {cid: {} for cid in display_caps}
     stable_last_seen: dict[int, int] = {}
+    display_evictions: dict[int, int] = {cid: 0 for cid in display_caps}
     official_role_memory: dict[int, tuple[int, np.ndarray, int, int]] = {}
     official_classes = {REFEREE_ID, GOALKEEPER_ID}
     official_lock_horizon = max(int(s.TRACK_LOST_BUFFER), 600)
@@ -293,6 +398,7 @@ def main(
             )
             old_sid = int(slot_map[free_slot])
             sid_map.pop(old_sid, None)
+            display_evictions[cid] += 1
 
         sid_map[sid] = int(free_slot)
         slot_map[int(free_slot)] = sid
@@ -351,7 +457,7 @@ def main(
     csvw = CSVWriter(
         csv_path,
         fieldnames=[
-            "frame", "track_id", "display_track_id", "class_id", "conf",
+            "frame", "raw_tracker_id", "track_id", "display_track_id", "class_id", "conf",
             "x1", "y1", "x2", "y2",
             "x_m", "y_m",
             "team_id",
@@ -396,27 +502,43 @@ def main(
     prev_player_boxes: dict[int, np.ndarray] = {}
     GK_GOAL_ZONE_X_M = 1500.0  # cm; 15m from each goal line
     print("[stage] Starting frame loop...")
-    with VideoWriter(out_video_path, video_info) as vw:
-        for frame_idx, frame in tqdm(enumerate(frames), total=progress_total):
-            if frame_idx >= frame_limit:
+    _lap_t = [time.perf_counter()]
+
+    def lap(stage: str) -> None:
+        now = time.perf_counter()
+        timer.add(stage, now - _lap_t[0])
+        _lap_t[0] = now
+
+    video_ctx = VideoWriter(out_video_path, video_info) if write_video else contextlib.nullcontext()
+    with video_ctx as vw:
+        for frame_idx, frame in tqdm(enumerate(frames, start=start_frame), total=progress_total):
+            if frame_idx >= start_frame + frame_limit:
                 break
+            _lap_t[0] = time.perf_counter()
 
             processed_frames += 1
             h, w = frame.shape[:2]
             frame_infer = enhance_frame(frame, enabled=bool(s.PREPROCESS_ENABLED))
+            lap("preprocess")
 
             # 1) Submit both model inferences in parallel, then collect detection results
             should_detect = track_mgr_players.should_detect(frame_idx) or track_mgr_officials.should_detect(frame_idx)
             should_update_h = (frame_idx % max(1, homography_every_n) == 0) or (last_hmat is None) or (homography_state == "none")
 
-            _fut_det = _pool.submit(infer_players_and_ball_upscaled, player_model, frame_infer, s.DET_CONF, s.DETECT_UPSCALE) if should_detect else None
-            _fut_kp = _pool.submit(infer_field_keypoints, field_model, frame_infer, s.FIELD_CONF) if should_update_h else None
+            _fut_det = _pool.submit(run_detect, frame_idx, frame_infer) if should_detect else None
+            _fut_kp = _pool.submit(run_keypoints, frame_idx, frame_infer) if should_update_h else None
 
             players_det = None
             officials_det = None
             raw_ball_det = empty_detections()
+            cache_det = None
             if _fut_det is not None:
                 det = _fut_det.result()
+                cache_det = det
+                lap("wait_detect")
+                if record_ball_tiles:
+                    cache_out.add_tiles(frame_idx, run_ball_tiles(frame_idx, frame_infer))
+                    lap("ball_tiles_recording")
 
                 det = class_conf_filter(
                     det,
@@ -445,6 +567,7 @@ def main(
             officials_tracks, detector_ran_o = track_mgr_officials.update(frame_idx, officials_det, frame=frame_infer)
             tracks = merge_detections([players_tracks, officials_tracks])
             detector_ran = bool(detector_ran_p or detector_ran_o)
+            lap("tracker_botsort")
 
             # On-pitch boundary gate for the ball: drop candidates projected
             # outside the pitch rectangle (defined by the corner keypoints) before
@@ -491,20 +614,16 @@ def main(
             ):
                 _pred_center = ball_smoother.predicted_center()
                 if _pred_center is not None:
-                    raw_ball_det = recover_ball_in_roi(
-                        player_model,
-                        frame_infer,
-                        _pred_center,
-                        roi_px=s.BALL_ROI_PX,
-                        upscale=s.BALL_ROI_UPSCALE,
-                        conf=s.BALL_ROI_CONF,
-                    )
+                    raw_ball_det = run_ball_roi(frame_idx, frame_infer, _pred_center)
+                    if cache_out is not None:
+                        cache_out.add_roi(frame_idx, raw_ball_det)
                     if len(raw_ball_det) > 0:
                         if s.BALL_PAD_PX > 0:
                             raw_ball_det.xyxy = sv.pad_boxes(raw_ball_det.xyxy, px=s.BALL_PAD_PX)
                         ball_roi_recovered_frames += 1
 
             ball_det, ball_imputed = ball_smoother.update(raw_ball_det)
+            lap("ball")
             stable_track_ids = np.full((len(tracks),), -1, dtype=np.int32)
             if len(tracks) > 0 and tracks.class_id is not None:
                 player_mask = tracks.class_id == PLAYER_ID
@@ -763,6 +882,8 @@ def main(
                     frame_i=frame_idx,
                 )
 
+            lap("id_stabilizer_and_filters")
+
             # 3) Team classification with track-memory voting
             if team_clf is not None or team_color_clf is not None:
                 players_tr = tracks[tracks.class_id == PLAYER_ID]
@@ -784,9 +905,12 @@ def main(
                     for tid in stable_player_ids:
                         team_by_track[int(tid)] = team_memory.get(int(tid))
 
+            lap("team")
+
             # 4) Field keypoints -> pure per-frame homography (stateless, no fallback).
             if _fut_kp is not None:
                 kp = _fut_kp.result()
+                lap("wait_keypoints")
                 hres = h_est.estimate(kp)
                 last_hmat = hres.H
                 homography_ok = bool(hres.ok)
@@ -823,6 +947,9 @@ def main(
                     homography_state = "hold"
 
             homography_available_frames += int(last_hmat is not None)
+            if cache_out is not None:
+                cache_out.add_frame(frame_idx, cache_det, kp if _fut_kp is not None else None)
+            lap("homography")
 
             # 5) Project to pitch coords (if H available)
             pitch_xy_tracks = np.full((len(tracks), 2), np.nan, dtype=np.float32)
@@ -848,6 +975,8 @@ def main(
                         cls_arr[i] = PLAYER_ID
                 tracks.class_id = cls_arr
 
+            lap("projection")
+
             # 6) Write CSV rows
             player_total += int(np.sum(tracks.class_id == PLAYER_ID)) if len(tracks) > 0 else 0
             if len(ball_det) > 0:
@@ -862,8 +991,14 @@ def main(
                 row_team_id = team_by_track.get(track_id, -1) if class_id == PLAYER_ID else -1
                 track_len[track_id] = track_len.get(track_id, 0) + 1
 
+                raw_tid = (
+                    int(tracks.tracker_id[i])
+                    if tracks.tracker_id is not None and i < len(tracks.tracker_id)
+                    else -1
+                )
                 row = {
                     "frame": frame_idx,
+                    "raw_tracker_id": raw_tid,
                     "track_id": track_id,
                     "display_track_id": int(display_track_ids[i]) if i < len(display_track_ids) else -1,
                     "class_id": class_id,
@@ -889,6 +1024,7 @@ def main(
                 x1, y1, x2, y2 = ball_det.xyxy[j].tolist()
                 row = {
                     "frame": frame_idx,
+                    "raw_tracker_id": -1,
                     "track_id": -1,
                     "display_track_id": -1,
                     "class_id": int(ball_det.class_id[j]),
@@ -909,6 +1045,10 @@ def main(
                 total_rows += 1
                 if np.isfinite(pitch_xy_ball[j, 0]) and np.isfinite(pitch_xy_ball[j, 1]):
                     valid_projection_rows += 1
+
+            lap("csv")
+            if not write_video:
+                continue
 
             # 7) Draw main view
             annotated = frame.copy()
@@ -937,6 +1077,8 @@ def main(
                 cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 210, 255), 2)
                 cv2.putText(annotated, "ball", (x1, max(0, y1 - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 210, 255), 1, cv2.LINE_AA)
 
+            lap("render_boxes")
+
             # 8) 2D radar (top-down pitch) rendering.
             #    Refresh the radar only every RADAR_EVERY_N frames and hold it in
             #    between — the main video still plays at full frame rate, but the
@@ -961,14 +1103,42 @@ def main(
             else:
                 annotated = overlay_radar(annotated, last_radar, homography_ok=last_radar_h_ok, homography_state=last_radar_h_state)
 
+            lap("render_radar")
             vw.write(annotated)
+            lap("video_write")
 
     csvw.close()
     _pool.shutdown(wait=False)
 
     elapsed = time.time() - start_time
     fps = processed_frames / max(elapsed, 1e-6)
-    print(f"Done. Output video: {out_video_path}")
+    print(timer.report(processed_frames, elapsed))
+    if cache_out is not None:
+        cache_out.close({
+            "source_video": str(source_video),
+            "start_frame": int(start_frame),
+            "frames": int(processed_frames),
+            "width": int(video_info.width),
+            "height": int(video_info.height),
+            "fps": float(video_info.fps),
+            "total_frames": int(total_frames),
+            "settings": {k: getattr(s, k, None) for k in DETECTION_SETTINGS},
+        })
+        print(f"Model-output cache: {record_cache}")
+    smooth_stats = None
+    if smooth_pitch:
+        smooth_cache = record_cache or replay_cache
+        if smooth_cache is None:
+            print("[WARN] --smooth-pitch needs --record-cache or --replay-cache; pitch positions left unsmoothed.")
+        else:
+            import pandas as pd
+            from tools.pitch_smooth import smooth_run
+
+            tracks_df = pd.read_csv(csv_path, low_memory=False)
+            tracks_df, smooth_stats = smooth_run(tracks_df, smooth_cache, settings=s)
+            tracks_df.to_csv(csv_path, index=False)
+            print(f"[stage] Pitch positions smoothed over time: {smooth_stats}")
+    print(f"Done. Output video: {out_video_path if write_video else '(skipped)'}")
     print(f"CSV: {csv_path}")
     print(f"Processed frames: {processed_frames}")
     print(f"Avg tracked players/frame: {player_total / max(processed_frames, 1):.2f}")
@@ -983,6 +1153,7 @@ def main(
     short_tracks = sum(1 for _, n in track_len.items() if n <= 5)
     metrics = {
         "source_video": source_video,
+        "source_fps": float(video_info.fps),
         "processed_frames": processed_frames,
         "effective_fps": fps,
         "avg_players_per_frame": player_total / max(processed_frames, 1),
@@ -998,7 +1169,23 @@ def main(
             sum(1 for t in team_by_track.values() if int(t) < 0) / max(len(team_by_track), 1)
             if enable_team else 1.0
         ),
+        "display_evictions_player": display_evictions.get(PLAYER_ID, 0),
+        "display_evictions_goalkeeper": display_evictions.get(GOALKEEPER_ID, 0),
+        "display_evictions_referee": display_evictions.get(REFEREE_ID, 0),
     }
+    for role, stab in (
+        ("player", id_stabilizer_players),
+        ("goalkeeper", id_stabilizer_goalkeepers),
+        ("referee", id_stabilizer_referees),
+    ):
+        for k, v in stab.stats.items():
+            metrics[f"stab_{role}_{k}"] = int(v)
+    metrics["replay"] = bool(cache_in is not None)
+    metrics["pitch_smoothed"] = smooth_stats is not None
+    if smooth_stats:
+        metrics["pitch_smooth_camera_cuts"] = smooth_stats["camera_cuts"]
+    for k, v in timer.per_frame_ms(processed_frames).items():
+        metrics[f"time_ms_per_frame_{k}"] = v
     kpi_json, kpi_csv = write_kpi_summary(str(out_dir_p), metrics)
     print(f"KPI JSON: {kpi_json}")
     print(f"KPI CSV: {kpi_csv}")
@@ -1006,9 +1193,34 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Soccer analytics pipeline")
-    parser.add_argument("--source-video", required=True, help="Path to input mp4")
+    parser.add_argument("--source-video", default=None, help="Path to input mp4 (not needed for a proxy replay)")
     parser.add_argument("--out-dir", default="outputs", help="Output directory")
     parser.add_argument("--enable-team", action="store_true", help="Enable team classifier")
+    parser.add_argument("--start-frame", type=int, default=0, help="First frame to process (absolute)")
+    parser.add_argument("--end-frame", type=int, default=None, help="Last frame to process, inclusive")
+    parser.add_argument("--record-cache", default=None, help="Also save all model outputs to this directory")
+    parser.add_argument("--replay-cache", default=None, help="Use recorded model outputs instead of the models")
+    parser.add_argument("--replay-video", default=None,
+                        help="Proxy clip for a replay (frame 0 = recorded start frame); default: --source-video")
+    parser.add_argument("--no-video", action="store_true", help="Skip drawing/writing annotated.mp4")
+    parser.add_argument("--record-ball-tiles", action="store_true",
+                        help="While recording, also store ball candidates from tiled detection (research, slow)")
+    parser.add_argument("--smooth-pitch", action="store_true",
+                        help="Smooth pitch positions over time after the run (needs --record-cache or --replay-cache)")
     args = parser.parse_args()
+    if not args.source_video and not (args.replay_cache and args.replay_video):
+        parser.error("--source-video is required unless replaying from --replay-cache with --replay-video")
 
-    main(args.source_video, out_dir=args.out_dir, enable_team=args.enable_team)
+    main(
+        args.source_video,
+        out_dir=args.out_dir,
+        enable_team=args.enable_team,
+        start_frame=args.start_frame,
+        end_frame=args.end_frame,
+        record_cache=args.record_cache,
+        replay_cache=args.replay_cache,
+        replay_video=args.replay_video,
+        write_video=not args.no_video,
+        smooth_pitch=args.smooth_pitch,
+        record_ball_tiles=args.record_ball_tiles,
+    )
