@@ -88,3 +88,36 @@ def test_each_broken_attribute_drops_exactly_its_rung(tmp_path):
     assert h["swapped_team"]["+role"] == pytest.approx(100.0)
     assert h["swapped_team"]["+team"] < 60.0
     assert "gs_hota" in ge.format_table(res)
+
+
+def test_tracklab_state_to_predictions(tmp_path):
+    import io
+    import zipfile
+
+    import numpy as np
+    import pandas as pd
+
+    det = pd.DataFrame({
+        "image_id": ["2021000001", "2021000001", "2021000002"],
+        "video_id": ["021", "021", "021"],
+        "track_id": [1.0, np.nan, 1.0],  # the untracked detection must be dropped
+        "bbox_ltwh": [np.array([10, 20, 30, 60], np.float32)] * 3,
+        "bbox_pitch": [{"x_bottom_left": 0.0, "y_bottom_left": 1.0, "x_bottom_middle": 0.5,
+                        "y_bottom_middle": 1.0, "x_bottom_right": 1.0, "y_bottom_right": 1.0}] * 3,
+        "role": ["player", "player", "player"], "team": ["left", "left", "left"],
+        "jersey_number": ["9", "9", np.nan], "category_id": [1.0, 1.0, 1.0],
+    })
+    pklz = tmp_path / "state.pklz"
+    with zipfile.ZipFile(pklz, "w") as z:
+        buf = io.BytesIO()
+        det.to_pickle(buf)
+        z.writestr("021.pkl", buf.getvalue())
+        z.writestr("021_image.pkl", b"")
+        z.writestr("summary.json", "{}")
+    names = ge.tracklab_state_to_predictions(str(pklz), str(tmp_path / "pred"))
+    assert names == ["SNGS-021"]
+    preds = json.loads((tmp_path / "pred" / "SNGS-021.json").read_text())["predictions"]
+    assert len(preds) == 2
+    assert preds[0]["track_id"] == 1 and preds[0]["bbox_image"] == {"x": 10.0, "y": 20.0, "w": 30.0, "h": 60.0}
+    assert preds[0]["attributes"] == {"role": "player", "jersey": "9", "team": "left"}
+    assert preds[1]["attributes"]["jersey"] is None

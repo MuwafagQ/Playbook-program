@@ -107,6 +107,47 @@ def evaluate(gt_split: str, pred_dirs: dict[str, str], seqs: list[str] | None = 
     return out
 
 
+def tracklab_state_to_predictions(pklz: str, out_dir: str, split_prefix: str = "SNGS") -> list[str]:
+    """Write <clip>.json prediction files from a TrackLab tracker state (.pklz).
+
+    Mirrors tracklab's SoccerNetGameState.soccernet_encoding for 'object' rows: detections
+    without a track id, image box or pitch position are dropped (so they are not counted
+    as false positives), NaN attributes become null, and no confidence is written.
+    """
+    import pickle  # noqa: F401  (pandas.read_pickle)
+    import zipfile
+
+    import pandas as pd
+
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    written = []
+    with zipfile.ZipFile(pklz) as z:
+        vids = sorted(n[:-4] for n in z.namelist() if n.endswith(".pkl") and not n.endswith("_image.pkl"))
+        for vid in vids:
+            with z.open(f"{vid}.pkl") as f:
+                det = pd.read_pickle(f)
+            det = det.dropna(subset=["track_id", "bbox_ltwh", "bbox_pitch"], how="any")
+            preds = []
+            for idx, r in det.iterrows():
+                def val(key):
+                    v = r.get(key)
+                    return None if v is None or (isinstance(v, float) and np.isnan(v)) else v
+                x, y, w, h = (float(v) for v in r["bbox_ltwh"])
+                preds.append({
+                    "id": str(idx), "image_id": str(r["image_id"]), "video_id": str(r["video_id"]),
+                    "track_id": int(r["track_id"]), "supercategory": "object",
+                    "category_id": float(val("category_id") or 1.0),
+                    "attributes": {"role": val("role"), "jersey": val("jersey_number"), "team": val("team")},
+                    "bbox_image": {"x": x, "y": y, "w": w, "h": h},
+                    "bbox_pitch": {k: float(v) for k, v in r["bbox_pitch"].items()},
+                })
+            name = f"{split_prefix}-{vid}"
+            (out / f"{name}.json").write_text(json.dumps({"predictions": preds}))
+            written.append(name)
+    return written
+
+
 def format_table(results: dict[str, dict[str, dict]], metric: str = "HOTA") -> str:
     names = list(results)
     rungs = [r for r, _ in LADDER if r in next(iter(results.values()))]
@@ -119,11 +160,18 @@ def format_table(results: dict[str, dict[str, dict]], metric: str = "HOTA") -> s
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--gt", required=True)
-    p.add_argument("--pred", action="append", required=True, help="prediction folder; name=path allowed")
+    p.add_argument("--pred", action="append", default=[], help="prediction folder; name=path allowed")
     p.add_argument("--seqs", nargs="*", default=None, help="clips to score (default: all in --gt)")
     p.add_argument("--json", default=None, help="also write the full results here")
+    p.add_argument("--from-state", action="append", default=[],
+                   help="name=tracker_state.pklz: convert a TrackLab state to predictions first")
     a = p.parse_args(argv)
     preds = {}
+    for item in a.from_state:
+        name, _, pklz = item.partition("=")
+        conv = Path(pklz).with_suffix("") / "pred"
+        tracklab_state_to_predictions(pklz, str(conv))
+        preds[name] = str(conv)
     for item in a.pred:
         name, _, path = item.partition("=") if "=" in item else (Path(item).name, "", item)
         preds[name or Path(path).name] = path
