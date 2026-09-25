@@ -1,0 +1,20 @@
+{
+  "note": "Why our GSR pitch rung collapses (12.8 vs baseline 40.6). Our detected people matched to SoccerNet GT by image IoU >= 0.5; pitch error in metres. 2026-09-26.",
+  "per_clip": {
+    "SNGS-055": {"median_err_m": 8.0, "within_5m": 0.17, "clip_shift_xy_m": [-1.7, 6.7], "err_after_removing_clip_shift_m": 4.0, "per_frame_shared_offset_m": 7.3, "individual_residual_m": 3.3},
+    "SNGS-040": {"median_err_m": 5.9, "within_5m": 0.43, "clip_shift_xy_m": [-2.1, 4.4], "err_after_removing_clip_shift_m": 4.4, "per_frame_shared_offset_m": 5.0, "individual_residual_m": 1.5},
+    "SNGS-021": {"median_err_m": 3.9, "within_5m": 0.59, "clip_shift_xy_m": [-1.1, -1.3], "err_after_removing_clip_shift_m": 3.6, "per_frame_shared_offset_m": 4.0, "individual_residual_m": 1.8},
+    "SNGS-029": {"median_err_m": 4.2, "within_5m": 0.58, "clip_shift_xy_m": [-0.4, -2.9], "err_after_removing_clip_shift_m": 3.9, "per_frame_shared_offset_m": 3.8, "individual_residual_m": 2.0},
+    "SNGS-056": {"median_err_m": 14.9, "within_5m": 0.0, "clip_shift_xy_m": [-4.6, 14.1], "err_after_removing_clip_shift_m": 2.3, "per_frame_shared_offset_m": 15.3, "individual_residual_m": 1.8}
+  },
+  "refit_experiments_median_err_m": {
+    "template_as_run": {"SNGS-055": 7.95, "SNGS-040": 5.85, "SNGS-021": 3.6, "SNGS-029": 4.24, "SNGS-056": 14.94},
+    "true_to_scale_fifa_template": {"SNGS-055": 7.69, "SNGS-040": 5.48, "SNGS-021": 3.22, "SNGS-029": 4.09, "SNGS-056": 13.62},
+    "fifa_template_plus_ransac": {"SNGS-055": 7.9, "SNGS-040": 5.13, "SNGS-021": 4.86, "SNGS-029": 4.97, "SNGS-056": 15.72}
+  },
+  "findings": [
+    "Error is a per-frame shared offset (whole projection shifted), not individual foot-point noise (1.5-3.3 m residual).",
+    "Roboflow's pitch template is not to scale (120x70 m, 20.15 m penalty box) but refitting to a true FIFA template gains only ~0.3-1.3 m.",
+    "Root cause: the pitch-keypoint model (football-field-detection-f07vi-it2xv/10) places landmarks confidently (conf 0.96-1.0) but up to ~14 m from their true positions on SoccerNet views (e.g. zoomed penalty-box view in SNGS-056); keypoints are inside the image, not out-of-frame guesses."
+  ]
+}
