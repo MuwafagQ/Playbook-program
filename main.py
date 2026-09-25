@@ -20,6 +20,7 @@ from vision.detect import (
     infer_players_and_ball_upscaled,
     infer_field_keypoints,
     recover_ball_in_roi,
+    infer_ball_tiles,
     tiny_box_filter,
     class_conf_filter,
     BALL_ID, PLAYER_ID, REFEREE_ID, GOALKEEPER_ID,
@@ -71,6 +72,7 @@ def main(
     replay_video: str | None = None,
     write_video: bool = True,
     smooth_pitch: bool = False,
+    record_ball_tiles: bool = False,
 ):
     """Run the pipeline.
 
@@ -82,6 +84,9 @@ def main(
     write_video: False skips drawing and writing annotated.mp4 (faster experiments).
     smooth_pitch: after the run, smooth pitch positions over time (tools/pitch_smooth.py);
         needs record_cache or replay_cache. Raw positions are kept as x_m_raw / y_m_raw.
+    record_ball_tiles: while recording, also run the detector on native-resolution tiles
+        and store the ball candidates (cache tiles.csv.gz) for offline ball experiments.
+        Research only: ~6 extra detector calls per frame, not used by tracking.
     """
     s = load_settings()
     timer = StageTimer()
@@ -159,7 +164,14 @@ def main(
                 player_model, img, center,
                 roi_px=s.BALL_ROI_PX, upscale=s.BALL_ROI_UPSCALE, conf=s.BALL_ROI_CONF,
             )
+    def run_ball_tiles(fi, img):
+        return infer_ball_tiles(player_model, img, conf=0.10)
+
     run_detect = timer.wrap("model_detect", run_detect)
+    run_ball_tiles = timer.wrap("model_ball_tiles", run_ball_tiles)
+    if record_ball_tiles and cache_out is None:
+        print("[WARN] --record-ball-tiles only works while recording (--record-cache); ignored.")
+        record_ball_tiles = False
     run_keypoints = timer.wrap("model_keypoints", run_keypoints)
     run_ball_roi = timer.wrap("model_ball_roi", run_ball_roi)
 
@@ -524,6 +536,9 @@ def main(
                 det = _fut_det.result()
                 cache_det = det
                 lap("wait_detect")
+                if record_ball_tiles:
+                    cache_out.add_tiles(frame_idx, run_ball_tiles(frame_idx, frame_infer))
+                    lap("ball_tiles_recording")
 
                 det = class_conf_filter(
                     det,
@@ -1188,6 +1203,8 @@ if __name__ == "__main__":
     parser.add_argument("--replay-video", default=None,
                         help="Proxy clip for a replay (frame 0 = recorded start frame); default: --source-video")
     parser.add_argument("--no-video", action="store_true", help="Skip drawing/writing annotated.mp4")
+    parser.add_argument("--record-ball-tiles", action="store_true",
+                        help="While recording, also store ball candidates from tiled detection (research, slow)")
     parser.add_argument("--smooth-pitch", action="store_true",
                         help="Smooth pitch positions over time after the run (needs --record-cache or --replay-cache)")
     args = parser.parse_args()
@@ -1205,4 +1222,5 @@ if __name__ == "__main__":
         replay_video=args.replay_video,
         write_video=not args.no_video,
         smooth_pitch=args.smooth_pitch,
+        record_ball_tiles=args.record_ball_tiles,
     )

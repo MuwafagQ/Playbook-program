@@ -9,6 +9,8 @@ Layout of a cache directory:
   meta.json        source video, window, frame size, fps, detection settings
   dets.csv.gz      frame, x1, y1, x2, y2, conf, class_id   (full-frame detector output)
   roi.csv.gz       same columns                              (zoomed ball re-detections)
+  tiles.csv.gz     same columns                              (ball candidates from tiled detection,
+                                                              recording only: main.py --record-ball-tiles)
   kp.csv.gz        frame, label, x, y, conf                  (field keypoints)
   frames.csv.gz    frame, det, kp                            (which model ran on which frame)
 """
@@ -53,7 +55,8 @@ class DetCacheWriter:
         self.dir.mkdir(parents=True, exist_ok=True)
         self._files = {}
         self._writers = {}
-        for name, cols in (("dets", DET_COLS), ("roi", DET_COLS), ("kp", KP_COLS), ("frames", ["frame", "det", "kp"])):
+        for name, cols in (("dets", DET_COLS), ("roi", DET_COLS), ("tiles", DET_COLS), ("kp", KP_COLS),
+                           ("frames", ["frame", "det", "kp"])):
             f = gzip.open(self.dir / f"{name}.csv.gz", "wt", newline="")
             w = csv.writer(f)
             w.writerow(cols)
@@ -83,6 +86,9 @@ class DetCacheWriter:
     def add_roi(self, frame: int, det: sv.Detections) -> None:
         self._write_dets("roi", frame, det)
 
+    def add_tiles(self, frame: int, det: sv.Detections) -> None:
+        self._write_dets("tiles", frame, det)
+
     def close(self, meta: dict) -> None:
         for f in self._files.values():
             f.close()
@@ -97,6 +103,8 @@ class DetCacheReader:
         self.meta = json.loads((self.dir / "meta.json").read_text())
         self._dets = self._group(pd.read_csv(self.dir / "dets.csv.gz"))
         self._roi = self._group(pd.read_csv(self.dir / "roi.csv.gz"))
+        tiles = self.dir / "tiles.csv.gz"  # absent in caches recorded before tiles existed
+        self._tiles = self._group(pd.read_csv(tiles)) if tiles.exists() else {}
         kp = pd.read_csv(self.dir / "kp.csv.gz")
         self._kp = {int(f): g for f, g in kp.groupby("frame")}
         fr = pd.read_csv(self.dir / "frames.csv.gz")
@@ -123,6 +131,9 @@ class DetCacheReader:
 
     def roi(self, frame: int) -> sv.Detections:
         return self._to_dets(self._roi.get(int(frame)))
+
+    def tiles(self, frame: int) -> sv.Detections:
+        return self._to_dets(self._tiles.get(int(frame)))
 
     def kp(self, frame: int) -> sv.KeyPoints:
         g = self._kp.get(int(frame))

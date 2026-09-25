@@ -164,3 +164,22 @@ def test_replay_with_pitch_smoothing(pipeline, tmp_path):
     assert moved.quantile(0.95) < 40 and abs(people.y_m - people.y_m_raw).max() < 5
     kpi = json.loads((tmp_path / "rep" / "kpi_summary.json").read_text())
     assert kpi["pitch_smoothed"] is True
+
+
+def test_record_ball_tiles_is_stored_and_does_not_change_tracking(pipeline, tmp_path, monkeypatch):
+    m, stamped = pipeline
+    video = tmp_path / "v.avi"
+    _make_video(video)
+    stamped.next_idx = START
+    m.main(str(video), out_dir=str(tmp_path / "plain"), start_frame=START, end_frame=START + N - 1,
+           record_cache=str(tmp_path / "c1"), write_video=False)
+    monkeypatch.setattr(m, "infer_ball_tiles", lambda model, img, conf=0.1: sv.Detections(
+        xyxy=np.array([[10, 10, 20, 20]], np.float32), confidence=np.array([0.4], np.float32),
+        class_id=np.array([0], np.int32)))
+    stamped.next_idx = START
+    m.main(str(video), out_dir=str(tmp_path / "tiles"), start_frame=START, end_frame=START + N - 1,
+           record_cache=str(tmp_path / "c2"), write_video=False, record_ball_tiles=True)
+    tiles = pd.read_csv(tmp_path / "c2" / "tiles.csv.gz")
+    assert len(tiles) > 0 and set(tiles.class_id) == {0}
+    pd.testing.assert_frame_equal(_tracks(tmp_path / "plain" / "per_frame_tracks.csv"),
+                                  _tracks(tmp_path / "tiles" / "per_frame_tracks.csv"))
