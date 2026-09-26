@@ -104,6 +104,10 @@ Evaluating a player you might sign requires comparing him to others, and that is
 management actually pays for. The subject there is someone you might buy, not someone you might
 release — so the leaderboard logic that is wrong in one product is the whole product in the other.
 
+**Profiles, not rankings.** A player is not objectively better or worse — he is a different
+profile, suited to a different role, style and budget. Framing comparison as *fit* rather than
+*quality* is both more honest and more sellable, and it is how recruitment actually works.
+
 **Every report states its basis.** What it measures, what it does not, and the sample it rests on
 (one match, in this pilot). Our pipeline already carries a confidence value on every output row —
 surfacing that is a differentiator, not a weakness.
@@ -113,6 +117,27 @@ the highest-value thing management buys. It also raises the stakes of being wron
 written agreements with clubs covering scope, use and liability before any report is used that
 way commercially. **Worth asking whether Misk or the Ministry of Sport can help with a standard
 framework** — building that institutional layer is part of why they back startups in this sector.
+
+---
+
+## Role-based access — a named later tier, not this quarter
+
+The platform will eventually serve three audiences from the same data, with different views:
+
+| Role | Sees |
+|---|---|
+| **Management** | Cross-market comparison, profiles against budget and role. The recruitment tier |
+| **Coaching staff** | Squad development, session-level findings. No internal leaderboard |
+| **Players** | Their own trend, and their standing against **anonymised positional benchmarks** — enough to understand their market value and compete, without a ranking of their own dressing room |
+
+The player view is the most valuable second revenue line (players and agents pay directly) and
+the highest-risk surface. Named internal comparison is where dressing rooms break, and it is
+where the minors question bites hardest — so the limit is: **own trend always, anonymised
+benchmarks yes, named team-mates no**, and named comparison only where that data is already
+public.
+
+**This is on the not-list for the pilot.** Three role-based views is a quarter of work and would
+eat the five weeks. Recording it here so it is a decision, not an omission.
 
 ---
 
@@ -135,7 +160,7 @@ Routes: Roboflow hosted batch processing, cloud startup credits, the programme, 
 | **03 Riskiest assumption** | That a club will pay for this rather than keep relying on the analyst's eye. Nobody has paid us anything |
 | **04 Smallest killing test** | Three matches, five reports, four clubs — produced by hand and delivered unsolicited. No automation, no product |
 | **05 Kill number and date** | Fewer than **2 of 4 clubs** ask for a second report, and none accepts any price, by **30 October** → stop |
-| **06 The not-list** | No tactical camera or hardware · no opposition scouting · no first-team product · no mobile app · no automated re-identification · **no multi-match development tracking — that is the next tier, not the MVP**. Not this quarter |
+| **06 The not-list** | No tactical camera or hardware · no opposition scouting · no first-team product · no mobile app · no automated re-identification · **no multi-match development tracking and no role-based player or management portals — those are the next tiers, not the MVP**. Not this quarter |
 
 ---
 
