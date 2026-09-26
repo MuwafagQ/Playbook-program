@@ -89,6 +89,33 @@ consent note for under-18 player data.
 
 ---
 
+## The report template — design principles
+
+Agreed in Sprint 1, before the first report is produced. These are framing choices, not
+compliance work, and they are expensive to unwind once a club has seen version one.
+
+**No within-squad leaderboard in the development report.** Ranking a club's own players 1-to-N
+invites a cut list; a development profile invites a coaching conversation. Same data, different
+consequence. Show each player against their own previous form and against positional norms —
+not against their team-mates in a table.
+
+**Comparison is the point in the recruitment report.** A separate report type, for management.
+Evaluating a player you might sign requires comparing him to others, and that is the tier
+management actually pays for. The subject there is someone you might buy, not someone you might
+release — so the leaderboard logic that is wrong in one product is the whole product in the other.
+
+**Every report states its basis.** What it measures, what it does not, and the sample it rests on
+(one match, in this pilot). Our pipeline already carries a confidence value on every output row —
+surfacing that is a differentiator, not a weakness.
+
+**Supporting buy and sell decisions is deliberate.** It is a primary reason the product exists and
+the highest-value thing management buys. It also raises the stakes of being wrong, so it needs
+written agreements with clubs covering scope, use and liability before any report is used that
+way commercially. **Worth asking whether Misk or the Ministry of Sport can help with a standard
+framework** — building that institutional layer is part of why they back startups in this sector.
+
+---
+
 ## Main dependency — compute
 
 Training runs on Roboflow (plan upgrade, Sprint 1). The pilot needs inference over
@@ -118,7 +145,7 @@ Routes: Roboflow hosted batch processing, cloud startup credits, the programme, 
 |---|---|
 | Player profiles in the prototype | shipped |
 | Retrained player detector (RF-DETR) | 1–2 |
-| Development report template and review process | 1 |
+| Report template — development and recruitment variants | 1 |
 | Match, team and player analysis on pilot footage | 1–4 |
 | Arabic assistant answering the coach's own questions | 3 |
 | Tracklet review tooling (jersey-number assisted) | 3–4 |
