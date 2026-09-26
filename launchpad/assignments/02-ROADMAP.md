@@ -1,7 +1,7 @@
 # Playbook-IQ — MVP Roadmap
 ### Misk Launchpad Cohort 10 · Assignment #2 · 28 September – 30 October 2026
 
-> **Rev. 3, 26 Sep 2026.** Sent to Walid ahead of the Sunday sync. This is the version
+> **Rev. 4, 26 Sep 2026.** Sent to Walid ahead of the Sunday sync. This is the version
 > intended for submission unless that conversation changes it.
 
 **Product stage:** Prototype
@@ -10,58 +10,56 @@
 
 ---
 
-## The pilot
+## The pilot — four clubs, three matches
 
-**Al-Ittifaq U21** — currently top of the table, three points clear of Al-Nassr and Al-Hilal.
-Access through their former U18/U21 analyst, now with the first team, who is introducing us to
-the U21 staff.
+**One match analysed produces two team reports.** That is the whole design: three matches,
+five reports, **four different clubs**, for the work of three.
 
-**Four matches:**
-
-| | Match | Status | Report due |
+| Match | Date | Reports | Purpose |
 |---|---|---|---|
-| 1 | **23 Aug** | already played — analysed retrospectively | Sprint 1 |
-| 2 | **31 Aug** | already played — analysed retrospectively | Sprint 2 |
-| 3 | **12 Oct** | live | within 48h — Sprint 3 |
-| 4 | **18 Oct** | live | within 48h — Sprint 4 |
+| Rehearsal | **31 Aug** (already played) | Al-Ittifaq + opponent | No deadline. Learn what a report costs and whether it is any good |
+| Live 1 | **12 Oct** | Al-Ittifaq + opponent | Delivered within 48h |
+| Live 2 | **18 Oct** | Al-Ittifaq + opponent | Delivered within 48h |
 
-**Why four.** We measure **development**, not single-match performance. Development only appears
-in aggregation, so four games is the minimum that produces a trend a coach can act on.
+**Al-Ittifaq U21 is the anchor** — top of the table, three points clear, access through their
+former U18/U21 analyst who is now with the first team. They receive three reports, which also
+demonstrates the development tier without us having to sell it.
 
-**Why two are retrospective.** The August matches are a rehearsal with no deadline pressure: we
-find out what a report costs us and whether it is any good *before* the live matches, where the
-48-hour promise is real. They also give the coach a two-match baseline before he has ever seen
-our work.
+**The three opponent clubs are cold doors, opened with a finished report.** We produce the
+analysis first and approach with it in hand. A real report gets past a gatekeeper that a message
+cannot. Routes in: Misk, and Salman at the Ministry of Sport. **If a club will not take the
+meeting, that is a finding, not a failure** — it tells us what reaching this buyer actually costs.
 
-**What we are not doing:** opposition scouting. This pilot is development analysis — supporting
-the coaching staff's decisions about their own players.
+**Why one match per club and not four.** Per mentor guidance: one match is enough to test whether
+the analysis is worth anything. Four matches tests whether *development tracking over time* works
+— which is a **later service tier**, not the thing to validate first. Four independent clubs
+reacting beats one friendly club reacting four times.
 
-**Follow-through:** Al-Ittifaq's fifth match is **2 November**, after this window. It is the
-Phase 2 story, not a deliverable here.
+**What wins is the data and the metrics**, not the volume. Fewer matches, better analysis in each.
+
+**Follow-through:** Al-Ittifaq's next fixture is **2 November**, after this window. Phase 2 story.
 
 ---
 
 ## How success is measured
 
-After each report, the same three questions to the analyst — so answers compare across matches:
+After each report, the same three questions to whoever reads it:
 
 1. Which findings did you already know?
 2. Which were new to you?
-3. Which changed something you did — a drill, a selection, an individual conversation?
+3. Which changed something you did?
 
 | Metric | Target by 30 Oct |
 |---|---|
-| **Actions taken** — findings that changed a training decision | **≥ 5 across four reports**, ≥ 1 in every report |
+| **Clubs reached** — report delivered and read | **4 of 4** |
+| **Actions taken** — findings that changed a decision | **≥ 1 per club that engages** |
 | **Novelty rate** — findings rated new ÷ findings delivered | **≥ 40%** |
-| **Turnaround** — match end to report delivered | **< 48 h, four times out of four** |
-| **Human hours per match** — our production cost | measured every match, **falling from match 1 to match 4** |
-
-Novelty matters as much as action. If a professional analyst says *"I knew all of this,"* we have
-built a nicer version of his own eyes.
+| **Turnaround** — match end to report delivered | **< 48 h on both live matches** |
+| **Human hours per match** | measured every match, **falling** |
 
 ### Kill criteria
 
-> **Fewer than 5 actions across the four reports, or no price accepted by any club by
+> **Fewer than 2 of the 4 clubs ask for a second report, and none accepts any price, by
 > 30 October → we stop targeting club development squads and reconsider the segment.**
 
 ---
@@ -78,11 +76,11 @@ built a nicer version of his own eyes.
 
 | # | Dates | A — Pilot | B — Models | C — Benchmark |
 |---|---|---|---|---|
-| **1** | 28 Sep – 4 Oct | U21 staff engaged, review process agreed · **Match 1 (23 Aug) report delivered** | Compute secured · CVAT annotations migrated · detector retraining started | SoccerNet-GSR obtained, reference baseline reproduced |
-| **2** | 5 – 11 Oct | **Match 2 (31 Aug) report delivered** · hours logged for both | Retrained detector live · recall and identity-break rate measured against the 952-fragment baseline | Our footage converted to ground truth with verified identities |
-| **3** | 12 – 18 Oct | **Match 3 (12 Oct) delivered within 48h** · coach using the Arabic assistant directly | Pitch model validated on pilot footage | **Pipeline scored on the GSR benchmark** — first comparable number |
-| **4** | 19 – 25 Oct | **Match 4 (18 Oct) delivered within 48h** · **four-match development trend in the coach's hands** | Review tooling in use · identity work per match measurably reduced | Failure modes ranked: where we lose accuracy and why |
-| **5** | 26 – 30 Oct | Full pilot report · **a price named to the decision-maker and the reaction recorded** | **Human-hours per match** reported as a measured number | Results written up and taken to a research group as the basis for a first joint problem |
+| **1** | 28 Sep – 4 Oct | Report template agreed with the Al-Ittifaq analyst · target clubs and routes in identified | Compute secured · CVAT annotations migrated · detector retraining started | SoccerNet-GSR obtained, reference baseline reproduced |
+| **2** | 5 – 11 Oct | **Rehearsal: 31 Aug match, both team reports.** Hours logged, analyst critique captured | Retrained detector live · recall and identity-break rate measured against the 952-fragment baseline | Our footage converted to ground truth with verified identities |
+| **3** | 12 – 18 Oct | **Match 12 Oct: both reports within 48h.** Al-Ittifaq delivered; first cold door knocked | Pitch model validated on pilot footage | **Pipeline scored on the GSR benchmark** — first comparable number |
+| **4** | 19 – 25 Oct | **Match 18 Oct: both reports within 48h.** Second cold door knocked. Reactions collected | Review tooling in use · identity work per match measurably reduced | Failure modes ranked |
+| **5** | 26 – 30 Oct | Four clubs' reactions compiled · **a price named and the reaction recorded** | **Human-hours per match** reported as a measured number | Results written up and taken to a research group |
 
 **Every sprint ends in a measured result or something delivered to a real user.**
 
@@ -105,12 +103,12 @@ Routes: Roboflow hosted batch processing, cloud startup credits, the programme, 
 
 | | |
 |---|---|
-| **01 One user** | The U21 coaching staff at Al-Ittifaq — via their analyst, who reads the reports |
+| **01 One user** | The U21 analyst or coach at a Saudi professional club — starting with Al-Ittifaq, whose analyst reads our reports |
 | **02 One job** | *"I want to know before the next session which of my players is actually developing, and which isn't."* |
 | **03 Riskiest assumption** | That a club will pay for this rather than keep relying on the analyst's eye. Nobody has paid us anything |
-| **04 Smallest killing test** | Four consecutive matches for one squad, produced by hand, delivered before the next session. No automation |
-| **05 Kill number and date** | Fewer than 5 actions across four reports, or no price accepted, by **30 October** → stop |
-| **06 The not-list** | No tactical camera or hardware · no opposition scouting · no first-team product · no mobile app · no automated re-identification. Not this quarter |
+| **04 Smallest killing test** | Three matches, five reports, four clubs — produced by hand and delivered unsolicited. No automation, no product |
+| **05 Kill number and date** | Fewer than **2 of 4 clubs** ask for a second report, and none accepts any price, by **30 October** → stop |
+| **06 The not-list** | No tactical camera or hardware · no opposition scouting · no first-team product · no mobile app · no automated re-identification · **no multi-match development tracking — that is the next tier, not the MVP**. Not this quarter |
 
 ---
 
@@ -124,7 +122,7 @@ Routes: Roboflow hosted batch processing, cloud startup credits, the programme, 
 | Match, team and player analysis on pilot footage | 1–4 |
 | Arabic assistant answering the coach's own questions | 3 |
 | Tracklet review tooling (jersey-number assisted) | 3–4 |
-| Four-match development trend | 4 |
+| Cross-match comparison for the anchor club | 4 |
 | GSR benchmark score on our own footage | 3–4 |
 | PDPL consent note for minors | 4 |
 
@@ -140,7 +138,21 @@ Routes: Roboflow hosted batch processing, cloud startup credits, the programme, 
 
 ---
 
-## Changes in rev. 3
+## Changes in rev. 4 — after the mentor sync
+
+- **One match per club, not four matches at one club.** Walid's call: one match is enough to test
+  whether the analysis is worth anything. Multi-match development tracking is a **later service
+  tier**, now named on the not-list so it cannot creep back in.
+- **Four clubs, three matches.** One match analysed yields two team reports, so the freed capacity
+  buys breadth instead of depth. Four independent reactions beat one friendly club's four.
+- **Cold doors opened with a finished report** rather than a request for a meeting. Routes in:
+  Misk and the Ministry of Sport. A club that will not take the meeting is itself a finding.
+- **The kill number is now a conversion number:** 2 of 4 clubs asking for a second report.
+- **The data and the metrics are the winning points**, so the technical sprints serve depth of
+  analysis rather than volume of matches.
+
+## Earlier changes (rev. 3)
+
 
 - **The pilot is named:** Al-Ittifaq U21, with real fixture dates.
 - **Two matches are retrospective**, which de-risks the live ones and gives the coach a baseline.
