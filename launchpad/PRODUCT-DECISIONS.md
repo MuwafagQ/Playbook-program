@@ -63,6 +63,25 @@ per-row confidence values make this a differentiator.
 the highest-value thing management buys. It needs written agreements on scope, use and liability —
 and Misk or the Ministry may be able to provide a standard framework.
 
+## 5b · The pilot metric set — and the placeholder method
+
+**Computed for the pilot: xP, pass completion, space gained (SP), bypass (BP).**
+
+All four are computable from **player positions plus a marked pass event** — none needs player
+identity. Identity enters only when aggregating them per player. That is the Layer 1 hybrid
+working as designed, and it is why these four come first while PR (pressure resistance) and xT
+wait.
+
+**Remaining metrics are shown as clearly-labelled upcoming features**, not hidden. This is
+deliberate: showing a planned metric reveals whether anyone asks for it, before it is built.
+
+⚠ **Anything not computed must be visibly marked as upcoming**, in the UI and in the report. An
+unlabelled placeholder that a professional analyst checks is the one version of this that costs
+credibility.
+
+**Add to the three-question review:** *"Which of the upcoming metrics would you actually use?"*
+Free demand signal on unbuilt features.
+
 ## 6 · Role-based access — the eventual platform ⭐
 
 Three audiences, one dataset, different views:
@@ -135,4 +154,7 @@ Verify the licence badge on every trained model before deploying it.
 - Al-Ittifaq's opponents on 12 and 18 October (decides the three cold doors)
 - Whether the Roboflow plan allows private projects
 - ⚠ The repository is public, and the three Roboflow projects are public
+- Backend API and authentication are not built, and are not on the sprint plan — the pilot
+  hand-delivers reports rather than giving clubs logins. A deliberate gap, not an oversight, but
+  it becomes urgent if a club asks for access in Sprint 4
 - ⚠ The dashboard front-end source is in no version control
