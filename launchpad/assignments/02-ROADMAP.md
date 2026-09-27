@@ -59,8 +59,17 @@ After each report, the same three questions to whoever reads it:
 
 ### Kill criteria
 
-> **Fewer than 2 of the 4 clubs ask for a second report, and none accepts any price, by
-> 30 October → we stop targeting club development squads and reconsider the segment.**
+> **Fewer than 2 of the 4 clubs ask for a second report, and none asks what it would cost, by
+> 30 October → we reconsider the segment and the value proposition, and switch to testing the
+> recruitment report with club management.**
+
+Note on the signal: we do not have a price yet and will set one during the pilot. **"Asks what it
+would cost"** is the moment a reader becomes a buyer, and it can be detected without having named
+a number.
+
+The trigger is a **pivot with a named destination**, not a stop. If four clubs read a free report
+and fewer than two want another, the problem is the value to *that reader* — and the second
+hypothesis is already waiting: management buying recruitment analysis, the higher-value tier.
 
 ---
 
@@ -159,7 +168,7 @@ Routes: Roboflow hosted batch processing, cloud startup credits, the programme, 
 | **02 One job** | *"I want to know before the next session which of my players is actually developing, and which isn't."* |
 | **03 Riskiest assumption** | That a club will pay for this rather than keep relying on the analyst's eye. Nobody has paid us anything |
 | **04 Smallest killing test** | Three matches, five reports, four clubs — produced by hand and delivered unsolicited. No automation, no product |
-| **05 Kill number and date** | Fewer than **2 of 4 clubs** ask for a second report, and none accepts any price, by **30 October** → stop |
+| **05 Kill number and date** | Fewer than **2 of 4 clubs** ask for a second report, and none asks what it would cost, by **30 October** → switch to the recruitment report and club management |
 | **06 The not-list** | No tactical camera or hardware · no opposition scouting · no first-team product · no mobile app · no automated re-identification · **no multi-match development tracking and no role-based player or management portals — those are the next tiers, not the MVP**. Not this quarter |
 
 ---
