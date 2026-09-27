@@ -76,9 +76,9 @@ After each report, the same three questions to whoever reads it:
 
 | # | Dates | A — Pilot | B — Models | C — Benchmark |
 |---|---|---|---|---|
-| **1** | 28 Sep – 4 Oct | Report template agreed with the Al-Ittifaq analyst · target clubs and routes in identified | Compute secured · CVAT annotations migrated · detector retraining started | SoccerNet-GSR obtained, reference baseline reproduced |
-| **2** | 5 – 11 Oct | **Rehearsal: 31 Aug match, both team reports.** Hours logged, analyst critique captured | Retrained detector live · recall and identity-break rate measured against the 952-fragment baseline | Our footage converted to ground truth with verified identities |
-| **3** | 12 – 18 Oct | **Match 12 Oct: both reports within 48h.** Al-Ittifaq delivered; first cold door knocked | Pitch model validated on pilot footage | **Pipeline scored on the GSR benchmark** — first comparable number |
+| **1** | 28 Sep – 4 Oct | Report template agreed with the Al-Ittifaq analyst · target clubs and routes in identified | Compute secured · CVAT annotations migrated | SoccerNet-GSR obtained, reference baseline reproduced, **our current pipeline scored — the "before" number** |
+| **2** | 5 – 11 Oct | **Rehearsal: 31 Aug match, both team reports.** Hours logged, analyst critique captured | **Detector retrained and live** · recall and identity-break rate measured against the 952-fragment baseline | Our footage converted to ground truth with verified identities |
+| **3** | 12 – 18 Oct | **Match 12 Oct: both reports within 48h.** Al-Ittifaq delivered; first cold door knocked | Pitch model validated on pilot footage | **Re-scored on GSR — the "after"**, so the retraining is measured, not assumed |
 | **4** | 19 – 25 Oct | **Match 18 Oct: both reports within 48h.** Second cold door knocked. Reactions collected | Review tooling in use · identity work per match measurably reduced | Failure modes ranked |
 | **5** | 26 – 30 Oct | Four clubs' reactions compiled · **a price named and the reaction recorded** | **Human-hours per match** reported as a measured number | Results written up and taken to a research group |
 
@@ -168,14 +168,14 @@ Routes: Roboflow hosted batch processing, cloud startup credits, the programme, 
 
 | Feature | Sprint |
 |---|---|
-| Player profiles in the prototype | shipped |
-| Retrained player detector (RF-DETR) | 1–2 |
+| Player profiles in the prototype | in progress |
+| Retrained player detector (RF-DETR) | 2 |
 | Report template — development and recruitment variants | 1 |
 | Match, team and player analysis on pilot footage | 1–4 |
 | Arabic assistant answering the coach's own questions | 3 |
 | Tracklet review tooling (jersey-number assisted) | 3–4 |
 | Cross-match comparison for the anchor club | 4 |
-| GSR benchmark score on our own footage | 3–4 |
+| GSR benchmark score — before and after retraining | 1 and 3 |
 | PDPL consent note for minors | 4 |
 
 ---
