@@ -102,6 +102,37 @@ def ball_eval(pred: pd.DataFrame, gt: pd.DataFrame, frames=None, min_px: float =
     return summary, d
 
 
+def candidate_recall(cands: pd.DataFrame, gt: pd.DataFrame, thresholds=(0.1, 0.2, 0.3, 0.5),
+                     frames=None, min_px: float = 8.0, k: float = 1.5) -> dict:
+    """For raw detector output (every ball candidate, not the tracked ball): per confidence
+    threshold, the share of ball-visible frames where some candidate lies on the true ball,
+    and the mean number of candidates per frame. This is the ceiling for any ball tracker
+    built on these candidates."""
+    gb = gt[gt.class_id == BALL].drop_duplicates("frame").set_index("frame")
+    if frames is not None:
+        gb = gb[gb.index.isin(set(frames))]
+    c = cands[cands.class_id == BALL] if "class_id" in cands.columns else cands
+    by_f = {f: g for f, g in c.groupby("frame")}
+    n_frames = len(set(frames)) if frames is not None else max(int(gt.frame.nunique()), 1)
+    out = {}
+    for thr in thresholds:
+        hit = 0
+        for f, g in gb.iterrows():
+            p = by_f.get(f)
+            if p is None:
+                continue
+            p = p[p.conf >= thr]
+            if p.empty:
+                continue
+            centres = np.c_[(p.x1 + p.x2) / 2, (p.y1 + p.y2) / 2]
+            d = np.linalg.norm(centres - _centre(g), axis=1)
+            hit += int((d <= max(min_px, k * float(g.x2 - g.x1))).any())
+        n_c = int((c.conf >= thr).sum())
+        out[f"{thr:.2f}"] = {"ball_found": hit / max(len(gb), 1),
+                             "candidates_per_frame": n_c / n_frames}
+    return out
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--pred", required=True)
