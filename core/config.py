@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     TRACK_LOST_BUFFER: int = 90
     TRACK_MIN_CONSEC_FRAMES: int = 2
     TRACK_STALE_FRAMES: int = 2
+    # Track all people with one tracker and give each track the role it was labelled with most
+    # often (vision/roles.py), instead of separate player / official trackers.
+    ROLE_BY_TRACK: bool = False
     BOTSORT_GMC_METHOD: str = "sparseOptFlow"
     BOTSORT_WITH_REID: bool = False
     BOTSORT_REID_MODEL: str = "yolo11n-cls.pt"

@@ -32,6 +32,7 @@ from vision.preprocess import enhance_frame
 from vision.ball import BallSmoother
 from vision.team_memory import TeamMemory
 from vision.id_stabilizer import IDStabilizer
+from vision.roles import RoleVoter
 from geometry.homography import HomographyEstimator
 from geometry.projection import project_anchors_to_pitch, on_pitch_mask
 from io_utils.writers import CSVWriter, VideoWriter
@@ -252,6 +253,9 @@ def main(
         detect_every_n=detect_every_n,
         max_stale_frames=s.TRACK_STALE_FRAMES,
     )
+    role_voter = RoleVoter() if bool(getattr(s, "ROLE_BY_TRACK", False)) else None
+    if role_voter is not None:
+        print("[stage] ROLE_BY_TRACK: one tracker for all people, role = majority label per track")
     pitch_cfg = SoccerPitchConfiguration()
     pitch_vertices_arr = np.asarray(pitch_cfg.vertices, dtype=np.float32)
     pitch_xmin = float(np.min(pitch_vertices_arr[:, 0]))
@@ -558,14 +562,21 @@ def main(
                 if len(raw_ball_det) > 0 and s.BALL_PAD_PX > 0:
                     raw_ball_det.xyxy = sv.pad_boxes(raw_ball_det.xyxy, px=s.BALL_PAD_PX)
 
-                players_det = det[det.class_id == PLAYER_ID]
-                official_mask = np.isin(det.class_id, np.array([REFEREE_ID, GOALKEEPER_ID], dtype=np.int32))
-                officials_det = det[official_mask]
+                if role_voter is not None:
+                    people_mask = np.isin(det.class_id, np.array([PLAYER_ID, REFEREE_ID, GOALKEEPER_ID], dtype=np.int32))
+                    players_det = det[people_mask]
+                    officials_det = empty_detections()
+                else:
+                    players_det = det[det.class_id == PLAYER_ID]
+                    official_mask = np.isin(det.class_id, np.array([REFEREE_ID, GOALKEEPER_ID], dtype=np.int32))
+                    officials_det = det[official_mask]
 
             # 2) Track players and officials separately, then merge
             players_tracks, detector_ran_p = track_mgr_players.update(frame_idx, players_det, frame=frame_infer)
             officials_tracks, detector_ran_o = track_mgr_officials.update(frame_idx, officials_det, frame=frame_infer)
             tracks = merge_detections([players_tracks, officials_tracks])
+            if role_voter is not None and len(tracks) > 0:
+                tracks.class_id = role_voter.update(tracks)
             detector_ran = bool(detector_ran_p or detector_ran_o)
             lap("tracker_botsort")
 
@@ -1182,6 +1193,7 @@ def main(
             metrics[f"stab_{role}_{k}"] = int(v)
     metrics["replay"] = bool(cache_in is not None)
     metrics["pitch_smoothed"] = smooth_stats is not None
+    metrics["role_by_track"] = role_voter is not None
     if smooth_stats:
         metrics["pitch_smooth_camera_cuts"] = smooth_stats["camera_cuts"]
     for k, v in timer.per_frame_ms(processed_frames).items():
