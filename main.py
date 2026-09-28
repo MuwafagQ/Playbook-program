@@ -121,6 +121,9 @@ def main(
             from vision.models import get_model
             from vision.people_model import load_people_model
 
+            if not Path(s.PLAYER_MODEL_PATH).exists():
+                raise SystemExit(f"PLAYER_MODEL_PATH not found: {s.PLAYER_MODEL_PATH}. Mount Drive (Colab), or set "
+                                 "PLAYER_MODEL_PATH= (empty) to use the Roboflow model PLAYER_MODEL_ID.")
             player_model = load_people_model(s.PLAYER_MODEL_PATH)
             field_model = get_model(model_id=s.FIELD_MODEL_ID, api_key=s.ROBOFLOW_API_KEY)
             print(f"[stage] People model: {s.PLAYER_MODEL_PATH}")
@@ -192,8 +195,9 @@ def main(
     ball_model_on = bool(getattr(s, "BALL_MODEL_ENABLED", False))
     ball_model_fn = None
     if ball_model_on and cache_in is None:
-        if not s.BALL_MODEL_PATH:
-            raise SystemExit("BALL_MODEL_ENABLED needs BALL_MODEL_PATH (the trained checkpoint).")
+        if not s.BALL_MODEL_PATH or not Path(s.BALL_MODEL_PATH).exists():
+            raise SystemExit(f"Ball model not found: {s.BALL_MODEL_PATH!r}. Mount Drive (Colab), or set "
+                             "BALL_MODEL_ENABLED=false to use the detector's ball.")
         from vision.ball_model import load_ball_model
         ball_model_fn = load_ball_model(s.BALL_MODEL_PATH)
         print(f"[stage] Ball model loaded: {s.BALL_MODEL_PATH}")

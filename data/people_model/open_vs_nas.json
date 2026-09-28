@@ -1,5 +1,5 @@
 {
- "note": "Full pipeline replays (ROLE_BY_TRACK, ball model, fast search) vs CVAT GT. nas = Roboflow NAS (PML licence); open = our RF-DETR Medium 640 (Apache 2.0). Suffix = people confidence cut-off (DET_CONF_PLAYER/GOALKEEPER/REFEREE). Speed T4: open 64-81 ms/frame unoptimized.",
+ "note": "Full pipeline replays (ROLE_BY_TRACK, ball model, fast search) vs CVAT GT. nas = Roboflow NAS (PML licence); open = our RF-DETR Medium 640 (Apache 2.0). Suffix = people confidence cut-off; \"0.30\" runs actually used the config defaults 0.24 player / 0.24 referee / 0.22 goalkeeper (DET_CONF_PLAYER/GOALKEEPER/REFEREE). Speed T4: open 64-81 ms/frame unoptimized.",
  "hilal_hazm_day_heldout": {
   "nas_0.30": {
    "player_IDF1": 0.8355,

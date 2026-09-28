@@ -278,7 +278,8 @@ def test_ball_model_record_then_replay(pipeline, tmp_path, monkeypatch):
     monkeypatch.setattr(bm, "load_ball_model", fake_loader)
     monkeypatch.setattr(m, "predict_tiles", fake_predict_tiles)
     monkeypatch.setenv("BALL_MODEL_ENABLED", "true")
-    monkeypatch.setenv("BALL_MODEL_PATH", "fake.pth")
+    (tmp_path / "fake.pth").write_bytes(b"")
+    monkeypatch.setenv("BALL_MODEL_PATH", str(tmp_path / "fake.pth"))
     stamped.next_idx = START
     m.main(str(video), out_dir=str(tmp_path / "rec"), start_frame=START, end_frame=START + N - 1,
            record_cache=str(tmp_path / "cache"), write_video=False)
