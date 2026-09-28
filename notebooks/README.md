@@ -8,6 +8,7 @@ training and re-saves the model's detections with the corrected class ids (goalk
 Open in Colab:
 https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/train_people_rfdetr.ipynb
 
+0. If the notebook is already open from an earlier run: **Runtime → Disconnect and delete runtime** first.
 1. Runtime → Change runtime type → **T4 GPU** → Save.
 2. Colab Secrets (key icon): `ROBOFLOW_API_KEY` with notebook access on (first run only).
 3. Runtime → **Run all**. Do not edit cells. If it disconnects, Run all again: it resumes.
