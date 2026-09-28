@@ -108,3 +108,17 @@ def test_people_model_adapter_matches_inference_results():
     # rfdetr class 2 = referee (pipeline 3), class 0 = goalkeeper (pipeline 1)
     assert det.class_id.tolist() == [3, 1] and np.allclose(det.xyxy[0], [10, 20, 30, 80])
     assert len(PeopleModel(Fake()).infer([np.zeros((10, 10, 3), np.uint8)] * 2)) == 2
+
+
+def test_render_draw_marks_ball_status():
+    from tools.render_run import draw
+
+    frame = np.zeros((1080, 1920, 3), np.uint8)
+    rows = pd.DataFrame([{"class_id": 2, "x1": 100, "y1": 100, "x2": 130, "y2": 180, "display_track_id": 7},
+                         {"class_id": 0, "x1": 500, "y1": 500, "x2": 510, "y2": 510, "display_track_id": -1}])
+    gt_ok = pd.Series({"x1": 501, "y1": 501, "x2": 511, "y2": 511})
+    img = draw(frame, rows, gt_ok, "run", 0.5)
+    assert img.shape == (540, 960, 3)
+    assert (img[:26, 800:, 1] > 150).any()      # green "ball OK" in the banner
+    img = draw(frame, rows, pd.Series({"x1": 900, "y1": 900, "x2": 910, "y2": 910}), "run", 0.5)
+    assert (img[:26, 800:, 2] > 150).any()      # red "ball WRONG"
