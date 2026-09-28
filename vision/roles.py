@@ -14,10 +14,12 @@ ROLES = (1, 2, 3)  # goalkeeper, player, referee
 
 
 class RoleVoter:
-    def __init__(self, min_votes: float = 1.5, decay: float = 0.995):
+    def __init__(self, min_votes: float = 1.5, decay: float = 0.995, switch_ratio: float = 1.5):
         self.min_votes = float(min_votes)
         self.decay = float(decay)
+        self.switch_ratio = float(switch_ratio)  # a set role changes only when another has this many times its votes
         self.votes: dict[int, np.ndarray] = {}
+        self.role: dict[int, int] = {}
 
     def update(self, tracks: sv.Detections) -> np.ndarray:
         """Role per track row; the current label is kept until a track has min_votes."""
@@ -39,6 +41,11 @@ class RoleVoter:
             v *= self.decay
             v[ROLES.index(int(cls[i]))] += float(conf[i])
             self.votes[tid] = v
-            if v.sum() >= self.min_votes:
-                out[i] = ROLES[int(np.argmax(v))]
+            if v.sum() < self.min_votes:
+                continue
+            best = int(np.argmax(v))
+            cur = self.role.get(tid)
+            if cur is None or v[best] >= self.switch_ratio * v[cur]:
+                self.role[tid] = cur = best
+            out[i] = ROLES[cur]
         return out

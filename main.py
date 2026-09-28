@@ -564,7 +564,9 @@ def main(
 
                 if role_voter is not None:
                     people_mask = np.isin(det.class_id, np.array([PLAYER_ID, REFEREE_ID, GOALKEEPER_ID], dtype=np.int32))
-                    players_det = det[people_mask]
+                    # one box per person: the detector often returns two overlapping boxes
+                    # with different labels (player + referee), which would compete in one tracker
+                    players_det = det[people_mask].with_nms(threshold=0.7, class_agnostic=True)
                     officials_det = empty_detections()
                 else:
                     players_det = det[det.class_id == PLAYER_ID]

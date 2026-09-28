@@ -30,3 +30,9 @@ def test_true_referee_stays_referee_and_tracks_are_separate():
 def test_ball_rows_untouched():
     v = RoleVoter()
     assert int(v.update(_t(0))[0]) == 0
+
+
+def test_role_is_sticky_near_a_tie():
+    v = RoleVoter()
+    out = [int(v.update(_t(c))[0]) for c in [2, 2, 2, 3, 3, 3, 2, 3]]
+    assert all(o == 2 for o in out)  # 3 vs 3-4 votes is not enough to flip a set role
