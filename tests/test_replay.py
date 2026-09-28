@@ -183,3 +183,53 @@ def test_record_ball_tiles_is_stored_and_does_not_change_tracking(pipeline, tmp_
     assert len(tiles) > 0 and set(tiles.class_id) == {0}
     pd.testing.assert_frame_equal(_tracks(tmp_path / "plain" / "per_frame_tracks.csv"),
                                   _tracks(tmp_path / "tiles" / "per_frame_tracks.csv"))
+
+
+class _FakeDetModel:
+    """inference-style model: returns a dict result with class names (not the pipeline's ids)."""
+
+    def __init__(self, names):
+        self.names = names  # class_id -> name, deliberately in a different order
+
+    def infer(self, img, confidence=0.1):
+        f = int(img[0, 0, 0])
+        preds = []
+        for i in range(len(PLAYERS)):
+            x1, y1, x2, y2 = _box(i, f)
+            preds.append({"x": float(x1 + x2) / 2, "y": float(y1 + y2) / 2, "width": float(x2 - x1),
+                          "height": float(y2 - y1), "confidence": 0.9, "class_id": 7, "class": "player"})
+        preds.append({"x": 304.0 + f, "y": 254.0, "width": 8.0, "height": 8.0, "confidence": 0.5,
+                      "class_id": 5, "class": "ball"})
+        preds.append({"x": 10.0, "y": 10.0, "width": 5.0, "height": 5.0, "confidence": 0.5,
+                      "class_id": 9, "class": "Ball"})  # junk class with the same name, other case
+        return [{"image": {"width": W, "height": H}, "predictions": preds}]
+
+
+def test_record_models_then_replay(pipeline, tmp_path, monkeypatch):
+    import vision.detect as vd
+    from tools.record_models import record
+
+    m, stamped = pipeline
+    video = tmp_path / "v.avi"
+    _make_video(video)
+    # the recorder reads frames itself; stamp the frame index into the enhanced image
+    import tools.record_models as rm
+    counter = {"i": 0}
+
+    def enh(frame, enabled=True):
+        out = frame.copy()
+        out[0, 0] = counter["i"]
+        counter["i"] += 1
+        return out
+    monkeypatch.setattr(rm, "enhance_frame", enh)
+    monkeypatch.setattr(vd, "infer_field_keypoints", _fake_keypoints)
+    summary = record(str(video), str(tmp_path / "rec"), {"a": (_FakeDetModel({}), "fake/1")},
+                     object(), "field/1", preprocess=False, log_every=0)
+    assert summary["frames"] == START + N
+    dets = pd.read_csv(tmp_path / "rec" / "a" / "dets.csv.gz")
+    assert set(dets.class_id) == {0, 2}          # mapped by name; "Ball" maps to ball too
+    stamped.next_idx = 0
+    m.main(None, out_dir=str(tmp_path / "rep"), replay_cache=str(tmp_path / "rec" / "a"),
+           replay_video=str(video), write_video=False)
+    rep = pd.read_csv(tmp_path / "rep" / "per_frame_tracks.csv")
+    assert len(rep[rep.class_id == 2]) > 0 and rep.frame.max() == START + N - 1
