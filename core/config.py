@@ -139,6 +139,9 @@ class Settings(BaseSettings):
     BALL_MODEL_ROI_TILES: int = 2
     BALL_MODEL_LOST_FRAMES: int = 3
     BALL_MODEL_FULL_EVERY_N: int = 30
+    # With the ball model: a clearly more confident ball outside the tracking gate for
+    # this many frames takes over the ball track (vision/ball.py, challenger switch). 0 = off.
+    BALL_SWITCH_FRAMES: int = 3
 
     # Tiny box filtering (ratio relative to frame area)
     MIN_AREA_RATIO_PEOPLE: float = 0.00008

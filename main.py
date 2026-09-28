@@ -323,6 +323,7 @@ def main(
         size_max_ratio=s.BALL_SIZE_MAX_RATIO,
         vel_alpha=s.BALL_VEL_ALPHA,
         hold_decay=s.BALL_HOLD_DECAY,
+        switch_frames=(s.BALL_SWITCH_FRAMES if ball_model_on else 0),
     )
     team_memory = TeamMemory(history_size=35, min_votes=8)
     # Split stabilizers by role to prevent cross-class identity interference.
@@ -1246,6 +1247,7 @@ def main(
     metrics["ball_model"] = ball_model_on
     metrics["ball_model_full_searches"] = ball_model_stats["full"]
     metrics["ball_model_roi_searches"] = ball_model_stats["roi"]
+    metrics["ball_track_switches"] = ball_smoother.switches
     if smooth_stats:
         metrics["pitch_smooth_camera_cuts"] = smooth_stats["camera_cuts"]
     for k, v in timer.per_frame_ms(processed_frames).items():
