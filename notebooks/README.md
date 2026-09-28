@@ -2,6 +2,8 @@
 
 ## ▶ Run next (needs a T4 GPU), in this order
 
+Overall plan: `NEXT_STEPS.md` in the repo root.
+
 Before each: if the notebook is already open from an earlier run, **Runtime → Disconnect and delete
 runtime**. Then Runtime → Change runtime type → **T4 GPU** → Save, and **Runtime → Run all**. Do not
 edit cells. Colab Secret `ROBOFLOW_API_KEY` must be on (key icon). Tell Claude when each one finishes.
