@@ -83,8 +83,10 @@ class HostedModel:
 
 def record(video: str, out_dir: str, detectors: dict, field_model, field_id: str, det_conf: float = 0.10,
            field_conf: float = 0.30, preprocess: bool = True, max_frames: int = 0, log_every: int = 50,
-           workers: int = 1, chunk: int = 32) -> dict:
-    """workers > 1 sends several frames at once (for the hosted API); results are written in frame order."""
+           workers: int = 1, chunk: int = 32, field_every: int = 1, ball_fn=None) -> dict:
+    """workers > 1 sends several frames at once (for the hosted API); results are written in frame order.
+    field_every: run the keypoint model on every Nth frame only (the pipeline holds the homography in
+    between). ball_fn(image) -> sv.Detections: the ball model's candidates, saved as ballm.csv.gz."""
     from vision.detect import infer_field_keypoints
 
     cap = cv2.VideoCapture(video)
@@ -95,17 +97,28 @@ def record(video: str, out_dir: str, detectors: dict, field_model, field_id: str
     times["field"] = []
     unknown = {name: set() for name in detectors}
 
-    def process(frame):
+    times["ball"] = []
+
+    def process(item):
+        fi, frame = item
         img = enhance_frame(frame, enabled=preprocess)
-        t0 = time.perf_counter()
-        kp = infer_field_keypoints(field_model, img, field_conf)
-        tt = {"field": time.perf_counter() - t0}
+        tt = {}
+        kp = None
+        if fi % max(1, field_every) == 0:
+            t0 = time.perf_counter()
+            kp = infer_field_keypoints(field_model, img, field_conf)
+            tt["field"] = time.perf_counter() - t0
+        balls = None
+        if ball_fn is not None:
+            t0 = time.perf_counter()
+            balls = ball_fn(img)
+            tt["ball"] = time.perf_counter() - t0
         dets = {}
         for name, (model, _) in detectors.items():
             t0 = time.perf_counter()
             dets[name] = sv.Detections.from_inference(model.infer(img, confidence=det_conf)[0])
             tt[name] = time.perf_counter() - t0
-        return kp, dets, tt
+        return kp, dets, balls, tt
 
     f, w, h, done = 0, 0, 0, False
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
@@ -120,13 +133,15 @@ def record(video: str, out_dir: str, detectors: dict, field_model, field_id: str
             if not frames:
                 break
             h, w = frames[0].shape[:2]
-            for kp, dets, tt in pool.map(process, frames):
+            for kp, dets, balls, tt in pool.map(process, list(enumerate(frames, start=f))):
                 for k, v in tt.items():
                     times[k].append(v)
                 for name, det in dets.items():
                     if det.data and "class_name" in det.data:
                         unknown[name] |= {str(n) for n in det.data["class_name"] if str(n).lower() not in CANONICAL}
                     writers[name].add_frame(f, to_canonical(det), kp)
+                    if balls is not None:
+                        writers[name].add_ballm(f, balls)
                 f += 1
                 if log_every and f % log_every == 0:
                     print(f"{f}/{total} frames", flush=True)
@@ -143,6 +158,9 @@ def record(video: str, out_dir: str, detectors: dict, field_model, field_id: str
         t = np.array(times[name][5:] or times[name]) * 1000
         summary[name] = {"model_id": model_id, "ms_per_frame_median": float(np.median(t)) if len(t) else None,
                          "dropped_classes": sorted(unknown[name])}
+    if times["ball"]:
+        tb = np.array(times["ball"][5:] or times["ball"]) * 1000
+        summary["ball_model"] = {"ms_per_frame_median": float(np.median(tb))}
     tf = np.array(times["field"][5:] or times["field"]) * 1000
     summary["field"] = {"model_id": field_id, "ms_per_frame_median": float(np.median(tf)) if len(tf) else None}
     summary["frames"] = f

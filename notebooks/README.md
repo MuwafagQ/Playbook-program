@@ -1,18 +1,17 @@
 # Notebooks: which one to run
 
-## ▶ Run next (needs a T4 GPU)
+## ▶ Run next (needs a T4 GPU), in this order
 
-**`train_people_rfdetr.ipynb`**: training is finished; **Run all** again (about 10 minutes). It now skips
-training and re-saves the model's detections with the corrected class ids (goalkeepers were lost before).
+Before each: if the notebook is already open from an earlier run, **Runtime → Disconnect and delete
+runtime**. Then Runtime → Change runtime type → **T4 GPU** → Save, and **Runtime → Run all**. Do not
+edit cells. Colab Secret `ROBOFLOW_API_KEY` must be on (key icon). Tell Claude when each one finishes.
 
-Open in Colab:
-https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/train_people_rfdetr.ipynb
-
-0. If the notebook is already open from an earlier run: **Runtime → Disconnect and delete runtime** first.
-1. Runtime → Change runtime type → **T4 GPU** → Save.
-2. Colab Secrets (key icon): `ROBOFLOW_API_KEY` with notebook access on (first run only).
-3. Runtime → **Run all**. Do not edit cells. If it disconnects, Run all again: it resumes.
-4. Tell Claude when it finishes. Results: `MyDrive/Playbook/people_model/`.
+1. **`speed_and_new_footage.ipynb`** (about 1 hour): speed test (FP16 / TensorRT) + our models on five
+   new clips from the full matches. Results: `MyDrive/Playbook/new_footage/`.
+   https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/speed_and_new_footage.ipynb
+2. **`train_people_rfdetr_large.ipynb`** (about 4-7 hours): trains the Large people model. If it
+   disconnects, Run all again: it resumes. Results: `MyDrive/Playbook/people_model_large/`.
+   https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/train_people_rfdetr_large.ipynb
 
 Other Google account: share `MyDrive/Playbook` with it and add a shortcut to `Playbook` in its My Drive.
 
@@ -20,6 +19,7 @@ Other Google account: share `MyDrive/Playbook` with it and add a shortcut to `Pl
 
 | Notebook | What it did | Result |
 |---|---|---|
+| `train_people_rfdetr.ipynb` | trained our people model (RF-DETR Medium, open licence), now the default | `MyDrive/Playbook/people_model/` |
 | `train_ball_tiles.ipynb` | trained the ball model (RF-DETR Small, open licence) | `MyDrive/Playbook/ball_model/` |
 | `ball_candidates_export.ipynb` | ball model on the night clip + T4 speed test | `MyDrive/Playbook/ball_model/` |
 | `thin_annotation_pool.ipynb` | picked 25 frames per match | `MyDrive/Playbook/annotation_pool_25/` |

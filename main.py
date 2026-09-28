@@ -124,7 +124,7 @@ def main(
             if not Path(s.PLAYER_MODEL_PATH).exists():
                 raise SystemExit(f"PLAYER_MODEL_PATH not found: {s.PLAYER_MODEL_PATH}. Mount Drive (Colab), or set "
                                  "PLAYER_MODEL_PATH= (empty) to use the Roboflow model PLAYER_MODEL_ID.")
-            player_model = load_people_model(s.PLAYER_MODEL_PATH)
+            player_model = load_people_model(s.PLAYER_MODEL_PATH, s.MODEL_ACCEL)
             field_model = get_model(model_id=s.FIELD_MODEL_ID, api_key=s.ROBOFLOW_API_KEY)
             print(f"[stage] People model: {s.PLAYER_MODEL_PATH}")
             if not bool(getattr(s, "BALL_MODEL_ENABLED", False)):
@@ -199,7 +199,7 @@ def main(
             raise SystemExit(f"Ball model not found: {s.BALL_MODEL_PATH!r}. Mount Drive (Colab), or set "
                              "BALL_MODEL_ENABLED=false to use the detector's ball.")
         from vision.ball_model import load_ball_model
-        ball_model_fn = load_ball_model(s.BALL_MODEL_PATH)
+        ball_model_fn = load_ball_model(s.BALL_MODEL_PATH, s.MODEL_ACCEL)
         print(f"[stage] Ball model loaded: {s.BALL_MODEL_PATH}")
     elif ball_model_on and not cache_in.has_ballm:
         print("[WARN] BALL_MODEL_ENABLED but the cache has no ball-model candidates; using the detector's ball.")

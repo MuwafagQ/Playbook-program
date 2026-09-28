@@ -36,12 +36,7 @@ class PeopleModel:
         return [_to_result(d, im.shape[1], im.shape[0]) for d, im in zip(out, batch)]
 
 
-def load_people_model(path: str) -> PeopleModel:
-    from rfdetr.detr import RFDETR
+def load_people_model(path: str, accel: str = "none") -> PeopleModel:
+    from vision.fast_rfdetr import load_rfdetr
 
-    model = RFDETR.from_checkpoint(path, trust_checkpoint=True)
-    try:
-        model.optimize_for_inference()
-    except Exception as e:  # optional speed-up; not available on every setup
-        print(f"[people-model] optimize_for_inference skipped: {e}")
-    return PeopleModel(model)
+    return PeopleModel(load_rfdetr(path, accel, max_batch=4))

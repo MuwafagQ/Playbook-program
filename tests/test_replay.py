@@ -261,7 +261,7 @@ def test_ball_model_record_then_replay(pipeline, tmp_path, monkeypatch):
     _make_video(video)
     calls = {"crops": 0}
 
-    def fake_loader(path):
+    def fake_loader(path, accel="none"):
         def fn(crops, conf):
             calls["crops"] += len(crops)
             out = []
@@ -307,3 +307,38 @@ def test_roi_origins_stay_in_frame():
     d = sv.Detections(xyxy=np.array([[10, 10, 20, 20], [900, 900, 910, 910]], np.float32),
                       confidence=np.array([0.5, 0.5], np.float32), class_id=np.array([0, 0]))
     assert len(within_origins(d, roi_origins((5, 5), 1920, 1080), 320)) == 1
+
+
+def test_record_models_with_ball_model_and_sparse_keypoints(pipeline, tmp_path, monkeypatch):
+    import vision.detect as vd
+    import tools.record_models as rm
+
+    m, stamped = pipeline
+    video = tmp_path / "v.avi"
+    _make_video(video)
+    counter = {"i": 0}
+
+    def enh(frame, enabled=True):
+        out = frame.copy()
+        out[0, 0] = counter["i"]
+        counter["i"] += 1
+        return out
+    monkeypatch.setattr(rm, "enhance_frame", enh)
+    monkeypatch.setattr(vd, "infer_field_keypoints", _fake_keypoints)
+
+    def ball_fn(img):
+        f = int(img[0, 0, 0])
+        return sv.Detections(xyxy=np.array([[300 + f, 250, 308 + f, 258]], np.float32),
+                             confidence=np.array([0.9], np.float32), class_id=np.array([0]))
+    rm.record(str(video), str(tmp_path / "rec"), {"a": (_FakeDetModel({}), "fake/1")}, object(), "field/1",
+              preprocess=False, log_every=0, field_every=3, ball_fn=ball_fn)
+    frames = pd.read_csv(tmp_path / "rec" / "a" / "frames.csv.gz")
+    assert frames.kp.sum() == len(range(0, START + N, 3))
+    assert len(pd.read_csv(tmp_path / "rec" / "a" / "ballm.csv.gz")) == START + N
+    monkeypatch.setenv("BALL_MODEL_ENABLED", "true")
+    stamped.next_idx = 0
+    m.main(None, out_dir=str(tmp_path / "rep"), replay_cache=str(tmp_path / "rec" / "a"),
+           replay_video=str(video), write_video=False)
+    rep = pd.read_csv(tmp_path / "rep" / "per_frame_tracks.csv")
+    kpi = json.loads((tmp_path / "rep" / "kpi_summary.json").read_text())
+    assert kpi["ball_model"] and len(rep[rep.class_id == 0]) > 0

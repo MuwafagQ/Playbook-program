@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     FIELD_MODEL_ID: str = "football-field-detection-f07vi-it2xv/10"
     # Our open RF-DETR people model (checkpoint path). When set it replaces PLAYER_MODEL_ID.
     PLAYER_MODEL_PATH: str = ""
+    # Speed-up for our RF-DETR models (people + ball): none | fp16 | tensorrt (vision/fast_rfdetr.py).
+    MODEL_ACCEL: str = "none"
 
     # Runtime
     DEVICE: str = "cpu"

@@ -77,13 +77,8 @@ def within_origins(det: sv.Detections, origins, tile: int) -> sv.Detections:
     return det[keep]
 
 
-def load_ball_model(path: str):
+def load_ball_model(path: str, accel: str = "none"):
     """The trained ball model (rfdetr checkpoint) as a predict_fn for predict_tiles."""
-    from rfdetr.detr import RFDETR
+    from vision.fast_rfdetr import load_rfdetr
 
-    model = RFDETR.from_checkpoint(path, trust_checkpoint=True)
-    try:
-        model.optimize_for_inference()
-    except Exception as e:  # optional speed-up; not available on every setup
-        print(f"[ball-model] optimize_for_inference skipped: {e}")
-    return rfdetr_predict_fn(model)
+    return rfdetr_predict_fn(load_rfdetr(path, accel, max_batch=32))

@@ -122,3 +122,14 @@ def test_render_draw_marks_ball_status():
     assert (img[:26, 800:, 1] > 150).any()      # green "ball OK" in the banner
     img = draw(frame, rows, pd.Series({"x1": 900, "y1": 900, "x2": 910, "y2": 910}), "run", 0.5)
     assert (img[:26, 800:, 2] > 150).any()      # red "ball WRONG"
+
+
+def test_compare_detections():
+    from vision.fast_rfdetr import compare_detections
+
+    a = sv.Detections(xyxy=np.array([[0, 0, 10, 10], [50, 50, 60, 60]], np.float32),
+                      confidence=np.array([0.9, 0.8], np.float32), class_id=np.array([1, 2]))
+    b = sv.Detections(xyxy=np.array([[0, 0, 10, 11]], np.float32), confidence=np.array([0.85], np.float32),
+                      class_id=np.array([1]))
+    r = compare_detections([a], [b])
+    assert r["found"] == 0.5 and r["extra_boxes"] == 0 and abs(r["mean_conf_diff"] - 0.05) < 1e-6
