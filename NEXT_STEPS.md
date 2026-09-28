@@ -13,6 +13,7 @@ night match can be processed end to end with manual work limited to **pass taggi
 | Ball | our tile-trained RF-DETR Small, fast search around the ball | right in 93-96% of frames, boots 3% (`data/ball_model/`) |
 | Pitch keypoints | Roboflow model (RF-DETR keypoint preview, not ours) | good on our footage (~0.5 m), weak on others |
 | Speed | not optimised yet; TensorRT/FP16 ready to test | `vision/fast_rfdetr.py`, `MODEL_ACCEL` |
+| Teams | colour classifier; mixes teams (not yet measured) | to fix tomorrow |
 
 `baseline.env` is the pilot setup. Model files live in `MyDrive/Playbook/{people_model,ball_model}/`.
 
@@ -38,7 +39,14 @@ night match can be processed end to end with manual work limited to **pass taggi
 4. Keypoints: notebook to train an open (Apache 2.0) RF-DETR keypoint model on our keypoint
    dataset; check the licence of the keypoint weights/code before training; evaluate against the
    CVAT pitch-line check (HILAL-AHLI) and the old model, then switch `FIELD_MODEL_*`.
-5. Full-match notebook (see below).
+5. **Team classification: it mixes teams (reported by you).** Measure it first: give each player
+   track in the two CVAT clips its true team (about 30 tracks per clip, quick to label from crops)
+   and score the pipeline's `team_id`. Likely fixes, in order: decide the team once per track by
+   majority vote over its whole life (like the role vote), instead of frame by frame; fit the two
+   kit colours on many frames of clean, unoccluded torso crops with referees and goalkeepers left
+   out; assign goalkeepers by the side of the pitch they defend. Must be solid before a full match,
+   because pass tagging and team statistics depend on it.
+6. Full-match notebook (see below).
 
 ## Full-match run: what it has to handle
 
@@ -50,7 +58,7 @@ night match can be processed end to end with manual work limited to **pass taggi
 - **Output for pass tagging.** `tag_passes_v2` reads `per_frame_tracks.csv`: frame, track_id,
   display_track_id, class_id, conf, x1..y2, x_m, y_m, team_id, ball_interpolated (all still written).
   `team_id` is filled only with team classification on (`--enable-team`, colour mode): must be on
-  for the full match, and checked with our new people model.
+  for the full match, and fixed first (see step 5 above: it currently mixes teams).
 - **What makes tagging faster.** The tagger relocates the ball by hand when it is wrong, so ball
   accuracy saves the most manual time; passer/receiver come from display IDs, so stable IDs
   (Re-ID, next topic) come second. A short list of frames where the ball is uncertain (long gaps,
