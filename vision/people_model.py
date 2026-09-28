@@ -8,10 +8,16 @@ from __future__ import annotations
 NAMES = {1: "goalkeeper", 2: "player", 3: "referee"}
 
 
-def _to_result(det, width: int, height: int) -> dict:
+# rfdetr numbers classes from 0 and skips the dataset's super-category (id 0), so its
+# class k is dataset category k + 1: 0 goalkeeper, 1 player, 2 referee.
+CLASS_OFFSET = 1
+
+
+def _to_result(det, width: int, height: int, offset: int = CLASS_OFFSET) -> dict:
     preds = []
     for (x1, y1, x2, y2), c, k in zip(det.xyxy.tolist(), det.confidence.tolist(), det.class_id.tolist()):
-        if int(k) not in NAMES:
+        k = int(k) + offset
+        if k not in NAMES:
             continue
         preds.append({"x": (x1 + x2) / 2, "y": (y1 + y2) / 2, "width": x2 - x1, "height": y2 - y1,
                       "confidence": float(c), "class_id": int(k), "class": NAMES[int(k)]})

@@ -2,7 +2,8 @@
 
 ## ▶ Run next (needs a T4 GPU)
 
-**`train_people_rfdetr.ipynb`**, about 2-4 hours; trains our own open people model (replaces NAS).
+**`train_people_rfdetr.ipynb`**: training is finished; **Run all** again (about 10 minutes). It now skips
+training and re-saves the model's detections with the corrected class ids (goalkeepers were lost before).
 
 Open in Colab:
 https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/train_people_rfdetr.ipynb

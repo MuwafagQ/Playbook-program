@@ -101,9 +101,10 @@ def test_people_model_adapter_matches_inference_results():
     class Fake:
         def predict(self, rgb, threshold=0.3):
             return [sv.Detections(xyxy=np.array([[10, 20, 30, 80], [0, 0, 5, 5]], np.float32),
-                                  confidence=np.array([0.9, 0.8], np.float32), class_id=np.array([3, 0]))
+                                  confidence=np.array([0.9, 0.8], np.float32), class_id=np.array([2, 0]))
                     for _ in rgb]
     res = PeopleModel(Fake()).infer(np.zeros((100, 200, 3), np.uint8), confidence=0.3)
     det = sv.Detections.from_inference(res[0])
-    assert det.class_id.tolist() == [3] and np.allclose(det.xyxy[0], [10, 20, 30, 80])
+    # rfdetr class 2 = referee (pipeline 3), class 0 = goalkeeper (pipeline 1)
+    assert det.class_id.tolist() == [3, 1] and np.allclose(det.xyxy[0], [10, 20, 30, 80])
     assert len(PeopleModel(Fake()).infer([np.zeros((10, 10, 3), np.uint8)] * 2)) == 2
