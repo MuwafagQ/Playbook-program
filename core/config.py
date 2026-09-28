@@ -12,6 +12,8 @@ class Settings(BaseSettings):
 
     PLAYER_MODEL_ID: str = "football-players-detection-3zvbc/11"
     FIELD_MODEL_ID: str = "football-field-detection-f07vi-it2xv/10"
+    # Our open RF-DETR people model (checkpoint path). When set it replaces PLAYER_MODEL_ID.
+    PLAYER_MODEL_PATH: str = ""
 
     # Runtime
     DEVICE: str = "cpu"

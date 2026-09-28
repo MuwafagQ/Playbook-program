@@ -115,14 +115,25 @@ def main(
         )
         print(f"[stage] Replaying model outputs from {replay_cache} (no models loaded).")
     else:
-        from vision.models import load_roboflow_models
-
         print("[stage] Loading models...")
-        player_model, field_model = load_roboflow_models(
-            api_key=s.ROBOFLOW_API_KEY,
-            player_model_id=s.PLAYER_MODEL_ID,
-            field_model_id=s.FIELD_MODEL_ID
-        )
+        if getattr(s, "PLAYER_MODEL_PATH", ""):
+            # open RF-DETR people model trained by us (no ball class: pair with the ball model)
+            from vision.models import get_model
+            from vision.people_model import load_people_model
+
+            player_model = load_people_model(s.PLAYER_MODEL_PATH)
+            field_model = get_model(model_id=s.FIELD_MODEL_ID, api_key=s.ROBOFLOW_API_KEY)
+            print(f"[stage] People model: {s.PLAYER_MODEL_PATH}")
+            if not bool(getattr(s, "BALL_MODEL_ENABLED", False)):
+                print("[WARN] PLAYER_MODEL_PATH has no ball class; enable the ball model (BALL_MODEL_ENABLED).")
+        else:
+            from vision.models import load_roboflow_models
+
+            player_model, field_model = load_roboflow_models(
+                api_key=s.ROBOFLOW_API_KEY,
+                player_model_id=s.PLAYER_MODEL_ID,
+                field_model_id=s.FIELD_MODEL_ID
+            )
         print("[stage] Models loaded.")
         print(f"[stage] Opening video: {source_video}")
         video_info = sv.VideoInfo.from_video_path(source_video)

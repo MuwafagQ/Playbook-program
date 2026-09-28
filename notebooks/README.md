@@ -1,8 +1,18 @@
 # Notebooks: which one to run
 
-## ▶ Run next
+## ▶ Run next (needs a T4 GPU)
 
-Nothing right now. Claude will add a notebook here when a GPU run is needed.
+**`train_people_rfdetr.ipynb`**, about 2-4 hours; trains our own open people model (replaces NAS).
+
+Open in Colab:
+https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/train_people_rfdetr.ipynb
+
+1. Runtime → Change runtime type → **T4 GPU** → Save.
+2. Colab Secrets (key icon): `ROBOFLOW_API_KEY` with notebook access on (first run only).
+3. Runtime → **Run all**. Do not edit cells. If it disconnects, Run all again: it resumes.
+4. Tell Claude when it finishes. Results: `MyDrive/Playbook/people_model/`.
+
+Other Google account: share `MyDrive/Playbook` with it and add a shortcut to `Playbook` in its My Drive.
 
 ## Done: no need to run again
 

@@ -82,3 +82,28 @@ def test_candidate_recall():
     r = candidate_recall(c, gt, thresholds=(0.1, 0.3))
     assert r["0.10"]["ball_found"] == 0.5 and r["0.30"]["ball_found"] == 0.25
     assert r["0.10"]["candidates_per_frame"] == 1.0
+
+
+def test_people_dataset_keeps_people_with_pipeline_ids(tmp_path):
+    from tools.people_dataset import people_dataset
+
+    _make_split(tmp_path / "src", "train")
+    stats = people_dataset(tmp_path / "src", tmp_path / "dst")
+    out = json.loads((tmp_path / "dst/train/_annotations.coco.json").read_text())
+    assert stats["train"]["player"] == 3 and stats["train"]["goalkeeper"] == 0
+    assert {a["category_id"] for a in out["annotations"]} == {2}          # player -> pipeline id 2, ball dropped
+    assert (tmp_path / "dst/train/f0.jpg").exists()
+
+
+def test_people_model_adapter_matches_inference_results():
+    from vision.people_model import PeopleModel
+
+    class Fake:
+        def predict(self, rgb, threshold=0.3):
+            return [sv.Detections(xyxy=np.array([[10, 20, 30, 80], [0, 0, 5, 5]], np.float32),
+                                  confidence=np.array([0.9, 0.8], np.float32), class_id=np.array([3, 0]))
+                    for _ in rgb]
+    res = PeopleModel(Fake()).infer(np.zeros((100, 200, 3), np.uint8), confidence=0.3)
+    det = sv.Detections.from_inference(res[0])
+    assert det.class_id.tolist() == [3] and np.allclose(det.xyxy[0], [10, 20, 30, 80])
+    assert len(PeopleModel(Fake()).infer([np.zeros((10, 10, 3), np.uint8)] * 2)) == 2
