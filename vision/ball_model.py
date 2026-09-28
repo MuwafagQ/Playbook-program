@@ -50,3 +50,40 @@ def rfdetr_predict_fn(model):
         out = model.predict(rgb, threshold=conf)
         return out if isinstance(out, list) else [out]
     return fn
+
+
+def roi_origins(center, width: int, height: int, tile: int = 320, n: int = 2,
+                min_overlap: int = 64) -> list[tuple[int, int]]:
+    """n x n overlapping tiles centred on `center` (e.g. the predicted ball position),
+    shifted to stay inside the frame."""
+    step = tile - min_overlap
+    span = tile + (n - 1) * step
+    x0 = int(np.clip(float(center[0]) - span / 2, 0, max(width - span, 0)))
+    y0 = int(np.clip(float(center[1]) - span / 2, 0, max(height - span, 0)))
+    return [(min(x0 + i * step, max(width - tile, 0)), min(y0 + j * step, max(height - tile, 0)))
+            for j in range(n) for i in range(n)]
+
+
+def within_origins(det: sv.Detections, origins, tile: int) -> sv.Detections:
+    """Candidates whose centre lies inside any of the tiles (used in replay to reproduce
+    a search around the ball from full-frame candidates)."""
+    if len(det) == 0:
+        return det
+    cx = (det.xyxy[:, 0] + det.xyxy[:, 2]) / 2
+    cy = (det.xyxy[:, 1] + det.xyxy[:, 3]) / 2
+    keep = np.zeros(len(det), bool)
+    for x, y in origins:
+        keep |= (cx >= x) & (cx < x + tile) & (cy >= y) & (cy < y + tile)
+    return det[keep]
+
+
+def load_ball_model(path: str):
+    """The trained ball model (rfdetr checkpoint) as a predict_fn for predict_tiles."""
+    from rfdetr.detr import RFDETR
+
+    model = RFDETR.from_checkpoint(path, trust_checkpoint=True)
+    try:
+        model.optimize_for_inference()
+    except Exception as e:  # optional speed-up; not available on every setup
+        print(f"[ball-model] optimize_for_inference skipped: {e}")
+    return rfdetr_predict_fn(model)

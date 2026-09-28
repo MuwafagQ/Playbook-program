@@ -11,6 +11,8 @@ Layout of a cache directory:
   roi.csv.gz       same columns                              (zoomed ball re-detections)
   tiles.csv.gz     same columns                              (ball candidates from tiled detection,
                                                               recording only: main.py --record-ball-tiles)
+  ballm.csv.gz     same columns                              (dedicated ball model, BALL_MODEL_ENABLED;
+                                                              meta "ballm_full": every frame fully searched)
   kp.csv.gz        frame, label, x, y, conf                  (field keypoints)
   frames.csv.gz    frame, det, kp                            (which model ran on which frame)
 """
@@ -55,7 +57,7 @@ class DetCacheWriter:
         self.dir.mkdir(parents=True, exist_ok=True)
         self._files = {}
         self._writers = {}
-        for name, cols in (("dets", DET_COLS), ("roi", DET_COLS), ("tiles", DET_COLS), ("kp", KP_COLS),
+        for name, cols in (("dets", DET_COLS), ("roi", DET_COLS), ("tiles", DET_COLS), ("ballm", DET_COLS), ("kp", KP_COLS),
                            ("frames", ["frame", "det", "kp"])):
             f = gzip.open(self.dir / f"{name}.csv.gz", "wt", newline="")
             w = csv.writer(f)
@@ -89,6 +91,9 @@ class DetCacheWriter:
     def add_tiles(self, frame: int, det: sv.Detections) -> None:
         self._write_dets("tiles", frame, det)
 
+    def add_ballm(self, frame: int, det: sv.Detections) -> None:
+        self._write_dets("ballm", frame, det)
+
     def close(self, meta: dict) -> None:
         for f in self._files.values():
             f.close()
@@ -105,6 +110,9 @@ class DetCacheReader:
         self._roi = self._group(pd.read_csv(self.dir / "roi.csv.gz"))
         tiles = self.dir / "tiles.csv.gz"  # absent in caches recorded before tiles existed
         self._tiles = self._group(pd.read_csv(tiles)) if tiles.exists() else {}
+        ballm = self.dir / "ballm.csv.gz"  # absent unless recorded with the ball model
+        self.has_ballm = ballm.exists()
+        self._ballm = self._group(pd.read_csv(ballm)) if self.has_ballm else {}
         kp = pd.read_csv(self.dir / "kp.csv.gz")
         self._kp = {int(f): g for f, g in kp.groupby("frame")}
         fr = pd.read_csv(self.dir / "frames.csv.gz")
@@ -134,6 +142,9 @@ class DetCacheReader:
 
     def tiles(self, frame: int) -> sv.Detections:
         return self._to_dets(self._tiles.get(int(frame)))
+
+    def ballm(self, frame: int) -> sv.Detections:
+        return self._to_dets(self._ballm.get(int(frame)))
 
     def kp(self, frame: int) -> sv.KeyPoints:
         g = self._kp.get(int(frame))

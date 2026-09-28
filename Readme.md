@@ -267,6 +267,14 @@ raw positions stay in x_m_raw / y_m_raw. Also runnable afterwards on any recorde
 On 5 SoccerNet clips: jitter ratio 3.2-12.8 -> 1.1-1.5 (ground truth 1.0-1.2), position
 error unchanged or slightly better.
 
+People roles and the ball model. `ROLE_BY_TRACK=true` (default in baseline.env) tracks all people
+with one tracker and gives each track its majority label, so a player whose label flickers (e.g. a
+yellow kit read as "referee") keeps his ID. `BALL_MODEL_ENABLED=true` + `BALL_MODEL_PATH=<checkpoint>`
+replaces the detector's ball with the tile-trained ball model (notebooks/train_ball_tiles.ipynb):
+it searches 2x2 tiles around the predicted ball and the whole frame only when the ball is lost,
+~5 tiles/frame on average. On the held-out HILAL-HAZM clip: ball right in 95.8% of frames (was 68%),
+boots taken for the ball 2.8% (was 15%); see data/ball_model/ and data/nas_eval/.
+
 Secondary: proxy metrics without ground truth (any video, e.g. a full half later).
 Protocol:
 1. Baseline run — one full, untouched half (not a pre-trimmed clip), baseline.env settings,

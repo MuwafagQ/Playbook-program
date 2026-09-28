@@ -126,6 +126,20 @@ class Settings(BaseSettings):
     BALL_ROI_UPSCALE: float = 2.0
     BALL_ROI_CONF: float = 0.10
 
+    # Dedicated ball model (vision/ball_model.py, trained by notebooks/train_ball_tiles.ipynb).
+    # Replaces the detector's ball candidates. It searches BALL_MODEL_ROI_TILES^2 tiles
+    # around the predicted ball position, and the whole frame when the ball is lost (for
+    # BALL_MODEL_LOST_FRAMES frames), unknown, or every BALL_MODEL_FULL_EVERY_N frames.
+    # In replay the candidates come from the cache (ballm.csv.gz); no model is loaded.
+    BALL_MODEL_ENABLED: bool = False
+    BALL_MODEL_PATH: str = ""
+    BALL_MODEL_TILE: int = 320
+    BALL_MODEL_CONF: float = 0.10        # model threshold (candidates recorded to the cache)
+    BALL_MODEL_MIN_CONF: float = 0.30    # candidates the pipeline uses (0.30 beat 0.15 on HILAL-HAZM)
+    BALL_MODEL_ROI_TILES: int = 2
+    BALL_MODEL_LOST_FRAMES: int = 3
+    BALL_MODEL_FULL_EVERY_N: int = 30
+
     # Tiny box filtering (ratio relative to frame area)
     MIN_AREA_RATIO_PEOPLE: float = 0.00008
     MIN_AREA_RATIO_BALL: float = 0.00001

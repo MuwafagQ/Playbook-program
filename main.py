@@ -33,6 +33,7 @@ from vision.ball import BallSmoother
 from vision.team_memory import TeamMemory
 from vision.id_stabilizer import IDStabilizer
 from vision.roles import RoleVoter
+from vision.ball_model import predict_tiles, roi_origins, within_origins
 from geometry.homography import HomographyEstimator
 from geometry.projection import project_anchors_to_pitch, on_pitch_mask
 from io_utils.writers import CSVWriter, VideoWriter
@@ -175,6 +176,51 @@ def main(
         record_ball_tiles = False
     run_keypoints = timer.wrap("model_keypoints", run_keypoints)
     run_ball_roi = timer.wrap("model_ball_roi", run_ball_roi)
+
+    # Dedicated ball model: live model when running, recorded candidates in replay.
+    ball_model_on = bool(getattr(s, "BALL_MODEL_ENABLED", False))
+    ball_model_fn = None
+    if ball_model_on and cache_in is None:
+        if not s.BALL_MODEL_PATH:
+            raise SystemExit("BALL_MODEL_ENABLED needs BALL_MODEL_PATH (the trained checkpoint).")
+        from vision.ball_model import load_ball_model
+        ball_model_fn = load_ball_model(s.BALL_MODEL_PATH)
+        print(f"[stage] Ball model loaded: {s.BALL_MODEL_PATH}")
+    elif ball_model_on and not cache_in.has_ballm:
+        print("[WARN] BALL_MODEL_ENABLED but the cache has no ball-model candidates; using the detector's ball.")
+        ball_model_on = False
+    ball_model_stats = {"full": 0, "roi": 0, "last_full": -10**9}
+
+    def run_ball_model(fi, img):
+        """Ball candidates from the ball model; full-frame search or tiles around the prediction."""
+        h_img, w_img = img.shape[:2]
+        pred = ball_smoother.predicted_center()
+        full = (pred is None or ball_smoother.state.missing >= s.BALL_MODEL_LOST_FRAMES
+                or fi - ball_model_stats["last_full"] >= s.BALL_MODEL_FULL_EVERY_N)
+        origins = None if full else roi_origins(pred, w_img, h_img, s.BALL_MODEL_TILE, s.BALL_MODEL_ROI_TILES)
+        if full:
+            ball_model_stats["full"] += 1
+            ball_model_stats["last_full"] = fi
+        else:
+            ball_model_stats["roi"] += 1
+        if cache_in is not None:
+            cands = cache_in.ballm(fi)
+            if origins is not None:
+                cands = within_origins(cands, origins, s.BALL_MODEL_TILE)
+        else:
+            cands = predict_tiles(ball_model_fn, img, tile=s.BALL_MODEL_TILE, conf=s.BALL_MODEL_CONF,
+                                  origins=origins)
+            if cache_out is not None:
+                cache_out.add_ballm(fi, cands)
+        if len(cands) > 0:
+            cands = cands[cands.confidence >= s.BALL_MODEL_MIN_CONF]
+            cands.class_id = np.full(len(cands), BALL_ID, dtype=np.int32)
+            # same size sanity filter as the detector's ball
+            cands = tiny_box_filter(cands, w_img, h_img, min_area_ratio_people=s.MIN_AREA_RATIO_PEOPLE,
+                                    min_area_ratio_ball=s.MIN_AREA_RATIO_BALL)
+        return cands
+
+    run_ball_model = timer.wrap("model_ball", run_ball_model)
 
     _prefetch_q: queue.Queue = queue.Queue(maxsize=8)
 
@@ -558,7 +604,7 @@ def main(
                     min_area_ratio_ball=s.MIN_AREA_RATIO_BALL,
                 )
 
-                raw_ball_det = det[det.class_id == BALL_ID]
+                raw_ball_det = run_ball_model(frame_idx, frame_infer) if ball_model_on else det[det.class_id == BALL_ID]
                 if len(raw_ball_det) > 0 and s.BALL_PAD_PX > 0:
                     raw_ball_det.xyxy = sv.pad_boxes(raw_ball_det.xyxy, px=s.BALL_PAD_PX)
 
@@ -622,6 +668,7 @@ def main(
             # last on-pitch position) and only on frames where detection ran.
             if (
                 s.BALL_ROI_RECOVERY
+                and not ball_model_on
                 and _fut_det is not None
                 and len(raw_ball_det) == 0
             ):
@@ -1196,6 +1243,9 @@ def main(
     metrics["replay"] = bool(cache_in is not None)
     metrics["pitch_smoothed"] = smooth_stats is not None
     metrics["role_by_track"] = role_voter is not None
+    metrics["ball_model"] = ball_model_on
+    metrics["ball_model_full_searches"] = ball_model_stats["full"]
+    metrics["ball_model_roi_searches"] = ball_model_stats["roi"]
     if smooth_stats:
         metrics["pitch_smooth_camera_cuts"] = smooth_stats["camera_cuts"]
     for k, v in timer.per_frame_ms(processed_frames).items():

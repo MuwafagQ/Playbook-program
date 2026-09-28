@@ -250,3 +250,59 @@ def test_hosted_model_parses_keypoints(monkeypatch):
     from vision.detect import infer_field_keypoints
     kp = infer_field_keypoints(HostedModel("m/1", "k", keypoints=True), np.zeros((10, 10, 3), np.uint8), 0.3)
     assert kp.xy.tolist() == [[[3.0, 4.0]]] and kp.class_id.tolist() == [[16]]  # best pitch, vertex label
+
+
+def test_ball_model_record_then_replay(pipeline, tmp_path, monkeypatch):
+    """The ball model replaces the detector's ball; its candidates are cached and replayed."""
+    import vision.ball_model as bm
+
+    m, stamped = pipeline
+    video = tmp_path / "v.avi"
+    _make_video(video)
+    calls = {"crops": 0}
+
+    def fake_loader(path):
+        def fn(crops, conf):
+            calls["crops"] += len(crops)
+            out = []
+            for _ in crops:
+                out.append(sv.Detections.empty())
+            return out
+        return fn
+
+    # a model that finds one ball at a fixed spot of the frame, whichever tiles are searched
+    def fake_predict_tiles(fn, img, tile=320, conf=0.1, batch=32, min_overlap=64, origins=None):
+        fn([img[:tile, :tile]], conf)
+        return sv.Detections(xyxy=np.array([[400, 100, 408, 108]], np.float32),
+                             confidence=np.array([0.9], np.float32), class_id=np.array([0]))
+    monkeypatch.setattr(bm, "load_ball_model", fake_loader)
+    monkeypatch.setattr(m, "predict_tiles", fake_predict_tiles)
+    monkeypatch.setenv("BALL_MODEL_ENABLED", "true")
+    monkeypatch.setenv("BALL_MODEL_PATH", "fake.pth")
+    stamped.next_idx = START
+    m.main(str(video), out_dir=str(tmp_path / "rec"), start_frame=START, end_frame=START + N - 1,
+           record_cache=str(tmp_path / "cache"), write_video=False)
+    assert calls["crops"] > 0
+    ballm = pd.read_csv(tmp_path / "cache" / "ballm.csv.gz")
+    assert len(ballm) > 0
+    rec = pd.read_csv(tmp_path / "rec" / "per_frame_tracks.csv")
+    balls = rec[rec.class_id == 0]
+    assert len(balls) > 0 and ((balls.x1 + balls.x2) / 2).between(390, 418).all()  # padded box, same centre
+    kpi = json.loads((tmp_path / "rec" / "kpi_summary.json").read_text())
+    assert kpi["ball_model"] and kpi["ball_model_full_searches"] >= 1 and kpi["ball_model_roi_searches"] >= 1
+
+    stamped.next_idx = START
+    m.main(str(video), out_dir=str(tmp_path / "rep"), replay_cache=str(tmp_path / "cache"), write_video=False)
+    pd.testing.assert_frame_equal(_tracks(tmp_path / "rec" / "per_frame_tracks.csv"),
+                                  _tracks(tmp_path / "rep" / "per_frame_tracks.csv"))
+
+
+def test_roi_origins_stay_in_frame():
+    from vision.ball_model import roi_origins, within_origins
+    o = roi_origins((5, 5), 1920, 1080, 320, 2)
+    assert o[0] == (0, 0) and len(o) == 4 and max(x for x, _ in o) == 256
+    o = roi_origins((1915, 1075), 1920, 1080, 320, 2)
+    assert max(x for x, _ in o) == 1600 and max(y for _, y in o) == 760
+    d = sv.Detections(xyxy=np.array([[10, 10, 20, 20], [900, 900, 910, 910]], np.float32),
+                      confidence=np.array([0.5, 0.5], np.float32), class_id=np.array([0, 0]))
+    assert len(within_origins(d, roi_origins((5, 5), 1920, 1080), 320)) == 1

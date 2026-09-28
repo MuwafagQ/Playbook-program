@@ -44,5 +44,20 @@
    "ball_hit": 0.958,
    "ball_at_feet": 0.028
   }
+ },
+ "built_in_ball_model": {
+  "note": "main.py BALL_MODEL_ENABLED, replayed from full-frame candidates; fast = tiles around the predicted ball, full search when lost (3 frames), unknown, or every 30 frames",
+  "fast_mode": {
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028,
+   "full_searches": 19,
+   "around_ball_searches": 511,
+   "avg_tiles_per_frame": 5.0
+  },
+  "full_search_every_frame": {
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028,
+   "avg_tiles_per_frame": 32
+  }
  }
 }
