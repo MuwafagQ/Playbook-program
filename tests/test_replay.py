@@ -233,3 +233,20 @@ def test_record_models_then_replay(pipeline, tmp_path, monkeypatch):
            replay_video=str(video), write_video=False)
     rep = pd.read_csv(tmp_path / "rep" / "per_frame_tracks.csv")
     assert len(rep[rep.class_id == 2]) > 0 and rep.frame.max() == START + N - 1
+
+
+def test_hosted_model_parses_keypoints(monkeypatch):
+    import requests
+    from tools.record_models import HostedModel
+
+    class R:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"predictions": [{"confidence": 0.4, "keypoints": [{"x": 1, "y": 2, "confidence": 0.9, "class_id": 13, "class": "15"}]},
+                                    {"confidence": 0.8, "keypoints": [{"x": 3, "y": 4, "confidence": 0.7, "class_id": 14, "class": "16"}]}]}
+    monkeypatch.setattr(requests, "post", lambda *a, **k: R())
+    from vision.detect import infer_field_keypoints
+    kp = infer_field_keypoints(HostedModel("m/1", "k", keypoints=True), np.zeros((10, 10, 3), np.uint8), 0.3)
+    assert kp.xy.tolist() == [[[3.0, 4.0]]] and kp.class_id.tolist() == [[16]]  # best pitch, vertex label
