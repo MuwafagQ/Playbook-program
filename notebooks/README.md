@@ -8,10 +8,7 @@ Before each: if the notebook is already open from an earlier run, **Runtime → 
 runtime**. Then Runtime → Change runtime type → **T4 GPU** → Save, and **Runtime → Run all**. Do not
 edit cells. Colab Secret `ROBOFLOW_API_KEY` must be on (key icon). Tell Claude when each one finishes.
 
-1. **`speed_and_new_footage.ipynb`** (about 1 hour): speed test (FP16 / TensorRT) + our models on five
-   new clips from the full matches. Results: `MyDrive/Playbook/new_footage/`.
-   https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/speed_and_new_footage.ipynb
-2. **`train_people_rfdetr_large.ipynb`** (about 4-7 hours): trains the Large people model. If it
+1. **`train_people_rfdetr_large.ipynb`** (about 4-7 hours): trains the Large people model. If it
    disconnects, Run all again: it resumes. Results: `MyDrive/Playbook/people_model_large/`.
    https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/train_people_rfdetr_large.ipynb
 
@@ -21,6 +18,7 @@ Other Google account: share `MyDrive/Playbook` with it and add a shortcut to `Pl
 
 | Notebook | What it did | Result |
 |---|---|---|
+| `speed_and_new_footage.ipynb` | FP16/TensorRT speed test + our models on new clips | `MyDrive/Playbook/new_footage/`, `data/new_footage/` |
 | `train_people_rfdetr.ipynb` | trained our people model (RF-DETR Medium, open licence), now the default | `MyDrive/Playbook/people_model/` |
 | `train_ball_tiles.ipynb` | trained the ball model (RF-DETR Small, open licence) | `MyDrive/Playbook/ball_model/` |
 | `ball_candidates_export.ipynb` | ball model on the night clip + T4 speed test | `MyDrive/Playbook/ball_model/` |

@@ -12,14 +12,14 @@ night match can be processed end to end with manual work limited to **pass taggi
 | Tracking | one tracker for all people, role = majority vote per track | `ROLE_BY_TRACK=true` |
 | Ball | our tile-trained RF-DETR Small, fast search around the ball | right in 93-96% of frames, boots 3% (`data/ball_model/`) |
 | Pitch keypoints | Roboflow model (RF-DETR keypoint preview, not ours) | good on our footage (~0.5 m), weak on others |
-| Speed | not optimised yet; TensorRT/FP16 ready to test | `vision/fast_rfdetr.py`, `MODEL_ACCEL` |
+| Speed (T4, per frame) | people FP16 28 ms (plain 36, 99.6% same boxes); ball TensorRT 24 ms around the ball / 232 ms full search (plain 94 / 779, 100% same) | `speed_and_new_footage.ipynb` |
 | Teams | colour classifier; mixes teams (not yet measured) | to fix tomorrow |
 
 `baseline.env` is the pilot setup. Model files live in `MyDrive/Playbook/{people_model,ball_model}/`.
 
 ## Tomorrow, GPU (you run; see `notebooks/README.md` for the steps)
 
-1. `speed_and_new_footage.ipynb` (~1 h): FP16/TensorRT speed + agreement check; five new clips.
+1. ~~`speed_and_new_footage.ipynb`~~ done (see below).
 2. `train_people_rfdetr_large.ipynb` (~4-7 h): RF-DETR Large people model.
 3. Keypoints model, open licence (Claude prepares the notebook first; see below).
 
@@ -32,9 +32,13 @@ night match can be processed end to end with manual work limited to **pass taggi
 
 ## Tomorrow, Claude
 
-1. Score the new clips (no ground truth: ID fragmentation, impossible jumps, ball found rate) and
-   send side-by-side videos (`tools/render_run.py`).
-2. Pick `MODEL_ACCEL` from the speed test (only a mode that reproduces the plain model).
+1. ~~Score the new clips~~ done: `data/new_footage/proxies.json` (`tools/proxy_metrics.py`).
+   Match2 clips look as good as the CVAT clips (ball 95-96%, no ball jumps, few new IDs).
+   Ittifaq (far, low-quality stream, tiny players) is the weak case: ball 78-88% with jumps to
+   boots/stands (8 ball switches in 20 s). Candidate fixes: bigger ball tiles/upscale for far
+   cameras, ittifaq frames in the next ball training round.
+2. `MODEL_ACCEL`: ball TensorRT (identical results), people FP16 (TensorRT failed on a batch-size
+   bug, fixed since; re-check in the next Colab run). Set it in the full-match notebook (GPU only).
 3. Compare Large vs Medium people model on both CVAT clips; switch if better.
 4. Keypoints: notebook to train an open (Apache 2.0) RF-DETR keypoint model on our keypoint
    dataset; check the licence of the keypoint weights/code before training; evaluate against the
