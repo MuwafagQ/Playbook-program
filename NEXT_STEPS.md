@@ -20,7 +20,8 @@ night match can be processed end to end with manual work limited to **pass taggi
 ## Tomorrow, GPU (you run; see `notebooks/README.md` for the steps)
 
 1. ~~`speed_and_new_footage.ipynb`~~ done (see below).
-2. ~~`train_people_rfdetr_large.ipynb`~~ done (Large vs Medium: see below).
+2. ~~`train_people_rfdetr_large.ipynb`~~ done. Decision: keep Medium; Large fixes day referees (80->99%)
+   but player IDs are no better (also at cut-off 0.40) and it is 2x slower (`data/people_model/large_vs_medium.json`).
 3. `train_field_keypoints.ipynb` (~2-5 h): our own pitch keypoint model, after the label review
    below and dataset version 11.
 
