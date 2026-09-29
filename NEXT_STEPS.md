@@ -29,8 +29,9 @@ night match can be processed end to end with manual work limited to **pass taggi
 
 - Upload new test clips to `MyDrive/Playbook/video_downloads/` (night matches preferred; full
   matches or 30-60 s in-play clips; matches not in the annotation pool are the best test).
-- Keypoints: review the 120 pre-labelled match frames in the Roboflow project
-  `football-field-detection` (tag `prelabelled_check`); then Claude generates version 11.
+- Keypoints: label the 120 match frames by hand in the Roboflow project `football-field-detection`
+  (Annotate -> job "Pitch keypoints - our matches (120)"; any split when adding to the dataset, the
+  notebook splits by match); then Claude generates version 11.
 
 ## Tomorrow, Claude
 
@@ -43,14 +44,15 @@ night match can be processed end to end with manual work limited to **pass taggi
    bug, fixed since; re-check in the next Colab run). Set it in the full-match notebook (GPU only).
 3. Compare Large vs Medium people model on both CVAT clips; switch if better.
 4. Keypoints (prepared): 120 frames from our matches (10 per match, 11 matches + HILAL-HAZM) added to
-   `football-field-detection` with points pre-labelled by the old model (0.1 credit). The old
+   `football-field-detection`. The old model's pre-labels were too poor and were cleared; the frames
+   wait unlabelled in an annotation job for manual labelling. The old
    dataset had no frames from these matches, near-duplicates across splits and 576x576 squashing.
    Licence checked: RF-DETR Keypoint (preview) weights are Apache 2.0 (rfdetr README).
    `notebooks/train_field_keypoints.ipynb` splits by match (11+12 valid, HILAL-HAZM test), trains at
    768 px with pitch-mirror flips, scores the test frames (px error) and records keypoints on both
    CVAT clips. Then Claude compares with the old model (pitch-line check, full pipeline) and sets
-   `FIELD_MODEL_PATH` if better. Old-model error on the same test frames = its pre-labels vs your
-   corrections (no extra cost). Version 11 settings: no resize, no contrast stretching, no Roboflow
+   `FIELD_MODEL_PATH` if better. Old-model error on the same test frames: run it on the 10 test frames
+   (hosted, ~0.01 credit) against your labels. Version 11 settings: no resize, no contrast stretching, no Roboflow
    augmentation (the notebook augments).
 5. **Team classification: it mixes teams (reported by you).** Measure it first: give each player
    track in the two CVAT clips its true team (about 30 tracks per clip, quick to label from crops)
