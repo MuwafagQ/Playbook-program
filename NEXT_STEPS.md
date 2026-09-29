@@ -20,15 +20,16 @@ night match can be processed end to end with manual work limited to **pass taggi
 ## Tomorrow, GPU (you run; see `notebooks/README.md` for the steps)
 
 1. ~~`speed_and_new_footage.ipynb`~~ done (see below).
-2. `train_people_rfdetr_large.ipynb` (~4-7 h): RF-DETR Large people model.
-3. Keypoints model, open licence (Claude prepares the notebook first; see below).
+2. ~~`train_people_rfdetr_large.ipynb`~~ done (Large vs Medium: see below).
+3. `train_field_keypoints.ipynb` (~2-5 h): our own pitch keypoint model, after the label review
+   below and dataset version 11.
 
 ## Tomorrow, you
 
 - Upload new test clips to `MyDrive/Playbook/video_downloads/` (night matches preferred; full
   matches or 30-60 s in-play clips; matches not in the annotation pool are the best test).
-- Keypoints: label the new keypoint version (annotation pool) if not done yet; tell Claude the
-  Roboflow project/version to train from.
+- Keypoints: review the 120 pre-labelled match frames in the Roboflow project
+  `football-field-detection` (tag `prelabelled_check`); then Claude generates version 11.
 
 ## Tomorrow, Claude
 
@@ -40,9 +41,16 @@ night match can be processed end to end with manual work limited to **pass taggi
 2. `MODEL_ACCEL`: ball TensorRT (identical results), people FP16 (TensorRT failed on a batch-size
    bug, fixed since; re-check in the next Colab run). Set it in the full-match notebook (GPU only).
 3. Compare Large vs Medium people model on both CVAT clips; switch if better.
-4. Keypoints: notebook to train an open (Apache 2.0) RF-DETR keypoint model on our keypoint
-   dataset; check the licence of the keypoint weights/code before training; evaluate against the
-   CVAT pitch-line check (HILAL-AHLI) and the old model, then switch `FIELD_MODEL_*`.
+4. Keypoints (prepared): 120 frames from our matches (10 per match, 11 matches + HILAL-HAZM) added to
+   `football-field-detection` with points pre-labelled by the old model (0.1 credit). The old
+   dataset had no frames from these matches, near-duplicates across splits and 576x576 squashing.
+   Licence checked: RF-DETR Keypoint (preview) weights are Apache 2.0 (rfdetr README).
+   `notebooks/train_field_keypoints.ipynb` splits by match (11+12 valid, HILAL-HAZM test), trains at
+   768 px with pitch-mirror flips, scores the test frames (px error) and records keypoints on both
+   CVAT clips. Then Claude compares with the old model (pitch-line check, full pipeline) and sets
+   `FIELD_MODEL_PATH` if better. Old-model error on the same test frames = its pre-labels vs your
+   corrections (no extra cost). Version 11 settings: no resize, no contrast stretching, no Roboflow
+   augmentation (the notebook augments).
 5. **Team classification: it mixes teams (reported by you).** Measure it first: give each player
    track in the two CVAT clips its true team (about 30 tracks per clip, quick to label from crops)
    and score the pipeline's `team_id`. Likely fixes, in order: decide the team once per track by
