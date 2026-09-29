@@ -72,10 +72,13 @@ def draw(frame, rows: pd.DataFrame, gt_ball, label: str, scale: float, tol_k: fl
 
 
 def render(video: str, runs: dict, out: str, gt: pd.DataFrame | None = None, width: int = 960,
-           fps: float | None = None, frames=None, crf: int = 26):
+           fps: float | None = None, frames=None, crf: int = 26, coord_size: tuple[int, int] | None = None):
+    """coord_size: (width, height) the csv coordinates refer to, when the video is a smaller proxy."""
     cap = cv2.VideoCapture(video)
     fps = fps or cap.get(cv2.CAP_PROP_FPS) or 25.0
     w0, h0 = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    if coord_size:
+        w0, h0 = coord_size
     scale = width / w0
     h = int(round(h0 * scale / 2) * 2)
     W = width * len(runs)
@@ -92,6 +95,8 @@ def render(video: str, runs: dict, out: str, gt: pd.DataFrame | None = None, wid
         if not ok:
             break
         if frames is None or f in frames:
+            if coord_size and frame.shape[1] != w0:
+                frame = cv2.resize(frame, (w0, h0), interpolation=cv2.INTER_LINEAR)
             g = gtb.loc[f] if gtb is not None and f in gtb.index else None
             panels = [draw(frame, by_run[n].get(f, empty), g, f"{n}   frame {f}", scale) for n in runs]
             img = np.hstack(panels)[:h]
@@ -133,10 +138,12 @@ def main(argv=None):
     p.add_argument("--gt", default=None, help="ground truth tracks.csv (shows the true ball)")
     p.add_argument("--out", required=True)
     p.add_argument("--width", type=int, default=960, help="width of each panel")
+    p.add_argument("--coord-size", default=None, help="WxH of the csv coordinates if the video is a proxy, e.g. 1920x1080")
     a = p.parse_args(argv)
     runs = dict(s.split("=", 1) for s in a.run)
     gt = pd.read_csv(a.gt) if a.gt else None
-    print(render(a.video, runs, a.out, gt, a.width))
+    cs = tuple(int(v) for v in a.coord_size.split("x")) if a.coord_size else None
+    print(render(a.video, runs, a.out, gt, a.width, coord_size=cs))
 
 
 if __name__ == "__main__":
