@@ -45,7 +45,10 @@ night match can be processed end to end with manual work limited to **pass taggi
 3. Compare Large vs Medium people model on both CVAT clips; switch if better.
 4. Keypoints (prepared): 120 frames from our matches (10 per match, 11 matches + HILAL-HAZM) added to
    `football-field-detection`. The old model's pre-labels were too poor and were cleared; the frames
-   wait unlabelled in an annotation job for manual labelling. The old
+   wait unlabelled in two annotation jobs: "1) SCORE (30)" (matches 11, 12, HILAL-HAZM; label first,
+   then train a baseline on the old frames) and "2) TRAIN (90)" (matches 2-10; retrain, compare).
+   Old labelled frames: HILAL-HAZM 161, HILAL-AHLI 206, SAUDI 76, other 34 -> HILAL-HAZM is a seen
+   match; the main score is matches 11 + 12. The old
    dataset had no frames from these matches, near-duplicates across splits and 576x576 squashing.
    Licence checked: RF-DETR Keypoint (preview) weights are Apache 2.0 (rfdetr README).
    `notebooks/train_field_keypoints.ipynb` splits by match (11+12 valid, HILAL-HAZM test), trains at
