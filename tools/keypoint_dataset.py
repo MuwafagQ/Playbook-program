@@ -1,0 +1,105 @@
+"""Pitch keypoint dataset for training our open RF-DETR keypoint model, from a Roboflow COCO
+export of the `football-field-detection` project.
+
+  python -m tools.keypoint_dataset --src data/field_v11 --dst data/field_v11_split
+
+1. Splits by match, not by Roboflow's random split, so near-duplicate frames cannot leak into
+   validation: frames of match_video_11 / match_video_12 -> valid, HILAL-HAZM frames -> test,
+   everything else (older frames included) -> train.
+2. Fixes the keypoint order to pitch vertex labels "1".."32" (matched by keypoint name), so the
+   trained model's keypoint index k is vertex label k + 1 (vision/field_model.py). Slots Roboflow
+   adds beyond the 32 labels are dropped.
+3. Keeps only annotations with at least MIN_POINTS visible points.
+Images are symlinked, not copied.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+from pathlib import Path
+
+ANN = "_annotations.coco.json"
+LABELS = [str(i) for i in range(1, 33)]
+VALID = ("match_video_11_", "match_video_12_")
+TEST = ("hilal_hazm",)
+MIN_POINTS = 4
+# horizontal image flip == mirroring the pitch along its length: label pairs that swap
+# (from the pitch vertex coordinates; 14-17, the halfway-line points, map to themselves)
+MIRROR = [(1, 25), (2, 26), (3, 27), (4, 28), (5, 29), (6, 30), (7, 23), (8, 24), (9, 22),
+          (10, 18), (11, 19), (12, 20), (13, 21), (31, 32)]
+FLIP_PAIRS = [i for a, b in MIRROR for i in (a - 1, b - 1)]  # flat 0-based, for rfdetr keypoint_flip_pairs
+
+
+def split_of(file_name: str) -> str:
+    stem = file_name.lower()
+    if stem.startswith(VALID):
+        return "valid"
+    if stem.startswith(TEST):
+        return "test"
+    return "train"
+
+
+def _reorder(kps: list, names: list) -> list:
+    pos = {str(n): i for i, n in enumerate(names)}
+    out = []
+    for lab in LABELS:
+        i = pos.get(lab)
+        out += [0, 0, 0] if i is None or 3 * i + 2 >= len(kps) else [float(kps[3 * i]), float(kps[3 * i + 1]),
+                                                                      int(kps[3 * i + 2])]
+    return out
+
+
+def keypoint_dataset(src_root, dst_root) -> dict:
+    src, dst = Path(src_root), Path(dst_root)
+    out = {s: {"images": [], "annotations": []} for s in ("train", "valid", "test")}
+    categories = None
+    for split_dir in sorted(p for p in src.iterdir() if (p / ANN).exists()):
+        coco = json.loads((split_dir / ANN).read_text())
+        kp_cats = {c["id"]: c for c in coco["categories"] if c.get("keypoints")}
+        if categories is None:
+            categories = [dict(c, keypoints=LABELS, skeleton=[]) if c["id"] in kp_cats else c for c in coco["categories"]]
+        anns = {}
+        for a in coco["annotations"]:
+            if a["category_id"] in kp_cats:
+                anns.setdefault(a["image_id"], []).append(a)
+        for im in coco["images"]:
+            kept = []
+            for a in anns.get(im["id"], []):
+                kps = _reorder(a.get("keypoints", []), kp_cats[a["category_id"]]["keypoints"])
+                n = sum(1 for i in range(2, 96, 3) if kps[i] > 0)
+                if n >= MIN_POINTS:
+                    kept.append({**a, "keypoints": kps, "num_keypoints": n})
+            if not kept:
+                continue
+            s = out[split_of(im["file_name"])]
+            new_id = len(s["images"])
+            s["images"].append({**im, "id": new_id})
+            for a in kept:
+                s["annotations"].append({**a, "id": len(s["annotations"]), "image_id": new_id})
+            d = dst / split_of(im["file_name"])
+            d.mkdir(parents=True, exist_ok=True)
+            link = d / im["file_name"]
+            if not link.exists():
+                os.symlink((split_dir / im["file_name"]).resolve(), link)
+    stats = {}
+    for s, data in out.items():
+        (dst / s).mkdir(parents=True, exist_ok=True)
+        (dst / s / ANN).write_text(json.dumps({"images": data["images"], "annotations": data["annotations"],
+                                               "categories": categories or []}))
+        names = [im["file_name"] for im in data["images"]]
+        stats[s] = {"images": len(names), "our_matches": sum(bool(re.match(r"(match_video_|hilal_hazm)", n)) for n in names)}
+    return stats
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--src", required=True)
+    p.add_argument("--dst", required=True)
+    a = p.parse_args(argv)
+    print(json.dumps(keypoint_dataset(a.src, a.dst), indent=1))
+
+
+if __name__ == "__main__":
+    main()

@@ -137,6 +137,15 @@ def main(
                 player_model_id=s.PLAYER_MODEL_ID,
                 field_model_id=s.FIELD_MODEL_ID
             )
+        if getattr(s, "FIELD_MODEL_PATH", ""):
+            # open RF-DETR pitch keypoint model trained by us (notebooks/train_field_keypoints.ipynb)
+            from vision.field_model import load_field_model
+
+            if not Path(s.FIELD_MODEL_PATH).exists():
+                raise SystemExit(f"FIELD_MODEL_PATH not found: {s.FIELD_MODEL_PATH}. Mount Drive (Colab), or set "
+                                 "FIELD_MODEL_PATH= (empty) to use the Roboflow model FIELD_MODEL_ID.")
+            field_model = load_field_model(s.FIELD_MODEL_PATH, s.MODEL_ACCEL)
+            print(f"[stage] Field keypoint model: {s.FIELD_MODEL_PATH}")
         print("[stage] Models loaded.")
         print(f"[stage] Opening video: {source_video}")
         video_info = sv.VideoInfo.from_video_path(source_video)

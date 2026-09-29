@@ -33,7 +33,7 @@ KP_COLS = ["frame", "label", "x", "y", "conf"]
 # Settings that change what the models return; a replay under different values
 # would not reproduce what the models would have produced.
 DETECTION_SETTINGS = (
-    "PLAYER_MODEL_ID", "PLAYER_MODEL_PATH", "FIELD_MODEL_ID", "DET_CONF", "FIELD_CONF", "DETECT_UPSCALE",
+    "PLAYER_MODEL_ID", "PLAYER_MODEL_PATH", "FIELD_MODEL_ID", "FIELD_MODEL_PATH", "DET_CONF", "FIELD_CONF", "DETECT_UPSCALE",
     "PREPROCESS_ENABLED", "BALL_ROI_RECOVERY", "BALL_ROI_PX", "BALL_ROI_UPSCALE", "BALL_ROI_CONF",
     "FAST_MODE", "DETECT_EVERY_N", "HOMOGRAPHY_EVERY_N",
 )
