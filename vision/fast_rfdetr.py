@@ -43,7 +43,7 @@ def build_tensorrt_engine(model, out_dir: str, max_batch: int = 32, batch: int =
 
 class TensorRTModel:
     def __init__(self, engine_path: str, background_class_id: int | None = -1, device: str = "cuda:0",
-                 num_select: int | None = None):
+                 num_select: int | None = None, max_batch: int = 32):
         from rfdetr.export._tensorrt.inference import TRTInference
 
         self.trt = TRTInference(engine_path, device=device, sync_mode=True)
@@ -51,6 +51,8 @@ class TensorRTModel:
         self.input_name = self.trt.input_names[0]
         shape = self.trt.bindings[self.input_name].shape
         self.height, self.width = int(shape[-2]), int(shape[-1])
+        # the engine's largest batch (dynamic engines report -1); bigger inputs are split
+        self.max_batch = int(shape[0]) if int(shape[0]) > 0 else max_batch
         self.boxes_name = next(n for n in self.trt.output_names if "dets" in n)
         self.logits_name = next(n for n in self.trt.output_names if "labels" in n)
         self.background_class_id = background_class_id
@@ -77,15 +79,18 @@ class TensorRTModel:
         for i, im in enumerate(imgs):
             groups.setdefault(im.shape[:2], []).append(i)
         res: list[sv.Detections | None] = [None] * len(imgs)
-        for (h, w), idx in groups.items():
-            outs = self.trt({self.input_name: self._preprocess([imgs[i] for i in idx])})
-            boxes = outs[self.boxes_name].float().cpu().numpy()
-            logits = outs[self.logits_name].float().cpu().numpy()
-            for k, i in enumerate(idx):
-                d = decode_detections(boxes[k], logits[k], (w, h), threshold=threshold, num_select=self.num_select,
-                                      background_class_id=self.background_class_id)
-                res[i] = sv.Detections(xyxy=d.xyxy.astype(np.float32), confidence=d.confidence.astype(np.float32),
-                                       class_id=d.class_id.astype(int))
+        for (h, w), all_idx in groups.items():
+            for start in range(0, len(all_idx), self.max_batch):
+                idx = all_idx[start:start + self.max_batch]
+                outs = self.trt({self.input_name: self._preprocess([imgs[i] for i in idx])})
+                boxes = outs[self.boxes_name].float().cpu().numpy()
+                logits = outs[self.logits_name].float().cpu().numpy()
+                for k, i in enumerate(idx):
+                    d = decode_detections(boxes[k], logits[k], (w, h), threshold=threshold,
+                                          num_select=self.num_select, background_class_id=self.background_class_id)
+                    res[i] = sv.Detections(xyxy=d.xyxy.astype(np.float32),
+                                           confidence=d.confidence.astype(np.float32),
+                                           class_id=d.class_id.astype(int))
         return res[0] if single else res
 
 
@@ -135,5 +140,5 @@ def load_rfdetr(checkpoint: str, accel: str = "none", max_batch: int = 32,
         engine_dir = Path(checkpoint).with_suffix("").as_posix() + f"_trt_{gpu}"
         engines = sorted(Path(engine_dir).glob("*.trt")) + sorted(Path(engine_dir).glob("*.engine"))
         engine = str(engines[0]) if engines else build_tensorrt_engine(model, engine_dir, max_batch=max_batch)
-        return TensorRTModel(engine, background_class_id=background_class_id)
+        return TensorRTModel(engine, background_class_id=background_class_id, max_batch=max_batch)
     raise ValueError(f"unknown acceleration mode {accel!r} (none | fp16 | tensorrt)")
