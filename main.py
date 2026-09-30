@@ -349,7 +349,7 @@ def main(
         hold_decay=s.BALL_HOLD_DECAY,
         switch_frames=(s.BALL_SWITCH_FRAMES if ball_model_on else 0),
     )
-    team_memory = TeamMemory(history_size=35, min_votes=8)
+    team_memory = TeamMemory(history_size=s.TEAM_VOTE_HISTORY, min_votes=s.TEAM_VOTE_MIN, lock=s.TEAM_LOCK)
     # Split stabilizers by role to prevent cross-class identity interference.
     id_stabilizer_players = IDStabilizer(
         max_relink_frames=s.ID_RELINK_FRAMES,
@@ -513,6 +513,8 @@ def main(
                 init_samples=s.TEAM_COLOR_INIT_SAMPLES,
                 lr=s.TEAM_COLOR_LR,
                 min_margin=s.TEAM_COLOR_MIN_MARGIN,
+                refit_every=s.TEAM_COLOR_REFIT_EVERY,
+                buffer_size=s.TEAM_COLOR_BUFFER,
             )
             print(
                 f"[stage] Color team classifier enabled "

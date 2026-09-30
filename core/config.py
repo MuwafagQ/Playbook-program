@@ -82,6 +82,15 @@ class Settings(BaseSettings):
     TEAM_COLOR_INIT_SAMPLES: int = 30
     TEAM_COLOR_LR: float = 0.05
     TEAM_COLOR_MIN_MARGIN: float = 0.08
+    # Re-cluster the two kit colours every N player samples from the last TEAM_COLOR_BUFFER (0 = off:
+    # the first centroids drift with TEAM_COLOR_LR instead).
+    TEAM_COLOR_REFIT_EVERY: int = 0
+    TEAM_COLOR_BUFFER: int = 3000
+    # Per-track team = majority of the last TEAM_VOTE_HISTORY votes (needs TEAM_VOTE_MIN votes);
+    # TEAM_LOCK freezes a track's team once 8 votes agree at 70%.
+    TEAM_VOTE_HISTORY: int = 35
+    TEAM_VOTE_MIN: int = 8
+    TEAM_LOCK: bool = True
 
     DET_CONF: float = 0.30
     DET_CONF_PLAYER: float = 0.24

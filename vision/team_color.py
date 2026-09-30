@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections import deque
+
 import numpy as np
 import supervision as sv
 import cv2
@@ -16,8 +18,17 @@ class ColorTeamClassifier:
         lr: float = 0.05,
         min_margin: float = 0.12,
         track_feat_alpha: float = 0.8,
+        refit_every: int = 0,
+        buffer_size: int = 3000,
     ):
+        """refit_every > 0: every that many new samples, re-cluster the two kit colours from a rolling
+        buffer of the last buffer_size player features (all tracks), keeping team numbers stable,
+        instead of drifting the first centroids (lr). Refitting uses many frames and both teams,
+        so an unlucky start (few players, one team) is corrected."""
         self.init_samples = int(init_samples)
+        self.refit_every = int(refit_every)
+        self._recent: deque[np.ndarray] = deque(maxlen=int(buffer_size))
+        self._since_fit = 0
         self.lr = float(lr)
         self.min_margin = float(min_margin)
         self.track_feat_alpha = float(track_feat_alpha)
@@ -114,12 +125,20 @@ class ColorTeamClassifier:
         return c
 
     def _maybe_fit(self) -> None:
-        if self.centroids is not None:
+        if self.centroids is None:
+            if len(self._buffer) < self.init_samples:
+                return
+            self.centroids = self._init_centroids(np.asarray(self._buffer, dtype=np.float32))
+            self._since_fit = 0
             return
-        if len(self._buffer) < self.init_samples:
+        if self.refit_every <= 0 or self._since_fit < self.refit_every or len(self._recent) < self.init_samples:
             return
-        feats = np.asarray(self._buffer, dtype=np.float32)
-        self.centroids = self._init_centroids(feats)
+        new = self._init_centroids(np.asarray(self._recent, dtype=np.float32))
+        old = self.centroids
+        keep = np.linalg.norm(new - old, axis=1).sum()
+        swap = np.linalg.norm(new[::-1] - old, axis=1).sum()
+        self.centroids = new if keep <= swap else new[::-1].copy()  # keep team numbers stable
+        self._since_fit = 0
 
     def _assign(self, feat: np.ndarray) -> tuple[int, float]:
         d0 = float(np.linalg.norm(feat - self.centroids[0]))
@@ -153,6 +172,8 @@ class ColorTeamClassifier:
                 feat = self.track_feat_alpha * prev + (1.0 - self.track_feat_alpha) * feat
                 feat /= max(float(np.linalg.norm(feat)), 1e-6)
             self._track_feat[tid] = feat
+            self._recent.append(feat)
+            self._since_fit += 1
 
             if self.centroids is None:
                 self._buffer.append(feat)
@@ -164,7 +185,7 @@ class ColorTeamClassifier:
 
             out[tid] = int(team)
             # Avoid centroid drift from low-quality assignments; update only on high-confidence margin.
-            if margin >= (self.min_margin * 2.5):
+            if self.refit_every <= 0 and margin >= (self.min_margin * 2.5):
                 self.centroids[team] = (1.0 - self.lr) * self.centroids[team] + self.lr * feat
                 self.centroids[team] /= max(float(np.linalg.norm(self.centroids[team])), 1e-6)
 
