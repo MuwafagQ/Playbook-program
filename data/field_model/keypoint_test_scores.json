@@ -28,5 +28,27 @@
   "p90_err_px": 168.5,
   "within_10px_of_found": 0.13,
   "note": "val keypoint mAP 0.83 -> 0.88 then flat; errors spread over all frames, no systematic offset. Scored on enhanced frames (pipeline preprocessing) although trained on plain frames: next check."
+ },
+ "ours_v11_run3 plain frames": {
+  "points": 540,
+  "found": 0.744,
+  "median_err_px": 15.3,
+  "p90_err_px": 45.9,
+  "found_at_conf_0.3": 0.94,
+  "note": "pipeline enhancement cost 2x; BUT in the pipeline it fires a second label (label-17) at points it sees (~5/frame), wrecking the plain homography (26-40 m off). Not usable yet."
+ },
+ "roboflow_v10 local (downloaded weights, rfdetr)": {
+  "stretch": {
+   "found": 0.974,
+   "median_err_px": 12.0,
+   "p90_err_px": 42.7
+  },
+  "plain": {
+   "found": 0.976,
+   "median_err_px": 14.9,
+   "p90_err_px": 48.9
+  },
+  "licence": "Apache-2.0 per Roboflow download dialog and model page",
+  "note": "first run 200 ms/frame on T4 due to a slow contrast stretch (fixed: lookup table)"
  }
 }
