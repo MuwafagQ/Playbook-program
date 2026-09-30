@@ -28,7 +28,9 @@ night match can be processed end to end with manual work limited to **pass taggi
    are labelled (needs a PC): new version, split by match, notebook regenerated for it.
    First round-1 run (field_model/v11) is invalid: Roboflow names points "01".."09", the dataset tool
    looked for "1".."9", so points 1-9 were dropped from training (fixed + tested; the notebook now
-   stops if any point has no labels). Re-run: field_model/v11-run2.
+   stops if any point has no labels). Run 2 (768 px, 80 epochs): 76% found, 38 px median vs the
+   current model's 97% / 10 px - still improving when it stopped; run 3 continues it to 160 epochs
+   (field_model/v11-run3, through the lr drop at epoch 100).
 
 ## Tomorrow, you
 

@@ -12,5 +12,12 @@
   "found": 0.699,
   "median_err_px": 21.6,
   "p90_err_px": 66.9
+ },
+ "ours_v11_run2 (768 px, 80 epochs, all 32 points)": {
+  "points": 540,
+  "found": 0.759,
+  "median_err_px": 37.9,
+  "p90_err_px": 132.5,
+  "note": "still improving at the end (val keypoint mAP50:95 0.66 @49, 0.74 @59, 0.79 @69, 0.83 @79); the learning-rate drop (epoch 100) never reached. Not left/right swaps (1 of 127 bad points). Weak on points 1-13."
  }
 }
