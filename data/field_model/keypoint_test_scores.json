@@ -4,7 +4,8 @@
   "points": 540,
   "found": 0.97,
   "median_err_px": 10.0,
-  "p90_err_px": 35.2
+  "p90_err_px": 35.2,
+  "within_10px_of_found": 0.49
  },
  "ours_v11_run1 (invalid: trained without points 1-9)": {
   "frames": 42,
@@ -19,5 +20,13 @@
   "median_err_px": 37.9,
   "p90_err_px": 132.5,
   "note": "still improving at the end (val keypoint mAP50:95 0.66 @49, 0.74 @59, 0.79 @69, 0.83 @79); the learning-rate drop (epoch 100) never reached. Not left/right swaps (1 of 127 bad points). Weak on points 1-13."
+ },
+ "ours_v11_run3 (run 2 continued to epoch 129, early stop)": {
+  "points": 540,
+  "found": 0.793,
+  "median_err_px": 35.1,
+  "p90_err_px": 168.5,
+  "within_10px_of_found": 0.13,
+  "note": "val keypoint mAP 0.83 -> 0.88 then flat; errors spread over all frames, no systematic offset. Scored on enhanced frames (pipeline preprocessing) although trained on plain frames: next check."
  }
 }
