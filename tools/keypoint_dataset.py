@@ -91,7 +91,7 @@ def keypoint_dataset(src_root, dst_root, by_match: bool | None = None) -> dict:
             new_id = len(s["images"])
             s["images"].append({**im, "id": new_id})
             for a in kept:
-                s["annotations"].append({**a, "id": len(s["annotations"]), "image_id": new_id})
+                s["annotations"].append({**a, "id": len(s["annotations"]) + 1, "image_id": new_id})  # ids from 1: rfdetr uses 0 as "unmatched"
             d = dst / split
             d.mkdir(parents=True, exist_ok=True)
             link = d / im["file_name"]
