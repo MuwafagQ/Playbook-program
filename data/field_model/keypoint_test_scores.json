@@ -1,0 +1,16 @@
+{
+ "_note": "Keypoint models on the 48 test frames of football-field-detection v10/v11 (same split: unseen by both). Found = share of labelled points predicted with conf >= 0.5 (KP_CONF); error in px at 1920x1080. Roboflow point ids are positions in its name list (01..13,15..18,20..32,14,19), mapped to pitch labels.",
+ "roboflow_v10 (current)": {
+  "points": 540,
+  "found": 0.97,
+  "median_err_px": 10.0,
+  "p90_err_px": 35.2
+ },
+ "ours_v11_run1 (invalid: trained without points 1-9)": {
+  "frames": 42,
+  "points": 345,
+  "found": 0.699,
+  "median_err_px": 21.6,
+  "p90_err_px": 66.9
+ }
+}
