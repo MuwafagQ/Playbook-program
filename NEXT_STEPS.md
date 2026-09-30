@@ -11,7 +11,7 @@ night match can be processed end to end with manual work limited to **pass taggi
 | People | our open RF-DETR Medium (Apache 2.0), cut-off 0.50 | night IDF1 0.96, day 0.82 (`data/people_model/`) |
 | Tracking | one tracker for all people, role = majority vote per track | `ROLE_BY_TRACK=true` |
 | Ball | our tile-trained RF-DETR Small, fast search around the ball | right in 93-96% of frames, boots 3% (`data/ball_model/`) |
-| Pitch keypoints | Roboflow model (RF-DETR keypoint preview, not ours) | good on our footage (~0.5 m), weak on others |
+| Pitch keypoints | Roboflow v10 weights run locally (Apache-2.0, no credits), plain frames + contrast stretch | night clip: 0.78 m median vs hand-placed pitch points (hosted on enhanced frames: 2.18 m) |
 | Speed (T4, per frame) | people FP16 28 ms (plain 36, 99.6% same boxes); ball TensorRT 24 ms around the ball / 232 ms full search (plain 94 / 779, 100% same) | `speed_and_new_footage.ipynb` |
 | Teams | colour classifier, fixed: day 98%, night 97% right; IDs unaffected | `data/team/results.json`; goalkeepers still without team |
 
@@ -97,3 +97,10 @@ night match can be processed end to end with manual work limited to **pass taggi
 Measure first on the long hand-checked windows (old pipeline: IDF1 0.55 / 0.68), then re-link
 lost players by pitch position + team instead of image pixels, then a football-specific
 appearance model if needed.
+
+## Keypoints: where it stands
+- Default: Roboflow's v10 weights, downloaded (Apache-2.0 per Roboflow's download page) and run with the
+  open rfdetr package (`FIELD_MODEL_KIND=roboflow_v10`, notebook `field_model_v10_local.ipynb`).
+- Our own keypoint model (runs 1-3) was trained with wrong mirror pairs (the pitch config lists points in
+  Roboflow's order; pairs were derived by index). Fixed. A retrain with the correct pairs (+ the 120 match
+  frames once labelled) is optional now that v10 runs locally.

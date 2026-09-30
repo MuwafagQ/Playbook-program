@@ -26,11 +26,13 @@ LABELS = [str(i) for i in range(1, 33)]
 VALID = ("match_video_11_", "match_video_12_")
 TEST = ("hilal_hazm",)
 MIN_POINTS = 4
-# horizontal image flip == mirroring the pitch along its length: label pairs that swap
-# (from the pitch vertex coordinates; 14-17, the halfway-line points, map to themselves)
-MIRROR = [(1, 25), (2, 26), (3, 27), (4, 28), (5, 29), (6, 30), (7, 23), (8, 24), (9, 22),
-          (10, 18), (11, 19), (12, 20), (13, 21), (31, 32)]
-FLIP_PAIRS = [i for a, b in MIRROR for i in (a - 1, b - 1)]  # flat 0-based, for rfdetr keypoint_flip_pairs
+# horizontal image flip == mirroring the pitch along its length: label pairs that swap. The pitch config
+# lists its vertices in Roboflow's order ("01".."13", "15".."18", "20".."32", "14", "19"), so the pairs
+# are looked up by label, not by index (an index-based version once taught the model wrong labels).
+# 15-18, the halfway-line points, map to themselves.
+MIRROR = [(1, 27), (2, 28), (3, 29), (4, 30), (5, 31), (6, 32), (7, 25), (8, 26), (9, 24),
+          (10, 20), (11, 21), (12, 22), (13, 23), (14, 19)]
+FLIP_PAIRS = [i for a, b in MIRROR for i in (a - 1, b - 1)]  # flat 0-based over labels 1..32 (our dataset order)
 
 
 def split_of(file_name: str) -> str:

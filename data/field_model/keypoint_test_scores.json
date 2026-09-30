@@ -50,5 +50,44 @@
   },
   "licence": "Apache-2.0 per Roboflow download dialog and model page",
   "note": "first run 200 ms/frame on T4 due to a slow contrast stretch (fixed: lookup table)"
- }
+ },
+ "night_clip_player_positions_vs_hand_placed_pitch_points": {
+  "hosted v10, enhanced frames (until now)": {
+   "players": 154,
+   "median_m": 2.18,
+   "p90_m": 4.06,
+   "max_m": 7.49
+  },
+  "local v10, plain + stretch": {
+   "players": 154,
+   "median_m": 0.78,
+   "p90_m": 2.58,
+   "max_m": 6.26
+  },
+  "ours, plain + robust fit": {
+   "players": 148,
+   "median_m": 1.86,
+   "p90_m": 13.9,
+   "max_m": 45.1
+  }
+ },
+ "night_clip_keypoints_vs_hand_placed_pitch_points_px": {
+  "hosted v10 enhanced": {
+   "median": 13.5,
+   "p90": 30.0,
+   "matched": "121/132"
+  },
+  "local v10 stretch": {
+   "median": 11.1,
+   "p90": 19.1,
+   "matched": "123/132"
+  },
+  "ours plain": {
+   "median": 10.7,
+   "p90": 24.3,
+   "matched": "97/132"
+  }
+ },
+ "bug_found": "pitch config lists vertices in Roboflow order, not 1..32: our training mirror pairs were wrong for every pair (fixed in tools/keypoint_dataset.py); likely cause of our model stray label-17 points",
+ "decision": "keypoints = Roboflow v10 weights run locally (FIELD_MODEL_KIND=roboflow_v10, plain frames + contrast stretch): 0.78 m median on the night clip vs 2.18 m before; no credits"
 }

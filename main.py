@@ -126,7 +126,8 @@ def main(
                 raise SystemExit(f"PLAYER_MODEL_PATH not found: {s.PLAYER_MODEL_PATH}. Mount Drive (Colab), or set "
                                  "PLAYER_MODEL_PATH= (empty) to use the Roboflow model PLAYER_MODEL_ID.")
             player_model = load_people_model(s.PLAYER_MODEL_PATH, s.MODEL_ACCEL)
-            field_model = get_model(model_id=s.FIELD_MODEL_ID, api_key=s.ROBOFLOW_API_KEY)
+            if not getattr(s, "FIELD_MODEL_PATH", ""):  # else our local keypoint model is loaded below
+                field_model = get_model(model_id=s.FIELD_MODEL_ID, api_key=s.ROBOFLOW_API_KEY)
             print(f"[stage] People model: {s.PLAYER_MODEL_PATH}")
             if not bool(getattr(s, "BALL_MODEL_ENABLED", False)):
                 print("[WARN] PLAYER_MODEL_PATH has no ball class; enable the ball model (BALL_MODEL_ENABLED).")
@@ -139,7 +140,7 @@ def main(
                 field_model_id=s.FIELD_MODEL_ID
             )
         if getattr(s, "FIELD_MODEL_PATH", ""):
-            # open RF-DETR pitch keypoint model trained by us (notebooks/train_field_keypoints.ipynb)
+            # local pitch keypoint model: Roboflow v10 weights (FIELD_MODEL_KIND=roboflow_v10) or ours
             from vision.field_model import load_field_model
 
             if not Path(s.FIELD_MODEL_PATH).exists():

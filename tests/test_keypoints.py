@@ -54,15 +54,16 @@ def test_keypoint_dataset_resplits_and_reorders(tmp_path):
 
 
 def test_flip_pairs_mirror_the_pitch():
-    from tools.manual_calib import pitch_vertices
+    from sports.configs.soccer import SoccerPitchConfiguration
 
-    v = pitch_vertices()
-    L = v[:, 0].max()
-    pairs = list(zip(FLIP_PAIRS[::2], FLIP_PAIRS[1::2]))
-    for a, b in pairs:
-        assert np.allclose([L - v[a, 0], v[a, 1]], v[b])
+    cfg = SoccerPitchConfiguration()
+    pos = {int(l): np.asarray(v, float) for l, v in zip(cfg.labels, cfg.vertices)}  # look up by LABEL
+    L = max(p[0] for p in pos.values())
+    for a, b in zip(FLIP_PAIRS[::2], FLIP_PAIRS[1::2]):          # 0-based over labels 1..32
+        assert np.allclose([L - pos[a + 1][0], pos[a + 1][1]], pos[b + 1])
     unpaired = set(range(32)) - set(FLIP_PAIRS)
-    assert all(np.isclose(v[i, 0], L / 2) for i in unpaired)  # only halfway-line points map to themselves
+    assert {i + 1 for i in unpaired} == {15, 16, 17, 18}         # the halfway-line points
+    assert all(np.isclose(pos[i + 1][0], L / 2) for i in unpaired)
 
 
 def test_field_model_adapter_feeds_homography_input():
