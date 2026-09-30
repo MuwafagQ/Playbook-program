@@ -104,3 +104,12 @@ appearance model if needed.
 - Our own keypoint model (runs 1-3) was trained with wrong mirror pairs (the pitch config lists points in
   Roboflow's order; pairs were derived by index). Fixed. A retrain with the correct pairs (+ the 120 match
   frames once labelled) is optional now that v10 runs locally.
+
+## Re-ID (started)
+- Target agreed: automatic re-linking + a merge list confirmed on a tablet review page (no paper, no
+  replaying the video, no hand-editing CSVs).
+- `tools/relink.py`: joins track pieces by pitch position + team + timing; automatic joining off until tuned.
+- Finding on the 20 s CVAT clips: most ID errors are swaps at crossings, not lost-and-found players
+  (all 3 automatic joins there were wrong). Measure on the long hand-unified HILAL-HAZM windows:
+  `notebooks/reid_windows_record.ipynb` (GPU run), ground truth = `per_frame_tracks_half{1,2}_unified.csv`.
+- Next: swap detection (team change inside a piece), tune joining, build the review page.

@@ -119,7 +119,6 @@ def main(
         print("[stage] Loading models...")
         if getattr(s, "PLAYER_MODEL_PATH", ""):
             # open RF-DETR people model trained by us (no ball class: pair with the ball model)
-            from vision.models import get_model
             from vision.people_model import load_people_model
 
             if not Path(s.PLAYER_MODEL_PATH).exists():
@@ -127,6 +126,8 @@ def main(
                                  "PLAYER_MODEL_PATH= (empty) to use the Roboflow model PLAYER_MODEL_ID.")
             player_model = load_people_model(s.PLAYER_MODEL_PATH, s.MODEL_ACCEL)
             if not getattr(s, "FIELD_MODEL_PATH", ""):  # else our local keypoint model is loaded below
+                from vision.models import get_model  # Roboflow's `inference` package: only for hosted models
+
                 field_model = get_model(model_id=s.FIELD_MODEL_ID, api_key=s.ROBOFLOW_API_KEY)
             print(f"[stage] People model: {s.PLAYER_MODEL_PATH}")
             if not bool(getattr(s, "BALL_MODEL_ENABLED", False)):
