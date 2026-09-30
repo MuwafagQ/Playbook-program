@@ -94,6 +94,9 @@ class Settings(BaseSettings):
     TEAM_VOTE_HISTORY: int = 35
     TEAM_VOTE_MIN: int = 8
     TEAM_LOCK: bool = True
+    # Use each box's single-frame team guess to veto ID re-links across teams. A noisy guess splits
+    # IDs (night clip: 9 -> 175 player ID switches with team on), so off unless proven useful.
+    TEAM_IN_ID_RELINK: bool = True
 
     DET_CONF: float = 0.30
     DET_CONF_PLAYER: float = 0.24

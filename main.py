@@ -721,7 +721,7 @@ def main(
                 if np.any(player_mask):
                     player_tracks = tracks[player_mask]
                     det_team_ids_players = np.full((len(player_tracks),), -1, dtype=np.int32)
-                    if team_color_clf is not None and team_color_clf.is_ready:
+                    if team_color_clf is not None and team_color_clf.is_ready and s.TEAM_IN_ID_RELINK:
                         for ii in range(len(player_tracks)):
                             crop = team_color_clf._torso_crop(frame_infer, player_tracks.xyxy[ii])
                             if crop is None:
