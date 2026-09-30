@@ -487,6 +487,7 @@ def main(
         kp_conf=s.KP_CONF,
         min_kp_spread_px=s.H_MIN_KP_SPREAD_PX,
         max_hold_frames=s.H_MAX_HOLD_FRAMES,
+        ransac_cm=s.H_RANSAC_CM,
     )
 
     team_clf = None
