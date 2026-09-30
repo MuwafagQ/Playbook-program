@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     # Give FIELD_MODEL_PATH plain frames, not PREPROCESS_ENABLED-enhanced ones (it was trained on plain
     # frames; enhanced: median error 35 px vs 15 px on the test frames).
     FIELD_MODEL_PLAIN_FRAMES: bool = True
+    # "ours" (trained by notebooks/train_field_keypoints.ipynb) or "roboflow_v10" (weights.pt downloaded from
+    # Roboflow, Apache-2.0: its own point order and contrast stretching, see vision/field_model.py).
+    FIELD_MODEL_KIND: str = "ours"
     # Robust homography (RANSAC, pitch cm): ignores keypoints that disagree with the rest. 0 = plain fit.
     H_RANSAC_CM: float = 0.0
     # Speed-up for our RF-DETR models (people + ball): none | fp16 | tensorrt (vision/fast_rfdetr.py).

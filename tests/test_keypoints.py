@@ -99,3 +99,22 @@ def test_keypoint_dataset_reads_roboflow_zero_padded_names(tmp_path):
     k = json.loads((tmp_path / "dst/train" / ANN).read_text())["annotations"][0]["keypoints"]
     for lab in (5, 6, 7, 8, 9):                         # "05".."09" must not be dropped
         assert k[3 * (lab - 1)] == float(lab) and k[3 * (lab - 1) + 2] == 2
+
+
+def test_field_model_roboflow_order_and_stretch():
+    from vision.field_model import ROBOFLOW_KP_ORDER, FieldModel, contrast_stretch
+
+    assert sorted(ROBOFLOW_KP_ORDER) == list(range(1, 33)) and ROBOFLOW_KP_ORDER[13] == 15
+    assert ROBOFLOW_KP_ORDER[30:] == [14, 19]
+    img = np.repeat(np.linspace(80, 120, 100).astype(np.uint8)[None, :, None], 3, axis=2)  # dull gradient
+    out = contrast_stretch(img)
+    assert out.min() == 0 and out.max() == 255
+
+    class Fake:
+        def predict(self, rgb, threshold=0.3):
+            kp = sv.KeyPoints(xy=np.zeros((1, 32, 2), np.float32))
+            kp.detection_confidence = np.array([0.9]); kp.keypoint_confidence = np.ones((1, 32))
+            return [kp for _ in rgb]
+    res = FieldModel(Fake(), labels=ROBOFLOW_KP_ORDER, stretch=True).infer(np.zeros((20, 20, 3), np.uint8))
+    names = [k.class_name for k in res[0].predictions[0].keypoints]
+    assert names[13] == "15" and names[30] == "14" and names[31] == "19"

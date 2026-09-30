@@ -145,7 +145,7 @@ def main(
             if not Path(s.FIELD_MODEL_PATH).exists():
                 raise SystemExit(f"FIELD_MODEL_PATH not found: {s.FIELD_MODEL_PATH}. Mount Drive (Colab), or set "
                                  "FIELD_MODEL_PATH= (empty) to use the Roboflow model FIELD_MODEL_ID.")
-            field_model = load_field_model(s.FIELD_MODEL_PATH, s.MODEL_ACCEL)
+            field_model = load_field_model(s.FIELD_MODEL_PATH, s.MODEL_ACCEL, kind=s.FIELD_MODEL_KIND)
             print(f"[stage] Field keypoint model: {s.FIELD_MODEL_PATH}")
         print("[stage] Models loaded.")
         print(f"[stage] Opening video: {source_video}")
