@@ -42,20 +42,27 @@
   }
  },
  "goalkeepers": {
-  "method": "team whose players centre is nearer (pitch coords), majority of last 150 frames (TEAM_GOALKEEPER)",
-  "day": {
-   "red GK, right goal": {
-    "yellow": 237,
-    "blue": 38,
-    "none": 14
+  "method": "team whose players centre is nearer (pitch coords), majority of last 150 frames, >= 45 votes (TEAM_GOALKEEPER)",
+  "truth (user)": {
+   "day": {
+    "red GK": "yellow (Hazm)",
+    "black GK": "blue (Hilal)"
+   },
+   "night": {
+    "black GK": "blue (Hilal)",
+    "light green GK": "green (Ahli), not in the clip"
    }
   },
-  "night": {
-   "dark GK": {
-    "blue": 511,
-    "none": 24
-   }
+  "day red GK": {
+   "right (yellow)": 233,
+   "wrong (blue)": 12,
+   "no team yet": 44,
+   "note": "wrong frames at the start while players teams settle"
   },
-  "verified": "not yet: true GK teams unknown (asked the user)"
+  "night black GK": {
+   "right (blue)": 511,
+   "no team yet": 24
+  },
+  "day black GK": "only the last 45 frames, at the image edge: taken for an outfield player (role error), so no GK team"
  }
 }

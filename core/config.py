@@ -102,7 +102,7 @@ class Settings(BaseSettings):
     # last TEAM_GK_VOTE_HISTORY frames (~5 s), needing TEAM_GK_VOTE_MIN votes.
     TEAM_GOALKEEPER: bool = True
     TEAM_GK_VOTE_HISTORY: int = 150
-    TEAM_GK_VOTE_MIN: int = 15
+    TEAM_GK_VOTE_MIN: int = 45
 
     DET_CONF: float = 0.30
     DET_CONF_PLAYER: float = 0.24
