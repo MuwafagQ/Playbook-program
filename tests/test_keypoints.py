@@ -41,6 +41,7 @@ def test_keypoint_dataset_resplits_and_reorders(tmp_path):
     _export(tmp_path / "src", "train", ["match_video_11_a.jpg", "frame_0001.jpg"], shuffled)
     _export(tmp_path / "src", "valid", ["frame_0002.jpg", "hilal_hazm_b.jpg"], shuffled)
     stats = keypoint_dataset(tmp_path / "src", tmp_path / "dst")
+    assert stats.pop("split_by") == "match"
     assert {s: v["images"] for s, v in stats.items()} == {"train": 2, "valid": 1, "test": 1}
     tr = json.loads((tmp_path / "dst/train" / ANN).read_text())
     cat = [c for c in tr["categories"] if c.get("keypoints")][0]
@@ -78,3 +79,12 @@ def test_field_model_adapter_feeds_homography_input():
     assert kp.xy.shape == (1, 32, 2)
     assert kp.class_id[0].tolist() == list(range(1, 33))   # vertex labels, not model indices
     assert np.isclose(kp.confidence[0, -1], 1.0) and np.allclose(kp.xy[0, 4], [4, 8])
+
+
+def test_keypoint_dataset_keeps_roboflow_split_without_our_valid_frames(tmp_path):
+    names = [str(i) for i in range(0, 34)]
+    _export(tmp_path / "src", "train", ["frame_0001.jpg", "match_video_3_a.jpg"], names)
+    _export(tmp_path / "src", "valid", ["frame_0002.jpg"], names)
+    stats = keypoint_dataset(tmp_path / "src", tmp_path / "dst")
+    assert stats.pop("split_by") == "roboflow"
+    assert {s: v["images"] for s, v in stats.items()} == {"train": 2, "valid": 1, "test": 0}

@@ -22,8 +22,10 @@ night match can be processed end to end with manual work limited to **pass taggi
 1. ~~`speed_and_new_footage.ipynb`~~ done (see below).
 2. ~~`train_people_rfdetr_large.ipynb`~~ done. Decision: keep Medium; Large fixes day referees (80->99%)
    but player IDs are no better (also at cut-off 0.40) and it is 2x slower (`data/people_model/large_vs_medium.json`).
-3. `train_field_keypoints.ipynb` (~2-5 h): our own pitch keypoint model, after the label review
-   below and dataset version 11.
+3. `train_field_keypoints.ipynb` (~2-5 h): our own pitch keypoint model. Round 1 = dataset version 11
+   (the 476 old labelled frames, Roboflow's split: same data as the current model v10, so a
+   like-for-like test of whether our open model can replace it). Round 2 after the 120 match frames
+   are labelled (needs a PC): new version, split by match, notebook regenerated for it.
 
 ## Tomorrow, you
 

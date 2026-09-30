@@ -5,7 +5,8 @@ export of the `football-field-detection` project.
 
 1. Splits by match, not by Roboflow's random split, so near-duplicate frames cannot leak into
    validation: frames of match_video_11 / match_video_12 -> valid, HILAL-HAZM frames -> test,
-   everything else (older frames included) -> train.
+   everything else (older frames included) -> train. Until frames of matches 11 / 12 are labelled
+   (none in the export), Roboflow's own split is kept instead, so there still is a validation set.
 2. Fixes the keypoint order to pitch vertex labels "1".."32" (matched by keypoint name), so the
    trained model's keypoint index k is vertex label k + 1 (vision/field_model.py). Slots Roboflow
    adds beyond the 32 labels are dropped.
@@ -51,8 +52,13 @@ def _reorder(kps: list, names: list) -> list:
     return out
 
 
-def keypoint_dataset(src_root, dst_root) -> dict:
+def keypoint_dataset(src_root, dst_root, by_match: bool | None = None) -> dict:
+    """by_match: split by match name (see above); None = only if the export has frames of matches 11 / 12."""
     src, dst = Path(src_root), Path(dst_root)
+    if by_match is None:
+        by_match = any(im["file_name"].lower().startswith(VALID)
+                       for p in src.iterdir() if (p / ANN).exists()
+                       for im in json.loads((p / ANN).read_text())["images"])
     out = {s: {"images": [], "annotations": []} for s in ("train", "valid", "test")}
     categories = None
     for split_dir in sorted(p for p in src.iterdir() if (p / ANN).exists()):
@@ -73,12 +79,13 @@ def keypoint_dataset(src_root, dst_root) -> dict:
                     kept.append({**a, "keypoints": kps, "num_keypoints": n})
             if not kept:
                 continue
-            s = out[split_of(im["file_name"])]
+            split = split_of(im["file_name"]) if by_match else split_dir.name
+            s = out[split]
             new_id = len(s["images"])
             s["images"].append({**im, "id": new_id})
             for a in kept:
                 s["annotations"].append({**a, "id": len(s["annotations"]), "image_id": new_id})
-            d = dst / split_of(im["file_name"])
+            d = dst / split
             d.mkdir(parents=True, exist_ok=True)
             link = d / im["file_name"]
             if not link.exists():
@@ -90,6 +97,7 @@ def keypoint_dataset(src_root, dst_root) -> dict:
                                                "categories": categories or []}))
         names = [im["file_name"] for im in data["images"]]
         stats[s] = {"images": len(names), "our_matches": sum(bool(re.match(r"(match_video_|hilal_hazm)", n)) for n in names)}
+    stats["split_by"] = "match" if by_match else "roboflow"
     return stats
 
 

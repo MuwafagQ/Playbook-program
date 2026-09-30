@@ -8,9 +8,9 @@ Before each: if the notebook is already open from an earlier run, **Runtime → 
 runtime**. Then Runtime → Change runtime type → **T4 GPU** → Save, and **Runtime → Run all**. Do not
 edit cells. Colab Secret `ROBOFLOW_API_KEY` must be on (key icon). Tell Claude when each one finishes.
 
-1. **`train_field_keypoints.ipynb`** (about 2-5 hours): trains our own pitch keypoint model. Run it only
-   after the 120 keypoint frames are labelled and Claude has made dataset version 11. If it disconnects,
-   Run all again: it resumes. Results: `MyDrive/Playbook/field_model/`.
+1. **`train_field_keypoints.ipynb`** (about 2-5 hours): trains our own pitch keypoint model on dataset
+   version 11 (the old labelled frames, the same data as the current Roboflow model). Ready to run now.
+   If it disconnects, Run all again: it resumes. Results: `MyDrive/Playbook/field_model/v11/`.
    https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/train_field_keypoints.ipynb
 
 Other Google account: share `MyDrive/Playbook` with it and add a shortcut to `Playbook` in its My Drive.
