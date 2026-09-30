@@ -84,19 +84,20 @@ class Settings(BaseSettings):
     TEAM_COLOR_MIN_MARGIN: float = 0.08
     # Re-cluster the two kit colours every N player samples from the last TEAM_COLOR_BUFFER (0 = off:
     # the first centroids drift with TEAM_COLOR_LR instead).
-    TEAM_COLOR_REFIT_EVERY: int = 0
+    TEAM_COLOR_REFIT_EVERY: int = 200
     TEAM_COLOR_BUFFER: int = 3000
     # Judge each track by the mean of all its colour features, re-assigned with the current centroids
     # (pair with TEAM_VOTE_HISTORY=1, TEAM_VOTE_MIN=1, TEAM_LOCK=false: the assignment itself is stable).
     TEAM_COLOR_TRACK_MEAN: bool = False
     # Per-track team = majority of the last TEAM_VOTE_HISTORY votes (needs TEAM_VOTE_MIN votes);
-    # TEAM_LOCK freezes a track's team once 8 votes agree at 70%.
-    TEAM_VOTE_HISTORY: int = 35
+    # TEAM_LOCK freezes a track's team once 8 votes agree at 70%. A ~1.5 s window follows an ID that
+    # passes to another player; a lock or a whole-life vote keeps the wrong team (data/team/).
+    TEAM_VOTE_HISTORY: int = 45
     TEAM_VOTE_MIN: int = 8
-    TEAM_LOCK: bool = True
+    TEAM_LOCK: bool = False
     # Use each box's single-frame team guess to veto ID re-links across teams. A noisy guess splits
     # IDs (night clip: 9 -> 175 player ID switches with team on), so off unless proven useful.
-    TEAM_IN_ID_RELINK: bool = True
+    TEAM_IN_ID_RELINK: bool = False
 
     DET_CONF: float = 0.30
     DET_CONF_PLAYER: float = 0.24

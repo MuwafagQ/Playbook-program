@@ -13,7 +13,7 @@ night match can be processed end to end with manual work limited to **pass taggi
 | Ball | our tile-trained RF-DETR Small, fast search around the ball | right in 93-96% of frames, boots 3% (`data/ball_model/`) |
 | Pitch keypoints | Roboflow model (RF-DETR keypoint preview, not ours) | good on our footage (~0.5 m), weak on others |
 | Speed (T4, per frame) | people FP16 28 ms (plain 36, 99.6% same boxes); ball TensorRT 24 ms around the ball / 232 ms full search (plain 94 / 779, 100% same) | `speed_and_new_footage.ipynb` |
-| Teams | colour classifier; mixes teams (not yet measured) | to fix tomorrow |
+| Teams | colour classifier, fixed: day 98%, night 97% right; IDs unaffected | `data/team/results.json`; goalkeepers still without team |
 
 `baseline.env` is the pilot setup. Model files live in `MyDrive/Playbook/{people_model,ball_model}/`.
 
@@ -59,13 +59,14 @@ night match can be processed end to end with manual work limited to **pass taggi
    `FIELD_MODEL_PATH` if better. Old-model error on the same test frames: run it on the 10 test frames
    (hosted, ~0.01 credit) against your labels. Version 11 settings: no resize, no contrast stretching, no Roboflow
    augmentation (the notebook augments).
-5. **Team classification: it mixes teams (reported by you).** Measure it first: give each player
-   track in the two CVAT clips its true team (about 30 tracks per clip, quick to label from crops)
-   and score the pipeline's `team_id`. Likely fixes, in order: decide the team once per track by
-   majority vote over its whole life (like the role vote), instead of frame by frame; fit the two
-   kit colours on many frames of clean, unoccluded torso crops with referees and goalkeepers left
-   out; assign goalkeepers by the side of the pitch they defend. Must be solid before a full match,
-   because pass tagging and team statistics depend on it.
+5. **Team classification: fixed (measured).** True team per player labelled for both CVAT clips
+   (`data/cvat/*/teams.json`), scored with `tools/team_eval.py`. Before: day 99.9%, night 81% (green
+   players locked into the blue team), and team on wrecked night IDs (9 -> 175 switches). Causes: kit
+   colours seeded from the two most different crops of the first second; each player's team locked
+   after 8 votes; single-frame team guesses vetoing ID re-links. Now (defaults): k-means seeding +
+   re-clustering every 200 samples, 1.5 s majority window, no lock, no team veto in ID re-links ->
+   day 98.2%, night 97.4%, IDs unaffected (`data/team/results.json`). Left: goalkeepers (team by the
+   side they defend); the remaining ~2% is IDs passing between players (Re-ID).
 6. Full-match notebook (see below).
 
 ## Full-match run: what it has to handle
