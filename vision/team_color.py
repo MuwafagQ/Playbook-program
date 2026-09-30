@@ -20,11 +20,17 @@ class ColorTeamClassifier:
         track_feat_alpha: float = 0.8,
         refit_every: int = 0,
         buffer_size: int = 3000,
+        track_mean: bool = False,
     ):
         """refit_every > 0: every that many new samples, re-cluster the two kit colours from a rolling
         buffer of the last buffer_size player features (all tracks), keeping team numbers stable,
         instead of drifting the first centroids (lr). Refitting uses many frames and both teams,
-        so an unlucky start (few players, one team) is corrected."""
+        so an unlucky start (few players, one team) is corrected.
+        track_mean: judge each track by the average of all its features so far, re-assigned with the
+        current centroids every time (instead of a short moving average whose per-frame votes are
+        kept): a track judged with poor early centroids is corrected once they improve."""
+        self.track_mean = bool(track_mean)
+        self._track_sum: dict[int, np.ndarray] = {}
         self.init_samples = int(init_samples)
         self.refit_every = int(refit_every)
         self._recent: deque[np.ndarray] = deque(maxlen=int(buffer_size))
@@ -167,6 +173,20 @@ class ColorTeamClassifier:
                 continue
 
             tid = int(tid)
+            if self.track_mean:
+                self._recent.append(feat)
+                self._since_fit += 1
+                acc = self._track_sum.get(tid)
+                self._track_sum[tid] = feat.copy() if acc is None or acc.shape != feat.shape else acc + feat
+                mean = self._track_sum[tid] / max(float(np.linalg.norm(self._track_sum[tid])), 1e-6)
+                self._track_feat[tid] = mean
+                if self.centroids is None:
+                    self._buffer.append(feat)
+                    continue
+                team, margin = self._assign(mean)
+                if margin >= self.min_margin:
+                    out[tid] = int(team)
+                continue
             prev = self._track_feat.get(tid)
             if prev is not None and prev.shape == feat.shape:
                 feat = self.track_feat_alpha * prev + (1.0 - self.track_feat_alpha) * feat

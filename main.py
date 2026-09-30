@@ -515,6 +515,7 @@ def main(
                 min_margin=s.TEAM_COLOR_MIN_MARGIN,
                 refit_every=s.TEAM_COLOR_REFIT_EVERY,
                 buffer_size=s.TEAM_COLOR_BUFFER,
+                track_mean=s.TEAM_COLOR_TRACK_MEAN,
             )
             print(
                 f"[stage] Color team classifier enabled "

@@ -86,6 +86,9 @@ class Settings(BaseSettings):
     # the first centroids drift with TEAM_COLOR_LR instead).
     TEAM_COLOR_REFIT_EVERY: int = 0
     TEAM_COLOR_BUFFER: int = 3000
+    # Judge each track by the mean of all its colour features, re-assigned with the current centroids
+    # (pair with TEAM_VOTE_HISTORY=1, TEAM_VOTE_MIN=1, TEAM_LOCK=false: the assignment itself is stable).
+    TEAM_COLOR_TRACK_MEAN: bool = False
     # Per-track team = majority of the last TEAM_VOTE_HISTORY votes (needs TEAM_VOTE_MIN votes);
     # TEAM_LOCK freezes a track's team once 8 votes agree at 70%.
     TEAM_VOTE_HISTORY: int = 35
