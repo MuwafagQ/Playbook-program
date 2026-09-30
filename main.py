@@ -31,6 +31,7 @@ from vision.team_color import ColorTeamClassifier
 from vision.preprocess import enhance_frame
 from vision.ball import BallSmoother
 from vision.team_memory import TeamMemory
+from vision.goalkeeper_team import nearest_team
 from vision.id_stabilizer import IDStabilizer
 from vision.roles import RoleVoter
 from vision.ball_model import predict_tiles, roi_origins, within_origins
@@ -350,6 +351,8 @@ def main(
         switch_frames=(s.BALL_SWITCH_FRAMES if ball_model_on else 0),
     )
     team_memory = TeamMemory(history_size=s.TEAM_VOTE_HISTORY, min_votes=s.TEAM_VOTE_MIN, lock=s.TEAM_LOCK)
+    gk_team_memory = TeamMemory(history_size=s.TEAM_GK_VOTE_HISTORY, min_votes=s.TEAM_GK_VOTE_MIN, lock=False)
+    gk_team_by_track: dict[int, int] = {}
     # Split stabilizers by role to prevent cross-class identity interference.
     id_stabilizer_players = IDStabilizer(
         max_relink_frames=s.ID_RELINK_FRAMES,
@@ -1065,6 +1068,21 @@ def main(
 
             lap("projection")
 
+            # 5b) Goalkeeper team: nearer team centre (pitch positions, else image), voted over seconds
+            if enable_team and s.TEAM_GOALKEEPER and len(tracks) > 0:
+                gk_idx = np.flatnonzero(tracks.class_id == GOALKEEPER_ID)
+                pl_idx = np.flatnonzero(tracks.class_id == PLAYER_ID)
+                if len(gk_idx) and len(pl_idx):
+                    pl_team = np.array([team_by_track.get(int(stable_track_ids[j]), -1) for j in pl_idx])
+                    use_pitch = np.isfinite(pitch_xy_tracks[np.r_[gk_idx, pl_idx]]).all()
+                    xy = pitch_xy_tracks if use_pitch else np.c_[(tracks.xyxy[:, 0] + tracks.xyxy[:, 2]) / 2,
+                                                                  tracks.xyxy[:, 3]]
+                    votes = nearest_team(xy[gk_idx], xy[pl_idx], pl_team)
+                    for j, v in zip(gk_idx, votes):
+                        tid = int(stable_track_ids[j])
+                        gk_team_memory.update(tid, int(v))
+                        gk_team_by_track[tid] = gk_team_memory.get(tid)
+
             # 6) Write CSV rows
             player_total += int(np.sum(tracks.class_id == PLAYER_ID)) if len(tracks) > 0 else 0
             if len(ball_det) > 0:
@@ -1076,7 +1094,8 @@ def main(
                 x1, y1, x2, y2 = tracks.xyxy[i].tolist()
                 track_id = int(stable_track_ids[i]) if i < len(stable_track_ids) else -1
                 class_id = int(tracks.class_id[i])
-                row_team_id = team_by_track.get(track_id, -1) if class_id == PLAYER_ID else -1
+                row_team_id = (team_by_track.get(track_id, -1) if class_id == PLAYER_ID
+                               else gk_team_by_track.get(track_id, -1) if class_id == GOALKEEPER_ID else -1)
                 track_len[track_id] = track_len.get(track_id, 0) + 1
 
                 raw_tid = (

@@ -98,6 +98,11 @@ class Settings(BaseSettings):
     # Use each box's single-frame team guess to veto ID re-links across teams. A noisy guess splits
     # IDs (night clip: 9 -> 175 player ID switches with team on), so off unless proven useful.
     TEAM_IN_ID_RELINK: bool = False
+    # Goalkeepers (kit matches neither team): team whose players' centre is nearer, majority of the
+    # last TEAM_GK_VOTE_HISTORY frames (~5 s), needing TEAM_GK_VOTE_MIN votes.
+    TEAM_GOALKEEPER: bool = True
+    TEAM_GK_VOTE_HISTORY: int = 150
+    TEAM_GK_VOTE_MIN: int = 15
 
     DET_CONF: float = 0.30
     DET_CONF_PLAYER: float = 0.24

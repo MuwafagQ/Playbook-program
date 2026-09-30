@@ -21,3 +21,14 @@ def test_team_scores_mapping_coverage_and_flips():
     assert s["matched_boxes"] == 8 and s["coverage"] == 0.875
     assert s["wrong_boxes"] == 1 and abs(s["accuracy"] - 6 / 7) < 1e-3
     assert s["flip_ids"] == 1 and s["worst_gt"] == {1: 0.75}
+
+
+def test_goalkeeper_nearest_team():
+    import numpy as np
+
+    from vision.goalkeeper_team import nearest_team
+
+    players = np.array([[10, 0], [20, 0], [80, 0], [90, 0]], float)
+    teams = np.array([0, 0, 1, 1])
+    assert nearest_team(np.array([[0, 0], [100, 0], [np.nan, 0]]), players, teams).tolist() == [0, 1, -1]
+    assert nearest_team(np.array([[0, 0]]), players[:3], teams[:3]).tolist() == [-1]  # team 1 has 1 player
