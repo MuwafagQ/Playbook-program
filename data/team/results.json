@@ -40,5 +40,22 @@
    "night_IDF1": 0.957,
    "night_id_switches": 9
   }
+ },
+ "goalkeepers": {
+  "method": "team whose players centre is nearer (pitch coords), majority of last 150 frames (TEAM_GOALKEEPER)",
+  "day": {
+   "red GK, right goal": {
+    "yellow": 237,
+    "blue": 38,
+    "none": 14
+   }
+  },
+  "night": {
+   "dark GK": {
+    "blue": 511,
+    "none": 24
+   }
+  },
+  "verified": "not yet: true GK teams unknown (asked the user)"
  }
 }
