@@ -100,35 +100,40 @@ class ColorTeamClassifier:
         return feat
 
     @staticmethod
-    def _init_centroids(features: np.ndarray) -> np.ndarray:
-        n = features.shape[0]
+    def _init_centroids(features: np.ndarray, restarts: int = 10, iters: int = 20, seed: int = 0) -> np.ndarray:
+        """Two kit-colour centroids by k-means with several starts (the farthest pair of samples plus
+        k-means++ seeds), keeping the tightest result. The farthest pair alone tends to pick two
+        outliers (occluded or grass-heavy crops); at night that mixed the two teams."""
+        x = np.asarray(features, dtype=np.float32)
+        n = x.shape[0]
         if n < 2:
-            return np.stack([features[0], features[0]], axis=0)
-
-        # Farthest-pair seeding.
-        best_i, best_j, best_d = 0, 1, -1.0
-        for i in range(n):
-            d = np.linalg.norm(features[i + 1:] - features[i], axis=1) if i + 1 < n else np.array([])
-            if d.size == 0:
-                continue
-            j_rel = int(np.argmax(d))
-            if float(d[j_rel]) > best_d:
-                best_d = float(d[j_rel])
-                best_i = i
-                best_j = i + 1 + j_rel
-
-        c = np.stack([features[best_i], features[best_j]], axis=0).astype(np.float32)
-        for _ in range(8):
-            d0 = np.linalg.norm(features - c[0], axis=1)
-            d1 = np.linalg.norm(features - c[1], axis=1)
-            a = d1 < d0
-            if np.any(~a):
-                c[0] = features[~a].mean(axis=0)
-            if np.any(a):
-                c[1] = features[a].mean(axis=0)
-            c[0] /= max(float(np.linalg.norm(c[0])), 1e-6)
-            c[1] /= max(float(np.linalg.norm(c[1])), 1e-6)
-        return c
+            return np.stack([x[0], x[0]], axis=0)
+        rng = np.random.default_rng(seed)
+        d = np.linalg.norm(x[:, None] - x[None], axis=2) if n <= 1500 else None
+        if d is not None:
+            i0, j0 = np.unravel_index(int(np.argmax(d)), d.shape)
+        else:
+            i0 = 0
+            j0 = int(np.argmax(np.linalg.norm(x - x[0], axis=1)))
+        starts = [(int(i0), int(j0))]
+        for _ in range(max(0, restarts - 1)):
+            a = int(rng.integers(n))
+            p = np.linalg.norm(x - x[a], axis=1) ** 2
+            b = int(rng.choice(n, p=p / p.sum())) if p.sum() > 0 else int(rng.integers(n))
+            starts.append((a, b))
+        best, best_inertia = None, np.inf
+        for a, b in starts:
+            c = np.stack([x[a], x[b]]).astype(np.float32)
+            for _ in range(iters):
+                lab = np.linalg.norm(x - c[1], axis=1) < np.linalg.norm(x - c[0], axis=1)
+                for k, m in ((0, ~lab), (1, lab)):
+                    if np.any(m):
+                        c[k] = x[m].mean(axis=0)
+                        c[k] /= max(float(np.linalg.norm(c[k])), 1e-6)
+            inertia = float(np.minimum(np.linalg.norm(x - c[0], axis=1), np.linalg.norm(x - c[1], axis=1)).sum())
+            if inertia < best_inertia:
+                best, best_inertia = c.copy(), inertia
+        return best
 
     def _maybe_fit(self) -> None:
         if self.centroids is None:
