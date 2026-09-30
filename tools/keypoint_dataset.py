@@ -42,11 +42,18 @@ def split_of(file_name: str) -> str:
     return "train"
 
 
+def _label_number(name) -> int | None:
+    try:
+        return int(str(name).strip())  # Roboflow names points "01".."09", "10".."32"
+    except ValueError:
+        return None
+
+
 def _reorder(kps: list, names: list) -> list:
-    pos = {str(n): i for i, n in enumerate(names)}
+    pos = {_label_number(n): i for i, n in enumerate(names)}
     out = []
     for lab in LABELS:
-        i = pos.get(lab)
+        i = pos.get(int(lab))
         out += [0, 0, 0] if i is None or 3 * i + 2 >= len(kps) else [float(kps[3 * i]), float(kps[3 * i + 1]),
                                                                       int(kps[3 * i + 2])]
     return out

@@ -19,8 +19,8 @@ def _export(root, split, names, kp_names):
         images.append({"id": i, "file_name": n, "width": 1920, "height": 1080})
         kps = [0] * (3 * len(kp_names))
         for j, name in enumerate(kp_names):  # visible point at x = its label number
-            if name in ("5", "6", "7", "8", "9"):
-                kps[3 * j:3 * j + 3] = [float(name), 1.0, 2]
+            if name.isdigit() and int(name) in (5, 6, 7, 8, 9):
+                kps[3 * j:3 * j + 3] = [float(int(name)), 1.0, 2]
         anns.append({"id": i, "image_id": i, "category_id": 1, "bbox": [0, 0, 10, 10], "area": 100, "iscrowd": 0,
                      "keypoints": kps, "num_keypoints": 5})
     cats = [{"id": 0, "name": "pitch-field", "supercategory": "none"},
@@ -88,3 +88,14 @@ def test_keypoint_dataset_keeps_roboflow_split_without_our_valid_frames(tmp_path
     stats = keypoint_dataset(tmp_path / "src", tmp_path / "dst")
     assert stats.pop("split_by") == "roboflow"
     assert {s: v["images"] for s, v in stats.items()} == {"train": 2, "valid": 1, "test": 0}
+
+
+def test_keypoint_dataset_reads_roboflow_zero_padded_names(tmp_path):
+    # the real Roboflow export: "01".."09", and 14 / 19 listed last
+    names = [f"{i:02d}" for i in list(range(1, 14)) + [15, 16, 17, 18] + list(range(20, 33)) + [14, 19]]
+    _export(tmp_path / "src", "train", ["frame_0001.jpg"], names)
+    _export(tmp_path / "src", "valid", ["frame_0002.jpg"], names)
+    keypoint_dataset(tmp_path / "src", tmp_path / "dst")
+    k = json.loads((tmp_path / "dst/train" / ANN).read_text())["annotations"][0]["keypoints"]
+    for lab in (5, 6, 7, 8, 9):                         # "05".."09" must not be dropped
+        assert k[3 * (lab - 1)] == float(lab) and k[3 * (lab - 1) + 2] == 2
