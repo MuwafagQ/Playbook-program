@@ -607,7 +607,9 @@ def main(
             should_update_h = (frame_idx % max(1, homography_every_n) == 0) or (last_hmat is None) or (homography_state == "none")
 
             _fut_det = _pool.submit(run_detect, frame_idx, frame_infer) if should_detect else None
-            _fut_kp = _pool.submit(run_keypoints, frame_idx, frame_infer) if should_update_h else None
+            # our keypoint model was trained on plain frames: the enhancement costs it 2x in pixel error
+            kp_img = frame if (s.FIELD_MODEL_PATH and s.FIELD_MODEL_PLAIN_FRAMES) else frame_infer
+            _fut_kp = _pool.submit(run_keypoints, frame_idx, kp_img) if should_update_h else None
 
             players_det = None
             officials_det = None

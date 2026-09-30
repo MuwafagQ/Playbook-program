@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     PLAYER_MODEL_PATH: str = ""
     # Our open RF-DETR pitch keypoint model (checkpoint path). When set it replaces FIELD_MODEL_ID.
     FIELD_MODEL_PATH: str = ""
+    # Give FIELD_MODEL_PATH plain frames, not PREPROCESS_ENABLED-enhanced ones (it was trained on plain
+    # frames; enhanced: median error 35 px vs 15 px on the test frames).
+    FIELD_MODEL_PLAIN_FRAMES: bool = True
     # Speed-up for our RF-DETR models (people + ball): none | fp16 | tensorrt (vision/fast_rfdetr.py).
     MODEL_ACCEL: str = "none"
 
