@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     H_RANSAC_CM: float = 0.0
     # Speed-up for our RF-DETR models (people + ball): none | fp16 | tensorrt (vision/fast_rfdetr.py).
     MODEL_ACCEL: str = "none"
+    # The ball model's own setting ("" = MODEL_ACCEL). TensorRT lost ~5% of ball detections on the
+    # half-1 window (data/speed/settings.json), so the pilot runs the ball model in fp16.
+    BALL_MODEL_ACCEL: str = ""
 
     # Runtime
     DEVICE: str = "cpu"

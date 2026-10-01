@@ -211,7 +211,7 @@ def main(
             raise SystemExit(f"Ball model not found: {s.BALL_MODEL_PATH!r}. Mount Drive (Colab), or set "
                              "BALL_MODEL_ENABLED=false to use the detector's ball.")
         from vision.ball_model import load_ball_model
-        ball_model_fn = load_ball_model(s.BALL_MODEL_PATH, s.MODEL_ACCEL)
+        ball_model_fn = load_ball_model(s.BALL_MODEL_PATH, s.BALL_MODEL_ACCEL or s.MODEL_ACCEL)
         print(f"[stage] Ball model loaded: {s.BALL_MODEL_PATH}")
     elif ball_model_on and not cache_in.has_ballm:
         print("[WARN] BALL_MODEL_ENABLED but the cache has no ball-model candidates; using the detector's ball.")
@@ -1036,7 +1036,10 @@ def main(
                         print(f"[kp-debug] frame={frame_idx} n_raw=0 (model returned no keypoints)")
                     _kp_debug_remaining -= 1
             else:
-                homography_ok = False
+                # keypoints skipped this frame (HOMOGRAPHY_EVERY_N): the last fit is reused, and still
+                # counts as ok when that fit was ok
+                homography_ok = bool(homography_ok and last_hmat is not None)
+                homography_ok_frames += int(homography_ok)
                 if last_hmat is None:
                     homography_state = "none"
                 elif homography_state != "ok":
