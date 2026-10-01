@@ -105,6 +105,12 @@ night match can be processed end to end with manual work limited to **pass taggi
   receiver's shirt number when their piece has no name; same name = same player; `player_names.csv`,
   `player_name` column, `tools/player_names.py`), **then a football appearance model** trained on
   the hand-unified windows so more pieces join automatically and fewer numbers are asked.
+- Appearance model done (`reid_appearance.ipynb`, model in `MyDrive/Playbook/reid_appearance/appearance_model.pt`):
+  on another match (night HILAL-AHLI) the most similar chunk is the same player 92% of the time
+  (untrained 73%). `tools/join_pieces.py` joins pieces by appearance + team, never two pieces on
+  screen together: IDF1 0.57 -> 0.80 / 0.66 -> 0.73 on the held-out halves (ceiling 0.89 / 0.79),
+  18 s for a full match's pieces. The tagging tool names joined players (`joined_id`) when present.
+  Next: run it in the full-match notebook; more training data from names typed while tagging.
 - Speed on an L4: 4.8 frames/s, ~9 h for a full match at 30 fps. Levers to test: keypoints every
   2-3 frames (86 ms), FP16 people/ball (MODEL_ACCEL is "none"), cheaper BoT-SORT camera-motion step.
 

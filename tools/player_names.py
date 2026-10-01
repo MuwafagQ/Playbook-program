@@ -1,6 +1,7 @@
 """Player names for track pieces, typed while tagging passes (notebooks/tag_passes_v2.ipynb).
 
-A piece is one tracker id (`raw_tracker_id`; `track_id` for older runs). On the long hand-unified
+A piece is one joined player (`joined_id`, tools/join_pieces.py) when the run has it, else one tracker
+id (`raw_tracker_id`; `track_id` for older runs). On the long hand-unified
 windows pieces are 87-93% one player, but no automatic join between pieces was reliable (even joins
 over a 0.5 s gap were 83% right at best: the tracker loses players where they cross), so pieces are
 joined only by name: every piece named "A10" is the same player.
@@ -26,6 +27,8 @@ COLUMNS = ["piece", "from_frame", "name"]
 
 
 def piece_column(tracks: pd.DataFrame) -> str:
+    if "joined_id" in tracks.columns and (tracks["joined_id"] > 0).any():
+        return "joined_id"
     if "raw_tracker_id" in tracks.columns and (tracks["raw_tracker_id"] >= 0).any():
         return "raw_tracker_id"
     return "track_id"

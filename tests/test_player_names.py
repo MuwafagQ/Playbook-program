@@ -46,6 +46,12 @@ def test_apply_names_only_people_rows():
     assert coverage(t, b) == {"named_rows": 0.5, "names": 2, "pieces_named": 1}
 
 
+def test_joined_players_are_named_as_one():
+    t = _tracks()
+    t["joined_id"] = [7 if r == 5 else 8 if r == 6 else -1 for r in t.raw_tracker_id]
+    assert piece_column(t) == "joined_id"
+
+
 def test_old_runs_without_raw_ids_use_track_id():
     t = _tracks().drop(columns="raw_tracker_id")
     assert piece_column(t) == "track_id"
