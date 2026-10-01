@@ -86,3 +86,31 @@ def apply_team_mapping(tracks: pd.DataFrame, maps: dict) -> pd.DataFrame:
         tid[sel] = np.where(tid[sel] == 0, m[0], m[1])
     out["team_id"] = tid
     return out
+
+
+def piece_summary(tracks: pd.DataFrame) -> pd.DataFrame:
+    """One row per tracker piece (goalkeepers / players): segment, class, team, first / last frame,
+    rows, joined_id. Small enough to analyse the joining without the full tracks table."""
+    t = tracks[tracks.class_id.isin(PEOPLE) & (tracks.raw_tracker_id >= 0)]
+    g = t.groupby("raw_tracker_id")
+    out = pd.DataFrame({
+        "segment": g.segment.first() if "segment" in t else "",
+        "class_id": g.class_id.agg(lambda s: s.mode().iloc[0]),
+        "team_id": g.team_id.agg(lambda s: s[s >= 0].mode().iloc[0] if (s >= 0).any() else -1),
+        "first": g.frame.min(), "last": g.frame.max(), "rows": g.size(),
+        "joined_id": g.joined_id.agg(lambda s: s.mode().iloc[0]) if "joined_id" in t else -1,
+    })
+    return out.reset_index().rename(columns={"raw_tracker_id": "piece"})
+
+
+def id_coverage(pieces: pd.DataFrame, id_col: str = "joined_id") -> dict:
+    """How concentrated player-frames are on few ids: ids needed to cover 50 / 80 / 90 / 99 % of
+    goalkeeper + player rows, and the number of ids with at least 1 / 5 minutes on screen (30 fps)."""
+    rows = pieces.groupby(id_col).rows.sum().sort_values(ascending=False)
+    cum = rows.cumsum() / rows.sum()
+    out = {"ids": int(len(rows))}
+    for q in (0.5, 0.8, 0.9, 0.99):
+        out[f"ids_for_{int(q * 100)}pct"] = int((cum < q).sum() + 1)
+    for m in (1, 5):
+        out[f"ids_over_{m}min"] = int((rows >= m * 60 * 30).sum())
+    return out

@@ -40,3 +40,14 @@ def test_team_labels_are_aligned_across_segments():
     blue = out[out.raw_tracker_id.isin([1, ID_STRIDE + 1])]
     assert (blue.team_id == 0).all()                 # blue is team 0 in both segments now
     assert (out[out.class_id == 0].team_id == -1).all()
+
+
+def test_piece_summary_and_coverage():
+    from tools.full_match import id_coverage, piece_summary
+    m = merge_segments([("a", _seg(10, {1: 0, 2: 1}), 10), ("b", _seg(4, {1: 1, 2: 0}), 4)])
+    m["joined_id"] = np.where(m.raw_tracker_id == 1, 1, np.where(m.raw_tracker_id >= 0, 2, -1))
+    p = piece_summary(m)
+    assert len(p) == 4 and set(p.columns) >= {"piece", "segment", "team_id", "rows", "joined_id"}
+    assert p.set_index("piece").loc[ID_STRIDE + 1, "rows"] == 4
+    c = id_coverage(p)
+    assert c["ids"] == 2 and c["ids_for_50pct"] == 1 and c["ids_for_90pct"] == 2
