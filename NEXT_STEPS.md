@@ -92,11 +92,21 @@ night match can be processed end to end with manual work limited to **pass taggi
 - **Joining segments.** IDs must continue across segment boundaries (carry tracker state over,
   or overlap segments and match IDs in the overlap).
 
-## After that: Re-ID (to discuss)
+## Re-ID (measured on the long hand-checked windows, `data/reid/long_windows.json`)
 
-Measure first on the long hand-checked windows (old pipeline: IDF1 0.55 / 0.68), then re-link
-lost players by pitch position + team instead of image pixels, then a football-specific
-appearance model if needed.
+- Now: IDF1 0.57 / 0.66 (old pipeline 0.55 / 0.68): better detection did not help identity.
+- The tracker's own pieces (`raw_tracker_id`) are 87-93% one player; joining them perfectly would
+  give 0.89 / 0.79, so the gain is in the joining. The ID stabiliser's forced reuse of capped ids
+  swaps players over minutes.
+- Position + team cannot do the joining: correct joins have median gaps of 9-16 s (player off
+  screen), and even joins over a 0.5 s gap are only 83% right (the tracker loses players where they
+  cross). Naming every piece on a review page would be 30-50 questions per match minute.
+- Chosen (user): **names while tagging passes** (done: `tag_passes_v2` asks for the passer's /
+  receiver's shirt number when their piece has no name; same name = same player; `player_names.csv`,
+  `player_name` column, `tools/player_names.py`), **then a football appearance model** trained on
+  the hand-unified windows so more pieces join automatically and fewer numbers are asked.
+- Speed on an L4: 4.8 frames/s, ~9 h for a full match at 30 fps. Levers to test: keypoints every
+  2-3 frames (86 ms), FP16 people/ball (MODEL_ACCEL is "none"), cheaper BoT-SORT camera-motion step.
 
 ## Keypoints: where it stands
 - Default: Roboflow's v10 weights, downloaded (Apache-2.0 per Roboflow's download page) and run with the
