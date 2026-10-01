@@ -1,5 +1,8 @@
 # Session materials — digest and what each means for Playbook-IQ
-Nine decks from Weeks 2–3 plus the partner sessions. Files in this folder.
+Fifteen decks across Weeks 1–3 plus the partner sessions. Files in this folder.
+
+The Week 1 decks and `W2-MVP-to-MLP.pdf` were recovered on 1 Oct — uploaded in September but
+never committed, so they only existed on an ephemeral container disk.
 
 | File | Session | Speaker |
 |---|---|---|
@@ -9,7 +12,13 @@ Nine decks from Weeks 2–3 plus the partner sessions. Files in this folder.
 | `W3-Sprints-Walid.pdf` | Sprints: Planning & Executing Your MVP (22 Sep) | **Walid Elaghil — our mentor** |
 | `W3-Pricing-Activation-Models.pdf` | **Pricing & Activation Models (22 Sep)** | — |
 | `W3-Understanding-AI-Agents.pdf` | AI agents | Ahmed Maher Pasha |
-| `Misc-Sep2026-MISK-Launchpad.pdf` | Product Design & User Journey Mapping (21 Sep) | Alina Verbenchuk |
+| `W3-Product-Design-User-Journey.pdf` | Product Design & User Journey Mapping (21 Sep) | Alina Verbenchuk |
+| `W1-Kickoff-Phase1.pdf` | Phase 1 Kick-off (7 Sep) | 2080 Team |
+| `W1-JTBD-Customer-Needs.pdf` | Jobs To Be Done (7 Sep) | Sherzod Gafar |
+| `W1-Understanding-Your-ICP.pdf` | Understanding Your ICP (8 Sep) | Darrena Mamm |
+| `W1-Crafting-Value-Proposition.pptx` | Crafting Your Value Proposition (8 Sep) | Sherzod Gafar |
+| `W1-Customer-Discovery-Mom-Test.pdf` | **The Mom Test** (9 Sep) | Katya de Freedericksz |
+| `W2-MVP-to-MLP.pdf` | **From MVP to MLP** (15 Sep) | — |
 | `Partner-Ministry-of-Sport.pdf` | **Ministry of Sport introduction** | MoS |
 | `Partner-Future-of-Sports-Sector.pdf` | Future of the Sports Sector | Lamya Almaneea, MoS |
 
@@ -172,3 +181,51 @@ There is also a **Deputyship of Digital Transformation**.
 5. **Use the NSS vocabulary** — talent development pathway, digitisation, governance — in anything
    Ministry-facing.
 6. **Correct the funnel in our records: 125 → 50.**
+
+---
+
+## ⭐ From MVP to MLP — the sequencing argument, and our 48-hour test
+
+**MVP is about learning, not launching.** *"The smallest thing you can build to test your core
+assumption."* The deck's four myths, each one we have believed at some point: it has to be
+perfect · we need all features before testing · investors won't take us seriously without a full
+product · it should look like the final product. *"Your MVP should feel slightly embarrassing."*
+
+**The MVP Design Template — five lines.** Problem · Hypothesis · Core user action · Fastest test ·
+Success metric. Ours, written out:
+
+| | |
+|---|---|
+| **Problem** | A youth coach cannot tell which of his players is actually developing |
+| **Hypothesis** | A per-match development report changes what he does in the next session |
+| **Core user action** | He reads it and changes something |
+| **Fastest test** | Three matches, five reports, four clubs — produced by hand |
+| **Success metric** | Findings rated new, and findings that changed a decision |
+
+That is our pilot, unchanged. The deck validates the design rather than altering it.
+
+**The B2B slide is the one that applies to us.** *"Selling the product even before it is built."*
+Microsoft pre-sold an operating system to IBM that it did not own — it licensed 86-DOS from
+Seattle Computer Products, and kept the rights to resell. The grassroots-market version: a club
+pays for the report before the pipeline is automatic, and the method stays our business. This is
+exactly the position we took on disclosure.
+
+**The Sean Ellis / Superhuman test — the metric we are missing.** *"Ask your users how they would
+feel if they could no longer use your product. The group that answers 'very disappointed' unlocks
+product-market fit."* Superhuman went 22% → 33% by segmenting to those users, then to 58% in three
+quarters. **Add this as a fourth question to our post-report interview**, alongside the three we
+have (already knew / new to me / changed something). It is one line, it is comparable across all
+four pilot clubs, and we currently have no product-market-fit measure at all.
+
+**MLP comes later, and the deck says when:** assumptions validated, repeated use, feedback reads
+*"this solves my problem."* We are not there — which retrospectively supports leaving the
+polished three-role portal on the not-list. Their timeline is Day 1 build · Day 14 launch and
+collect · Day 30 refine · Day 100 lovable layers. Our 30 October kill date sits at their Day 30.
+
+**Common mistakes, scored against us:** building too much (we cut the pilot, passed) · relying
+only on surveys with no behaviour data (**at risk** — our three questions are all self-reported;
+"changed something you did" is the only behavioural one and we take the coach's word for it) ·
+ignoring feedback loops · failing to measure (passed — hours, novelty rate and the benchmark
+score are all instrumented).
+
+*"Don't fall in love with your idea, fall in love with your user's problem."*
