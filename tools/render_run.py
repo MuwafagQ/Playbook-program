@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 
 COLORS = {1: (0, 220, 255), 2: (255, 255, 255), 3: (255, 0, 255)}  # BGR: GK yellow, player white, referee magenta
+TEAM_COLORS = {0: (180, 105, 255), 1: (255, 200, 0)}  # BGR: team 0 pink, team 1 cyan (as in the tagging tool)
 BALL = (0, 140, 255)
 TRUE_BALL = (0, 220, 0)
 
@@ -35,18 +36,24 @@ def _centre(r):
     return ((r.x1 + r.x2) / 2, (r.y1 + r.y2) / 2)
 
 
-def draw(frame, rows: pd.DataFrame, gt_ball, label: str, scale: float, tol_k: float = 1.5, min_px: float = 8.0):
+def draw(frame, rows: pd.DataFrame, gt_ball, label: str, scale: float, tol_k: float = 1.5, min_px: float = 8.0,
+         id_col: str = "display_track_id", team_colors: bool = False):
     size = (int(round(frame.shape[1] * scale)), int(round(frame.shape[0] * scale / 2) * 2))
     img = cv2.resize(frame, size, interpolation=cv2.INTER_AREA)
     status, color = "no ball", (0, 0, 255)
     for r in rows.itertuples():
         c = int(r.class_id)
         if c in COLORS:
+            col = COLORS[c]
+            if team_colors and c == 2 and int(getattr(r, "team_id", -1)) in TEAM_COLORS:
+                col = TEAM_COLORS[int(r.team_id)]
             p1, p2 = (int(r.x1 * scale), int(r.y1 * scale)), (int(r.x2 * scale), int(r.y2 * scale))
-            cv2.rectangle(img, p1, p2, COLORS[c], 1)
-            tid = int(getattr(r, "display_track_id", -1))
+            cv2.rectangle(img, p1, p2, col, 1 if scale < 0.6 else 2)
+            v = getattr(r, id_col, -1)
+            tid = int(v) if pd.notna(v) else -1
             if tid >= 0:
-                cv2.putText(img, str(tid), (p1[0], p1[1] - 3), cv2.FONT_HERSHEY_SIMPLEX, 0.4, COLORS[c], 1, cv2.LINE_AA)
+                fs = 0.4 if scale < 0.6 else 0.55
+                cv2.putText(img, str(tid), (p1[0], p1[1] - 3), cv2.FONT_HERSHEY_SIMPLEX, fs, col, 1, cv2.LINE_AA)
     balls = rows[rows.class_id == 0]
     if gt_ball is not None:
         gx, gy = _centre(gt_ball)
@@ -72,8 +79,11 @@ def draw(frame, rows: pd.DataFrame, gt_ball, label: str, scale: float, tol_k: fl
 
 
 def render(video: str, runs: dict, out: str, gt: pd.DataFrame | None = None, width: int = 960,
-           fps: float | None = None, frames=None, crf: int = 26, coord_size: tuple[int, int] | None = None):
-    """coord_size: (width, height) the csv coordinates refer to, when the video is a smaller proxy."""
+           fps: float | None = None, frames=None, crf: int = 26, coord_size: tuple[int, int] | None = None,
+           id_col: str = "display_track_id", team_colors: bool = False):
+    """coord_size: (width, height) the csv coordinates refer to, when the video is a smaller proxy.
+    frames: only these frame numbers (reading stops after the last one). id_col: the id drawn on boxes
+    (e.g. joined_id); team_colors: players' boxes in their team colour."""
     cap = cv2.VideoCapture(video)
     fps = fps or cap.get(cv2.CAP_PROP_FPS) or 25.0
     w0, h0 = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -88,17 +98,20 @@ def render(video: str, runs: dict, out: str, gt: pd.DataFrame | None = None, wid
                              "-s", f"{W}x{h}", "-r", f"{fps:.3f}", "-i", "-", "-c:v", "libx264", "-preset", "medium",
                              "-crf", str(crf), "-pix_fmt", "yuv420p", "-movflags", "+faststart", out],
                             stdin=subprocess.PIPE)
+    last = max(frames) if frames is not None else None
+    frames = set(frames) if frames is not None else None
     f = 0
     empty = pd.DataFrame(columns=["class_id", "x1", "y1", "x2", "y2", "display_track_id"])
     while True:
         ok, frame = cap.read()
-        if not ok:
+        if not ok or (last is not None and f > last):
             break
         if frames is None or f in frames:
             if coord_size and frame.shape[1] != w0:
                 frame = cv2.resize(frame, (w0, h0), interpolation=cv2.INTER_LINEAR)
             g = gtb.loc[f] if gtb is not None and f in gtb.index else None
-            panels = [draw(frame, by_run[n].get(f, empty), g, f"{n}   frame {f}", scale) for n in runs]
+            panels = [draw(frame, by_run[n].get(f, empty), g, f"{n}   frame {f}", scale, id_col=id_col,
+                           team_colors=team_colors) for n in runs]
             img = np.hstack(panels)[:h]
             proc.stdin.write(np.ascontiguousarray(img).tobytes())
         f += 1
