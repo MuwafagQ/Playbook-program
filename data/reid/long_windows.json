@@ -1,0 +1,11 @@
+{
+ "_note": "HIL-HAZ hand-unified windows (half1 frames 1066-3333, half2 4270-5720; outside them the truth file is unreviewed). Run: reid_windows_record.ipynb, L4, current defaults (open people/ball models, local v10 keypoints, team on). Players only (class 2), IoU 0.5.",
+ "speed_L4": {"fps_processed": [4.89, 4.70, 4.83, 4.97], "minutes_per_5min_clip": 31, "ms_per_frame": {"keypoints": 86, "botsort": 62, "ball_model": 56, "people_model": 56, "id_stabilizer": 42, "team": 27}, "full_match_hours_est": 9.3},
+ "idf1": {"half1": {"old_pipeline": 0.55, "display_ids": 0.570, "raw_tracker_pieces": 0.385, "oracle_join_of_raw_pieces": 0.891},
+          "half2": {"old_pipeline": 0.68, "display_ids": 0.663, "raw_tracker_pieces": 0.598, "oracle_join_of_raw_pieces": 0.786}},
+ "raw_piece_purity_frame_weighted": {"half1": 0.931, "half2": 0.871},
+ "stabilizer_switch_attribution": {"half1": {"tracker_id_changes": 252, "bridged": 81, "failed_to_bridge": 171, "caused": 51},
+                                   "half2": {"tracker_id_changes": 73, "bridged": 18, "failed_to_bridge": 55, "caused": 34}},
+ "position_only_linking": "greedy one-to-one, cost = metres + 1*gap_s, team must match: links with cost<=4 are 82% right in half1 but 44% in half2; correct joins have median gaps of 9-16 s (player off screen during camera pans), so position cannot carry them.",
+ "pieces_per_minute_covering_90pct": {"half1": 55, "half2": 41, "mv2_01_night": 27}
+}
