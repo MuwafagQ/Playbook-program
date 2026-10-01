@@ -36,6 +36,19 @@ def test_joins_by_appearance_but_not_overlapping_or_other_team():
     assert first == 1                            # numbered by first appearance
 
 
+def test_an_id_is_never_on_two_boxes_in_one_frame():
+    # piece 2 starts 2 frames before piece 1 ends (allowed overlap): same player, joined
+    rows = [{"frame": f, "raw_tracker_id": 1, "class_id": 2, "team_id": 0} for f in range(0, 10)]
+    rows += [{"frame": f, "raw_tracker_id": 2, "class_id": 2, "team_id": 0} for f in range(8, 30)]
+    t = pd.DataFrame(rows)
+    lab = cluster(piece_table(t), np.array([[1.0, 0], [1.0, 0]]), [1, 2], thr=0.3)
+    assert lab[1] == lab[2]
+    j = t.assign(j=joined_ids(t, lab))
+    assert not j.duplicated(["frame", "j"]).any()
+    assert (j[j.raw_tracker_id == 2].j == j[j.raw_tracker_id == 2].j.iloc[0]).all()   # the longer piece keeps it
+    assert (j[(j.raw_tracker_id == 1) & (j.frame < 8)].j == j[j.raw_tracker_id == 2].j.iloc[0]).all()
+
+
 def test_below_threshold_stays_apart():
     t = _tracks()
     crop_piece = np.array([1, 2, 3, 4, 5, 6])

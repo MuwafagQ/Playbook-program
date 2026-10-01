@@ -116,7 +116,17 @@ def joined_ids(tracks: pd.DataFrame, lab: dict) -> pd.Series:
     key = tracks.raw_tracker_id.where(people).map(lab)
     first = tracks.assign(key=key)[people].groupby("key").frame.min().sort_values()
     num = {k: i for i, k in enumerate(first.index, start=1)}
-    return key.map(num).fillna(-1).astype(int)
+    out = key.map(num).fillna(-1).astype(int)
+    # joined pieces may share up to max_overlap frames: there, the longer piece keeps the id and the
+    # other piece gets an id of its own, so an id is never on two boxes in one frame
+    t = pd.DataFrame({"frame": tracks.frame, "piece": tracks.raw_tracker_id, "jid": out})[people]
+    size = t.piece.map(t.piece.value_counts())
+    t = t.assign(size=size).sort_values(["frame", "jid", "size"], ascending=[True, True, False])
+    dup = t.duplicated(["frame", "jid"], keep="first")
+    if dup.any():
+        extra = {p: out.max() + i for i, p in enumerate(sorted(t.piece[dup].unique()), start=1)}
+        out.loc[t.index[dup]] = t.piece[dup].map(extra).to_numpy()
+    return out
 
 
 def join(tracks: pd.DataFrame, video: str, model_path: str, thr: float = 0.3, per_piece: int = 12) -> tuple[pd.DataFrame, dict]:
