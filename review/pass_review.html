@@ -1,0 +1,427 @@
+<title>Pass Review · match_video_2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one working screen — floodlit video stage left, review sheet right; stacks below 900px. */
+:root{
+  --bg:#eef1ec; --surface:#ffffff; --line:#cdd5cb; --fg:#17201a; --muted:#5b6a5f;
+  --accent:#1f7a4d; --accent-fg:#ffffff; --passer:#0e9f5a; --receiver:#2b6fd6; --bad:#c2412d; --warn:#b7791f;
+  --teamA:#e0559a; --teamB:#1aa7c9; --stage:#0d1410;
+  --display:"Saira Condensed","Arial Narrow",sans-serif; --body:"Source Sans 3",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1512; --surface:#18211c; --line:#2c3a31; --fg:#e7efe8; --muted:#94a598;
+  --accent:#3fbf7f; --accent-fg:#06110b; --passer:#34d27f; --receiver:#6aa2ff; --bad:#ef6a52; --warn:#e2a64a;
+  --teamA:#f07ab4; --teamB:#45c6e6; --stage:#000; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1512; --surface:#18211c; --line:#2c3a31; --fg:#e7efe8; --muted:#94a598;
+  --accent:#3fbf7f; --accent-fg:#06110b; --passer:#34d27f; --receiver:#6aa2ff; --bad:#ef6a52; --warn:#e2a64a;
+  --teamA:#f07ab4; --teamB:#45c6e6; --stage:#000; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font:15px/1.4 var(--body);padding:12px 16px}
+h1{font:700 22px/1.1 var(--display);letter-spacing:.02em;margin:0;text-wrap:balance}
+.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:10px}
+.top .meta{color:var(--muted);font-size:13px}
+.pick{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:auto}
+.bar select{font:15px var(--body);padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);min-height:40px}
+.pick select{font:15px var(--body);padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);min-height:40px}
+.filebtn{font:600 14px var(--body);background:var(--accent);color:var(--accent-fg);border-radius:6px;padding:9px 12px;cursor:pointer;min-height:40px;display:inline-flex;align-items:center}
+.empty-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#cfe3d6;padding:16px;font-size:15px}
+.tally{font:500 13px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.layout{display:flex;gap:16px;align-items:flex-start}
+.left{flex:3;min-width:0}
+.right{flex:2;min-width:0;display:flex;flex-direction:column;gap:12px}
+@media (max-width:900px){.layout{flex-direction:column}.left,.right{width:100%}}
+.stage{position:relative;background:var(--stage);border-radius:6px;overflow:hidden;aspect-ratio:16/9;max-width:100%}
+.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.stage canvas{touch-action:manipulation;cursor:crosshair}
+.hint{position:absolute;left:8px;bottom:8px;right:8px;background:rgba(0,0,0,.66);color:#fff;font-size:14px;padding:6px 10px;border-radius:4px;pointer-events:none}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.frame{font:500 13px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);margin-left:auto}
+input[type=range]{width:100%;margin-top:6px;accent-color:var(--accent)}
+button{font:600 14px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:6px;padding:8px 12px;min-height:40px;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+button.danger{color:var(--bad);border-color:var(--bad)}
+button.on{outline:2px solid var(--fg)}
+button:disabled{opacity:.45;cursor:default}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.sheet h2{font:700 17px var(--display);letter-spacing:.03em;margin:0;text-transform:uppercase}
+.who{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center}
+.dot{width:12px;height:12px;border-radius:50%}
+.dot.p{background:var(--passer)}.dot.r{background:var(--receiver)}
+.name{font:700 18px var(--display);letter-spacing:.03em}
+.name.empty{color:var(--muted);font:400 14px var(--body)}
+.sub{color:var(--muted);font-size:13px}
+.names{display:flex;flex-wrap:wrap;gap:6px}
+.names button{min-height:36px;padding:6px 9px;font:700 14px var(--display);letter-spacing:.03em}
+.names button.A{border-color:var(--teamA)}.names button.B{border-color:var(--teamB)}
+.namein{display:flex;gap:6px}
+.namein input{flex:1;min-width:0;font:15px var(--body);padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+.seg{display:flex;gap:0}
+.seg button{border-radius:0;flex:1}.seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0}
+.seg button.on{background:var(--fg);color:var(--bg);outline:none}
+.verdict{display:flex;gap:8px;flex-wrap:wrap}.verdict button{flex:1}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:8px;max-height:300px;overflow:auto}
+.row{display:grid;grid-template-columns:68px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer}
+.row:last-child{border-bottom:0}
+.row.cur{background:var(--bg)}
+.row .t{font:500 12px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.chip{font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:10px;border:1px solid var(--line);color:var(--muted)}
+.chip.pass{color:var(--accent);border-color:var(--accent)}.chip.no{color:var(--bad);border-color:var(--bad)}.chip.hand{color:var(--warn);border-color:var(--warn)}
+.msg{font-size:13px;color:var(--muted);min-height:18px}
+.msg.err{color:var(--bad)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="top">
+  <h1>Pass Review</h1>
+  <span class="meta" id="meta">Loading the match…</span>
+  <span class="tally" id="tally"></span>
+  <div class="pick">
+    <label for="segsel" class="sub">Segment</label>
+    <select id="segsel"></select>
+    <label class="filebtn" for="vfile">Open the segment video</label>
+    <input type="file" id="vfile" accept="video/*,.mp4" hidden>
+  </div>
+</div>
+<div class="layout">
+  <div class="left">
+    <div class="stage" id="stage">
+      <video id="vid" playsinline muted preload="auto"></video>
+      <canvas id="cv"></canvas>
+      <div class="hint" id="hint" hidden></div>
+      <div class="empty-stage" id="novideo">Tap “Open the segment video” and pick the clip of this segment from Drive (for example 01_1H_00-05.mp4). It plays on this tablet; nothing is uploaded.</div>
+    </div>
+    <input type="range" id="scrub" min="0" max="1" value="0" aria-label="Position in the segment">
+    <div class="bar">
+      <button id="bpp" class="primary" aria-label="Play or pause">▶ Play</button>
+      <select id="speed" aria-label="Playback speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option></select>
+      <button id="b-10" aria-label="Back 10 frames">◀ 10</button>
+      <button id="b-1" aria-label="Back 1 frame">◀ 1</button>
+      <button id="b1" aria-label="Forward 1 frame">1 ▶</button>
+      <button id="b10" aria-label="Forward 10 frames">10 ▶</button>
+      <button id="bplay">Replay pass</button>
+      <button id="bkick">Kick</button>
+      <button id="btouch">Touch</button>
+      <span class="frame" id="flabel">frame –</span>
+    </div>
+  </div>
+  <div class="right">
+    <div class="sheet" id="sheet">
+      <h2 id="ptitle">Pass</h2>
+      <div class="who">
+        <span class="dot p"></span>
+        <div><div class="name" id="pname">–</div><div class="sub" id="psub"></div></div>
+        <button id="bpickp">Change</button>
+        <span class="dot r"></span>
+        <div><div class="name" id="rname">–</div><div class="sub" id="rsub"></div></div>
+        <button id="bpickr">Change</button>
+      </div>
+      <div id="namebox" hidden>
+        <div class="sub" id="namefor"></div>
+        <div class="names" id="namebtns"></div>
+        <div class="namein"><input id="nameinput" placeholder="Number or position, e.g. B10 or ALB" autocomplete="off"><button id="bname">Set</button></div>
+      </div>
+      <div class="seg" role="group" aria-label="Outcome">
+        <button id="ocomplete" class="on">Complete</button><button id="oincomplete">Incomplete</button>
+      </div>
+      <div class="verdict">
+        <button class="primary" id="bsave">✔ Save pass</button>
+        <button class="danger" id="bno">✖ Not a pass</button>
+      </div>
+      <div class="msg" id="msg"></div>
+    </div>
+    <div class="bar" style="margin-top:0">
+      <button id="badd">+ Missed pass</button>
+      <button id="bnext">Next to review ▶</button>
+    </div>
+    <div class="list" id="list"></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const A_POS = ["GK","RB","RCB","CB","LCB","LB","DM","CM","RM","LM","AM","RW","LW","ST","CF"];
+const S = { idx:null, data:null, boxes:null, frame:0, videoFor:null, cur:null, draft:null, pick:null, playTo:null,
+            reviews:{}, names:{}, db:null, canWrite:true };
+
+// ---------- data
+async function load(){
+  S.idx = await fetch("review_index.json").then(r=>r.json());
+  const sel=$("segsel");
+  for(const g of S.idx.segments){ const o=document.createElement("option"); o.value=g.name; o.textContent=g.name.replace(/_/g," "); sel.appendChild(o); }
+  let start = S.idx.segments[0].name; try{ start = localStorage.getItem("seg") || start; }catch(e){}
+  if(!S.idx.segments.find(g=>g.name===start)) start=S.idx.segments[0].name;
+  sel.value=start; connect(); await openSegment(start);
+}
+async function openSegment(name){
+  const g=S.idx.segments.find(x=>x.name===name);
+  S.data={...g, match:S.idx.match, fps:S.idx.fps}; S.boxes=null;
+  try{ localStorage.setItem("seg",name); }catch(e){}
+  $("meta").textContent = `${S.idx.match} · loading ${name}…`;
+  S.boxes = await fetch(g.boxes).then(r=>r.json());
+  $("meta").textContent = `${S.idx.match} · ${g.proposals.length} proposed passes in this segment`;
+  $("scrub").max = g.frames - 1;
+  S.frame = g.seg_start;
+  $("novideo").hidden = S.videoFor===name;
+  const firstOpen = proposals().find(p=>!S.reviews[p.id]) || proposals()[0];
+  select(firstOpen ? firstOpen.id : null);
+}
+$("segsel").onchange = e => openSegment(e.target.value);
+$("vfile").onchange = e => {
+  const f=e.target.files[0]; if(!f) return;
+  const v=$("vid"); if(v.src && v.src.startsWith("blob:")) URL.revokeObjectURL(v.src);
+  v.src = URL.createObjectURL(f); S.videoFor = S.data.name;
+  $("novideo").hidden = true;
+  if(!f.name.includes(S.data.name)) msg(`This file is ${f.name}; the segment is ${S.data.name}. Pick the matching clip if the boxes don't sit on the players.`, true);
+  v.addEventListener("loadedmetadata", ()=>seek(S.frame), {once:true});
+};
+async function connect(){
+  try{
+    const db = await claude.use("db");
+    if(!db){ msg("Saving is not available in this view: answers will not be kept.", true); S.canWrite=false; render(); return; }
+    S.db = db;
+    db.collection("reviews").onSnapshot(s=>{ S.reviews={}; s.docs.forEach(x=>S.reviews[x.id]=x.data()); render(); },
+                                        e=>msg("Lost the connection to saved answers ("+e.code+").", true));
+    db.collection("names").onSnapshot(s=>{ S.names={}; s.docs.forEach(x=>S.names[x.id]=x.data().entries||[]); render(); });
+  }catch(e){ S.canWrite=false; msg("Saving is not available in this view.", true); }
+}
+function nameAt(jid, frame){
+  const e = S.names[String(jid)]; if(!e || !e.length) return null;
+  let n = e[0][1]; for(const [f,v] of e){ if(f<=frame) n=v; } return n;
+}
+async function setName(jid, frame, name){
+  if(jid==null || !S.db) return;
+  const e = (S.names[String(jid)]||[]).filter(x=>x[0]!==frame);
+  if(nameAt(jid, frame)===name) return;
+  e.push([frame, name]); e.sort((a,b)=>a[0]-b[0]);
+  S.names[String(jid)] = e;
+  await S.db.collection("names").doc(String(jid)).set({entries:e});
+}
+const local = f => f - S.data.seg_start;                 // match frame -> segment frame
+const boxesAt = f => (S.boxes.people[local(f)] || []);    // [x1,y1,x2,y2,jid,team,cls]
+const ballAt = f => S.boxes.ball[local(f)] || null;
+
+// ---------- video
+function seek(f){
+  if(!S.data || !S.boxes) return;
+  f = Math.max(S.data.seg_start, Math.min(S.data.seg_start+S.data.frames-1, Math.round(f)));
+  S.frame = f; const v=$("vid");
+  if(S.videoFor===S.data.name && v.readyState>=1) v.currentTime = (local(f)+0.5)/S.data.fps;
+  draw();
+}
+function frameFromVideo(){ return S.data.seg_start + Math.floor($("vid").currentTime*S.data.fps); }
+function tick(){
+  const v=$("vid");
+  if(!v.paused){
+    S.frame = frameFromVideo(); draw();
+    if(S.playTo!=null && S.frame>=S.playTo){ v.pause(); S.playTo=null; seek(S.frame); }
+  }
+  requestAnimationFrame(tick);
+}
+function playRange(a,b){
+  if(S.videoFor!==S.data.name){ msg("Open the segment video first.", true); return; }
+  seek(a); S.playTo=b; $("vid").addEventListener("seeked",()=>$("vid").play().catch(()=>{}),{once:true});
+}
+
+// ---------- drawing
+function cssColor(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function draw(){
+  if(!S.data || !S.boxes) return;
+  const cv=$("cv"), r=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+  if(cv.width!==Math.round(r.width*dpr)){ cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr); }
+  const g=cv.getContext("2d"), k=cv.width/S.data.width;
+  g.clearRect(0,0,cv.width,cv.height); g.lineWidth=Math.max(1.5,1.5*dpr);
+  const cols={0:cssColor("--teamA"),1:cssColor("--teamB")}, f=S.frame;
+  g.font=`700 ${Math.round(12*dpr)}px Saira Condensed, sans-serif`;
+  for(const [x1,y1,x2,y2,jid,team,cls] of boxesAt(f)){
+    g.strokeStyle = cls===3 ? "#f39c12" : (cols[team]||"#bbb");
+    g.strokeRect(x1*k,y1*k,(x2-x1)*k,(y2-y1)*k);
+    const n = cls!==3 ? nameAt(jid,f) : null;
+    if(n){ g.fillStyle=g.strokeStyle; g.fillText(n, x1*k, y1*k-3*dpr); }
+  }
+  const b=ballAt(f); if(b){ g.strokeStyle="#ffe14d"; g.lineWidth=2*dpr; g.beginPath(); g.arc(b[0]*k,b[1]*k,6*dpr,0,7); g.stroke(); }
+  const p=S.draft; if(p){
+    mark(g,k,dpr,p.passer,cssColor("--passer"),"PASSER");
+    mark(g,k,dpr,p.receiver,cssColor("--receiver"),"RECEIVER");
+  }
+  const clock = `${(f/S.data.fps/60|0)}:${String(Math.floor(f/S.data.fps)%60).padStart(2,"0")}`;
+  const tag = `${clock}  ·  frame ${f}`;
+  g.font=`700 ${Math.round(20*dpr)}px JetBrains Mono, monospace`;
+  const tw=g.measureText(tag).width;
+  g.fillStyle="rgba(0,0,0,.6)"; g.fillRect(8*dpr,8*dpr,tw+16*dpr,30*dpr);
+  g.fillStyle="#ffffff"; g.fillText(tag,16*dpr,30*dpr);
+  $("flabel").textContent = `frame ${f} · ${(f/S.data.fps/60|0)}:${String(Math.floor(f/S.data.fps)%60).padStart(2,"0")}`;
+  $("scrub").value = local(f);
+}
+function mark(g,k,dpr,who,col,label){
+  if(!who || who.frame!==S.frame) return;
+  let bx = who.jid!=null ? boxesAt(S.frame).find(b=>b[4]===who.jid) : null;
+  const [x1,y1,x2,y2] = bx ? bx : [who.x-12,who.y-46,who.x+12,who.y];
+  g.strokeStyle=col; g.lineWidth=4*dpr; g.strokeRect(x1*k-4*dpr,y1*k-4*dpr,(x2-x1)*k+8*dpr,(y2-y1)*k+8*dpr);
+  g.fillStyle=col; g.font=`700 ${Math.round(14*dpr)}px Saira Condensed, sans-serif`; g.fillText(label,x1*k-4*dpr,y1*k-8*dpr);
+}
+
+// ---------- tapping players
+$("cv").addEventListener("pointerdown", ev=>{
+  const v=$("vid");
+  if(!v.paused){ v.pause(); S.frame=frameFromVideo(); seek(S.frame); if(!S.pick) return; }
+  if(!S.pick || !S.draft) return;
+  const r=$("cv").getBoundingClientRect(), x=(ev.clientX-r.left)/r.width*S.data.width, y=(ev.clientY-r.top)/r.height*S.data.height;
+  const m=6, hits=boxesAt(S.frame).filter(b=>b[6]!==3 && x>=b[0]-m && x<=b[2]+m && y>=b[1]-m && y<=b[3]+m);
+  hits.sort((a,b)=>(a[2]-a[0])*(a[3]-a[1])-(b[2]-b[0])*(b[3]-b[1]));
+  const h=hits[0];
+  const who = h ? {jid:h[4], team:h[5], frame:S.frame, x:(h[0]+h[2])/2, y:h[3]}
+                : {jid:null, team:-1, frame:S.frame, x, y, name:null};
+  S.draft[S.pick] = who;
+  if(S.pick==="passer"){ S.draft.kick=S.frame; } else { S.draft.touch=S.frame; }
+  const role=S.pick;
+  S.pick = (role==="passer" && !S.draft.receiver) ? "receiver" : null;
+  S.nameRole = role;
+  render(); draw();
+});
+
+// ---------- selection and review
+function proposals(){
+  const inSeg = f => f>=S.data.seg_start && f<S.data.seg_start+S.data.frames;
+  const done = Object.values(S.reviews).filter(r=>r.added && r.status==="pass");
+  const dup = p => done.some(r=>Math.abs(r.kick-p.kick)<=10 && r.touch-p.touch>=-10 && r.touch-p.touch<=35);
+  const l = S.data.proposals.filter(p=>S.reviews[p.id] || !dup(p)).concat(Object.entries(S.reviews).filter(([id,r])=>r.added && inSeg(r.kick)).map(([id,r])=>({id,kick:r.kick,touch:r.touch,added:true})));
+  // a missed pass being added lives only in the draft until it is saved
+  if(S.cur && S.cur.startsWith("add-") && !l.find(p=>p.id===S.cur)) l.push({id:S.cur, kick:S.draft?S.draft.kick:S.frame, touch:0, added:true});
+  return l.sort((a,b)=>a.kick-b.kick);
+}
+function select(id){
+  S.cur=id; S.pick=null; S.nameRole=null; msg("");
+  if(id==null){ S.draft=null; render(); return; }
+  const p=proposals().find(x=>x.id===id), r=S.reviews[id];
+  const base = r && r.passer ? r : p;
+  S.draft = { kick:base.kick, touch:base.touch,
+              passer: clone(r&&r.passer || (p.passer && {...p.passer, frame:p.kick})),
+              receiver: clone(r&&r.receiver || (p.receiver && {...p.receiver, frame:p.touch})),
+              outcome: (r&&r.outcome)||"complete" };
+  render(); seek(S.draft.kick);
+}
+const clone = o => o ? JSON.parse(JSON.stringify(o)) : null;
+function whoName(w){ if(!w) return null; return w.jid!=null ? nameAt(w.jid,w.frame) : (w.name||null); }
+async function save(isPass){
+  if(!S.db){ msg("Saving is not available in this view.", true); return; }
+  const d=S.draft, id=S.cur;
+  if(isPass && (!d.passer || !d.receiver)){ msg("Tap the passer and the receiver first.", true); return; }
+  if(isPass && d.touch<=d.kick){ msg("The touch must come after the kick.", true); return; }
+  for(const role of ["passer","receiver"]){ const w=d[role]; if(isPass && w && w.jid==null && !w.name){ msg(`The ${role} has no box: give them a name or number first.`, true); return; } }
+  const p=proposals().find(x=>x.id===id);
+  const doc = { status: isPass?"pass":"not_pass", kick:d.kick, touch:d.touch, outcome:d.outcome,
+                passer: d.passer ? {...d.passer, name:whoName(d.passer)} : null,
+                receiver: d.receiver ? {...d.receiver, name:whoName(d.receiver)} : null,
+                added: !!(p && p.added), source: p && p.source || "added", at: Date.now() };
+  try{ await S.db.collection("reviews").doc(id).set(doc); S.reviews[id]=doc; next(); msg(isPass?"Saved. Next pass:":"Marked as not a pass. Next:"); }
+  catch(e){ msg("Could not save ("+e.code+"). Try again.", true); }
+}
+function next(){
+  const all=proposals(), i=all.findIndex(p=>p.id===S.cur);
+  const n = all.slice(i+1).find(p=>!S.reviews[p.id]) || all.find(p=>!S.reviews[p.id]);
+  if(n) select(n.id); else { msg("Everything in this segment is reviewed."); render(); }
+}
+function addPass(){
+  const id = "add-" + Date.now().toString(36);
+  S.cur=id; S.draft={kick:S.frame, touch:S.frame, passer:null, receiver:null, outcome:"complete", added:true};
+  S.pick="passer"; S.nameRole=null; msg("");
+  render(); draw();
+}
+
+// ---------- names
+function nameButtons(team){
+  const used = {}; for(const e of Object.values(S.names)) for(const [,n] of e) used[n]=(used[n]||0)+1;
+  for(const r of Object.values(S.reviews)) for(const w of [r.passer,r.receiver]) if(w&&w.name) used[w.name]=(used[w.name]||0)+1;
+  const letter = team===0?"A":team===1?"B":null;
+  let list = Object.keys(used).filter(n=>!letter || n.startsWith(letter)).sort((a,b)=>used[b]-used[a]);
+  if(letter!=="B") for(const p of A_POS){ if(!list.includes("A"+p)) list.push("A"+p); }
+  return list.slice(0,30);
+}
+function applyName(n){
+  n = String(n||"").trim().toUpperCase().replace(/\s+/g,"");
+  const role=S.nameRole, w=S.draft&&S.draft[role]; if(!w||!n) return;
+  if(/^\d+$/.test(n)){ if(w.team===0||w.team===1) n=(w.team===0?"A":"B")+n; else { msg("This player has no team colour: add the letter, e.g. A10 or B10.", true); return; } }
+  if(w.jid!=null) setName(w.jid, w.frame, n).catch(e=>msg("Could not save the name ("+e.code+").", true)); else w.name=n;
+  $("nameinput").value=""; msg(""); render(); draw();
+}
+
+// ---------- render
+function render(){
+  if(!S.data || !S.boxes) return;
+  const all=proposals(), done=all.filter(p=>S.reviews[p.id]).length, passes=Object.values(S.reviews).filter(r=>r.status==="pass").length;
+  $("tally").textContent = `${done}/${all.length} reviewed · ${passes} passes`;
+  $("list").innerHTML="";
+  for(const p of all){
+    const r=S.reviews[p.id], row=document.createElement("div");
+    row.className="row"+(p.id===S.cur?" cur":"");
+    const t=(p.kick/S.data.fps), chip = !r ? `<span class="chip">to review</span>` : r.status==="pass" ? `<span class="chip pass">pass</span>` : `<span class="chip no">not a pass</span>`;
+    const pn = r&&r.passer ? (r.passer.name||"?") : (p.passer ? (nameAt(p.passer.jid,p.kick)||"?") : "");
+    const rn = r&&r.receiver ? (r.receiver.name||"?") : (p.receiver ? (nameAt(p.receiver.jid,p.touch)||"?") : "");
+    row.innerHTML = `<span class="t">${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}</span><span>${pn} → ${rn}${p.added?' <span class="chip hand">added</span>':''}${p.source==="tagged"?' <span class="chip hand">tagged</span>':''}</span>${chip}`;
+    row.onclick=()=>select(p.id);
+    $("list").appendChild(row);
+  }
+  const d=S.draft;
+  $("sheet").hidden = !d;
+  if(!d) return;
+  const p=all.find(x=>x.id===S.cur);
+  $("ptitle").textContent = p && p.added ? "Missed pass" : (S.reviews[S.cur] ? "Reviewed pass" : "Proposed pass");
+  for(const [role,el,sub] of [["passer","pname","psub"],["receiver","rname","rsub"]]){
+    const w=d[role], n=whoName(w);
+    $(el).textContent = w ? (n || "no name yet") : "tap the player";
+    $(el).className = "name"+(w&&n?"":" empty");
+    $(sub).textContent = w ? `${w.jid==null?"added by hand":(w.team===0?"pink · A":w.team===1?"cyan · B":"team ?")} · frame ${w.frame}` : "";
+  }
+  $("bpickp").classList.toggle("on", S.pick==="passer"); $("bpickr").classList.toggle("on", S.pick==="receiver");
+  const role=S.nameRole, w=role&&d[role];
+  $("namebox").hidden = !w;
+  if(w){
+    $("namefor").textContent = `Name the ${role}${whoName(w)?" (now "+whoName(w)+")":""}:`;
+    const box=$("namebtns"); box.innerHTML="";
+    for(const n of nameButtons(w.team)){ const b=document.createElement("button"); b.textContent=n; b.className=n[0]==="A"?"A":n[0]==="B"?"B":""; b.onclick=()=>applyName(n); box.appendChild(b); }
+  }
+  $("ocomplete").classList.toggle("on", d.outcome==="complete"); $("oincomplete").classList.toggle("on", d.outcome==="incomplete");
+  $("bsave").disabled = $("bno").disabled = !S.canWrite;
+  const hint=$("hint");
+  hint.hidden = !S.pick;
+  if(S.pick) hint.textContent = S.pick==="passer" ? "Go to the kick frame and tap the passer (no box? tap them anyway)" : "Go to the first touch and tap the receiver";
+}
+function msg(t,err){ $("msg").textContent=t; $("msg").className="msg"+(err?" err":""); }
+
+// ---------- controls
+function playPause(){
+  const v=$("vid");
+  if(S.videoFor!==S.data.name){ msg("Open the segment video first.", true); return; }
+  S.playTo=null;
+  if(v.paused){ v.playbackRate=Number($("speed").value); v.play().catch(()=>{}); } else { v.pause(); seek(frameFromVideo()); }
+}
+$("bpp").onclick=playPause;
+$("speed").onchange=e=>{ $("vid").playbackRate=Number(e.target.value); };
+$("vid").addEventListener("play",()=>{ $("bpp").textContent="❚❚ Pause"; });
+$("vid").addEventListener("pause",()=>{ $("bpp").textContent="▶ Play"; });
+document.addEventListener("keydown",e=>{ if(e.target.tagName==="INPUT") return;
+  if(e.key===" "){ e.preventDefault(); playPause(); }
+  else if(e.key==="ArrowRight") seek(S.frame+(e.shiftKey?10:1)); else if(e.key==="ArrowLeft") seek(S.frame-(e.shiftKey?10:1)); });
+const step = n => { const v=$("vid"); if(!v.paused){ v.pause(); S.frame=frameFromVideo(); } seek(S.frame+n); };
+$("b-10").onclick=()=>step(-10); $("b-1").onclick=()=>step(-1);
+$("b1").onclick=()=>step(1); $("b10").onclick=()=>step(10);
+$("scrub").oninput=e=>{ const v=$("vid"); if(!v.paused) v.pause(); seek(S.data.seg_start+Number(e.target.value)); };
+$("bplay").onclick=()=>{ const d=S.draft; if(d) playRange(d.kick-20, Math.max(d.touch,d.kick)+20); };
+$("bkick").onclick=()=>{ if(S.draft) seek(S.draft.kick); };
+$("btouch").onclick=()=>{ if(S.draft) seek(S.draft.touch); };
+$("bpickp").onclick=()=>{ S.pick = S.pick==="passer"?null:"passer"; S.nameRole="passer"; render(); };
+$("bpickr").onclick=()=>{ S.pick = S.pick==="receiver"?null:"receiver"; S.nameRole="receiver"; render(); };
+$("ocomplete").onclick=()=>{ S.draft.outcome="complete"; render(); };
+$("oincomplete").onclick=()=>{ S.draft.outcome="incomplete"; render(); };
+$("bsave").onclick=()=>save(true); $("bno").onclick=()=>save(false);
+$("badd").onclick=addPass; $("bnext").onclick=next;
+$("bname").onclick=()=>applyName($("nameinput").value);
+$("nameinput").addEventListener("keydown",e=>{ if(e.key==="Enter") applyName(e.target.value); });
+document.querySelectorAll(".name").forEach(el=>el.addEventListener("click",()=>{ S.nameRole = el.id==="pname"?"passer":"receiver"; render(); }));
+window.addEventListener("resize", ()=>S.data&&draw());
+load().then(()=>requestAnimationFrame(tick)).catch(e=>{ $("meta").textContent="Could not load the match data."; console.error(e); });
+</script>
