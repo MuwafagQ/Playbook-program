@@ -30,7 +30,7 @@ h2{font:700 16px var(--display);letter-spacing:.04em;margin:0;text-transform:upp
 @media (max-width:900px){.layout{flex-direction:column}.left,.side{width:100%}}
 .stage{position:relative;background:var(--stage);border-radius:6px;overflow:hidden;aspect-ratio:16/9;max-width:100%}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:manipulation;cursor:crosshair}
-.stage video{position:absolute;width:2px;height:2px;opacity:0;pointer-events:none}
+.stage video{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0;pointer-events:none;will-change:transform}
 .hint{position:absolute;left:8px;right:8px;bottom:8px;background:rgba(0,0,0,.66);color:#fff;font-size:14px;padding:6px 10px;border-radius:4px;pointer-events:none}
 .novideo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#cfe3d6;padding:16px}
 .bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
@@ -222,32 +222,33 @@ function view(){
   if(z<=1) return {x:0,y:0,w:W,h:H};
   const b=ballAt(S.frame), d=S.draft;
   let tx = b?b[0]:(d&&d.passer?d.passer.x:(S.cx??W/2)), ty = b?b[1]:(d&&d.passer?d.passer.y:(S.cy??H/2));
-  if(S.cx==null){ S.cx=tx; S.cy=ty; } else { S.cx+=(tx-S.cx)*0.12; S.cy+=(ty-S.cy)*0.12; if(Math.abs(tx-S.cx)>1||Math.abs(ty-S.cy)>1) S.dirty=true; }
+  if(S.cx==null || $("vid").paused){ S.cx=tx; S.cy=ty; } else { S.cx+=(tx-S.cx)*0.15; S.cy+=(ty-S.cy)*0.15; }
   const x=Math.max(0,Math.min(W-vw,S.cx-vw/2)), y=Math.max(0,Math.min(H-vh,S.cy-vh/2));
   return {x,y,w:vw,h:vh};
 }
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let COL=null; const cols=()=>COL||(COL={a:css("--teamA"),b:css("--teamB"),p:css("--passer"),r:css("--receiver")});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{ COL=null; S.dirty=true; });
 function draw(){
   const cv=$("cv"), dpr=Math.min(2,window.devicePixelRatio||1), W=cv.clientWidth, H=cv.clientHeight;
   if(!W) return;
   if(cv.width!==Math.round(W*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
   const g=cv.getContext("2d"), V=view(), k=cv.width/V.w, X=x=>(x-V.x)*k, Y=y=>(y-V.y)*k;
   S.V=V;
-  const v=$("vid");
-  if(S.videoFor===S.data.name && v.readyState>=2) g.drawImage(v, V.x*v.videoWidth/S.data.width, V.y*v.videoHeight/S.data.height,
-      V.w*v.videoWidth/S.data.width, V.h*v.videoHeight/S.data.height, 0,0,cv.width,cv.height);
-  else { g.fillStyle=css("--stage"); g.fillRect(0,0,cv.width,cv.height); }
-  const cols={0:css("--teamA"),1:css("--teamB")}, f=S.frame;
+  const kd=W/V.w, tf=`translate(${(-V.x*kd).toFixed(1)}px,${(-V.y*kd).toFixed(1)}px) scale(${S.zoom})`;
+  if($("vid").style.transform!==tf) $("vid").style.transform=tf;
+  g.clearRect(0,0,cv.width,cv.height);
+  const C=cols(), tc={0:C.a,1:C.b}, f=S.frame;
   g.lineWidth=Math.max(1.5,1.2*dpr*Math.sqrt(S.zoom)); g.font=`700 ${Math.round(13*dpr)}px Saira Condensed, sans-serif`;
   for(const [x1,y1,x2,y2,jid,team,cls] of boxesAt(f)){
     if(x2<V.x||x1>V.x+V.w||y2<V.y||y1>V.y+V.h) continue;
-    g.strokeStyle = cls===3 ? "#f39c12" : (cols[team]||"#bbb");
+    g.strokeStyle = cls===3 ? "#f39c12" : (tc[team]||"#bbb");
     g.strokeRect(X(x1),Y(y1),(x2-x1)*k,(y2-y1)*k);
     const n = cls!==3 ? nameAt(jid,f) : null;
     if(n){ g.fillStyle=g.strokeStyle; g.fillText(n, X(x1), Y(y1)-3*dpr); }
   }
   const b=ballAt(f); if(b){ g.strokeStyle="#ffe14d"; g.lineWidth=2*dpr; g.beginPath(); g.arc(X(b[0]),Y(b[1]),6*dpr,0,7); g.stroke(); }
-  const d=S.draft; if(d){ mark(g,X,Y,k,dpr,d.passer,css("--passer"),"PASSER"); mark(g,X,Y,k,dpr,d.receiver,css("--receiver"),"RECEIVER"); }
+  const d=S.draft; if(d){ mark(g,X,Y,k,dpr,d.passer,C.p,"PASSER"); mark(g,X,Y,k,dpr,d.receiver,C.r,"RECEIVER"); }
   const s=f/S.data.fps, tag=`${Math.floor(s/60)}:${String(Math.floor(s)%60).padStart(2,"0")}  ·  frame ${f}`;
   g.font=`700 ${Math.round(18*dpr)}px JetBrains Mono, monospace`;
   const tw=g.measureText(tag).width; g.fillStyle="rgba(0,0,0,.6)"; g.fillRect(8*dpr,8*dpr,tw+16*dpr,28*dpr);
