@@ -28,8 +28,8 @@ h2{font:700 16px var(--display);letter-spacing:.04em;margin:0;text-transform:upp
 .left{flex:3;min-width:0}
 .side{flex:2;min-width:0;display:flex;flex-direction:column;gap:12px}
 @media (max-width:900px){.layout{flex-direction:column}.left,.side{width:100%}}
-.stage{position:relative;background:var(--stage);border-radius:6px;overflow:hidden;aspect-ratio:16/9;max-width:100%}
-.stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:manipulation;cursor:crosshair}
+.stage{touch-action:none;position:relative;background:var(--stage);border-radius:6px;overflow:hidden;aspect-ratio:16/9;max-width:100%}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 .stage video{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0;pointer-events:none;will-change:transform}
 .hint{position:absolute;left:8px;right:8px;bottom:8px;background:rgba(0,0,0,.66);color:#fff;font-size:14px;padding:6px 10px;border-radius:4px;pointer-events:none}
 .novideo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#cfe3d6;padding:16px}
@@ -102,7 +102,7 @@ button:disabled{opacity:.45;cursor:default}
       <button id="b-1" aria-label="Back 1 frame">◀ 1</button>
       <button id="b1" aria-label="Forward 1 frame">1 ▶</button>
       <button id="b10" aria-label="Forward 10 frames">10 ▶</button>
-      <select id="zoom" aria-label="Zoom"><option value="1">Zoom 1×</option><option value="1.5">Zoom 1.5×</option><option value="2">Zoom 2×</option><option value="3">Zoom 3×</option></select>
+      <select id="zoom" aria-label="Zoom"><option value="1">Zoom 1×</option><option value="1.5">Zoom 1.5×</option><option value="2">Zoom 2×</option><option value="3">Zoom 3×</option><option value="4">Zoom 4×</option></select>
       <button id="bundo" disabled>↶ Undo</button>
       <span class="frame" id="flabel"></span>
     </div>
@@ -138,7 +138,7 @@ button:disabled{opacity:.45;cursor:default}
 const $ = id => document.getElementById(id);
 const A_POS = ["GK","RB","RCB","CB","LCB","LB","DM","CM","RM","LM","AM","RW","LW","ST","CF"];
 const S = { idx:null, data:null, boxes:null, frame:0, videoFor:null, reviews:{}, names:{}, db:null, dl:null,
-            cur:null, draft:null, stack:[], nameRole:null, zoom:1, cx:null, cy:null, dirty:true };
+            cur:null, draft:null, stack:[], nameRole:null, zoom:1, cx:null, cy:null, focus:null, dirty:true };
 
 // ---------- data
 async function load(){
@@ -220,6 +220,9 @@ function loop(){
 function view(){
   const W=S.data.width, H=S.data.height, z=S.zoom, vw=W/z, vh=H/z;
   if(z<=1) return {x:0,y:0,w:W,h:H};
+  if(S.focus){ S.cx=S.focus.x; S.cy=S.focus.y; }
+  const x0=Math.max(0,Math.min(W-vw,(S.cx??W/2)-vw/2)), y0=Math.max(0,Math.min(H-vh,(S.cy??H/2)-vh/2));
+  if(S.focus) return {x:x0,y:y0,w:vw,h:vh};
   const b=ballAt(S.frame), d=S.draft;
   let tx = b?b[0]:(d&&d.passer?d.passer.x:(S.cx??W/2)), ty = b?b[1]:(d&&d.passer?d.passer.y:(S.cy??H/2));
   if(S.cx==null || $("vid").paused){ S.cx=tx; S.cy=ty; } else { S.cx+=(tx-S.cx)*0.15; S.cy+=(ty-S.cy)*0.15; }
@@ -264,18 +267,58 @@ function mark(g,X,Y,k,dpr,w,col,label){
 }
 
 // ---------- tagging: tap the passer, tap the receiver; the pass saves itself
+// ---------- gestures on the video: tap = tag, pinch = zoom, drag = move the zoomed view
+const G={pts:new Map(), start:null, moved:false, multi:false, pinch:null};
+const toSrc=(cx,cy)=>{ const r=$("cv").getBoundingClientRect(), V=S.V||{x:0,y:0,w:S.data.width,h:S.data.height};
+  return [V.x+(cx-r.left)/r.width*V.w, V.y+(cy-r.top)/r.height*V.h]; };
 $("cv").addEventListener("pointerdown", ev=>{
   if(!S.data||!S.boxes) return;
+  $("cv").setPointerCapture(ev.pointerId);
+  G.pts.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+  if(G.pts.size===1){ G.start={x:ev.clientX,y:ev.clientY,t:performance.now()}; G.moved=false; G.multi=false; G.lastPan=null; }
+  if(G.pts.size===2){ G.multi=true; const [a,b]=[...G.pts.values()];
+    G.pinch={d:Math.hypot(a.x-b.x,a.y-b.y), z:S.zoom, mid:toSrc((a.x+b.x)/2,(a.y+b.y)/2)}; }
+});
+$("cv").addEventListener("pointermove", ev=>{
+  if(!G.pts.has(ev.pointerId)) return;
+  G.pts.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+  if(G.pts.size>=2 && G.pinch){
+    const [a,b]=[...G.pts.values()], d=Math.hypot(a.x-b.x,a.y-b.y);
+    S.zoom=Math.max(1,Math.min(4,G.pinch.z*d/Math.max(G.pinch.d,1)));
+    S.focus = S.zoom>1.01 ? {x:G.pinch.mid[0], y:G.pinch.mid[1]} : null;
+    syncZoomMenu(); S.dirty=true; return;
+  }
+  if(G.start && Math.hypot(ev.clientX-G.start.x, ev.clientY-G.start.y)>12) G.moved=true;
+  if(G.moved && !G.multi && S.zoom>1){            // one-finger drag moves the zoomed view
+    const r=$("cv").getBoundingClientRect(), V=S.V, p=G.lastPan||G.start;
+    const fx=(S.focus?S.focus.x:S.cx), fy=(S.focus?S.focus.y:S.cy);
+    S.focus={x:fx-(ev.clientX-p.x)/r.width*V.w, y:fy-(ev.clientY-p.y)/r.height*V.h};
+    G.lastPan={x:ev.clientX,y:ev.clientY}; S.dirty=true;
+  }
+});
+const endPointer=ev=>{
+  if(!G.pts.has(ev.pointerId)) return;
+  G.pts.delete(ev.pointerId);
+  if(G.pts.size>0) return;
+  const quick = G.start && performance.now()-G.start.t < 700;
+  const isTap = ev.type==="pointerup" && quick && !G.moved && !G.multi;
+  G.pinch=null; G.start=null;
+  if(isTap) tapAt(ev.clientX, ev.clientY);
+};
+$("cv").addEventListener("pointerup", endPointer);
+$("cv").addEventListener("pointercancel", endPointer);
+function syncZoomMenu(){ const z=$("zoom"); let best=z.options[0];
+  for(const o of z.options) if(Math.abs(Number(o.value)-S.zoom)<Math.abs(Number(best.value)-S.zoom)) best=o; z.value=best.value; }
+function tapAt(cx, cy){
   const v=$("vid"); if(!v.paused){ v.pause(); S.frame=frameFromVideo(); }
-  const r=$("cv").getBoundingClientRect(), V=S.V||{x:0,y:0,w:S.data.width,h:S.data.height};
-  const x=V.x+(ev.clientX-r.left)/r.width*V.w, y=V.y+(ev.clientY-r.top)/r.height*V.h, m=6/S.zoom+4;
+  const [x,y]=toSrc(cx,cy), m=6/S.zoom+4;
   const hits=boxesAt(S.frame).filter(b=>b[6]!==3 && x>=b[0]-m && x<=b[2]+m && y>=b[1]-m && y<=b[3]+m)
                              .sort((a,b)=>(a[2]-a[0])*(a[3]-a[1])-(b[2]-b[0])*(b[3]-b[1]));
   const h=hits[0];
   const who = h ? {jid:h[4], team:h[5], frame:S.frame, x:(h[0]+h[2])/2, y:h[3]} : {jid:null, team:-1, frame:S.frame, x, y, name:null};
   if(who.jid!=null){ const n=nameAt(who.jid,S.frame); if(n&&/^[AB]/.test(n)) who.team = n[0]==="A"?0:1; }
   tap(who);
-});
+}
 function waitingReceiver(){ const d=S.draft; return !!(d && d.passer && !d.receiver && d.outcome!=="out" && !S.reviews[S.cur]); }
 function tap(who){
   const d=S.draft;
@@ -436,7 +479,7 @@ $("bpp").onclick=playPause;
 $("speed").onchange=e=>{ $("vid").playbackRate=Number(e.target.value); };
 $("b-10").onclick=()=>step(-10); $("b-1").onclick=()=>step(-1); $("b1").onclick=()=>step(1); $("b10").onclick=()=>step(10);
 $("scrub").oninput=e=>{ const v=$("vid"); if(!v.paused) v.pause(); seek(S.data.seg_start+Number(e.target.value)); };
-$("zoom").onchange=e=>{ S.zoom=Number(e.target.value); S.cx=null; S.dirty=true; };
+$("zoom").onchange=e=>{ S.zoom=Number(e.target.value); S.focus=null; S.cx=null; S.dirty=true; };
 $("bundo").onclick=undo; $("bdelete").onclick=deletePass; $("bexport").onclick=exportCsv;
 for(const o of ["complete","intercepted","incomplete","out"]) $("o-"+o).onclick=()=>setOutcome(o);
 document.querySelectorAll(".teams button").forEach(b=>b.onclick=()=>setTeam(b.dataset.role, Number(b.dataset.team)));
