@@ -70,6 +70,13 @@ button:disabled{opacity:.45;cursor:default}
 .row .t{font:500 12px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
 .chip{font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:10px;border:1px solid var(--line);color:var(--muted)}
 .chip.pass{color:var(--accent);border-color:var(--accent)}.chip.no{color:var(--bad);border-color:var(--bad)}.chip.hand{color:var(--warn);border-color:var(--warn)}
+.zoomer{position:absolute;inset:0;transition:transform .2s ease}
+.note{font:15px var(--body);padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+.chip.other{color:var(--warn);border-color:var(--warn)}
+.stats table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.stats td,.stats th{padding:3px 4px;text-align:left;border-bottom:1px solid var(--line);font-size:13px}
+.stats th{color:var(--muted);font-weight:600}
+.stats .teamA{color:var(--teamA)}.stats .teamB{color:var(--teamB)}
 .msg{font-size:13px;color:var(--muted);min-height:18px}
 .msg.err{color:var(--bad)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -89,8 +96,8 @@ button:disabled{opacity:.45;cursor:default}
 <div class="layout">
   <div class="left">
     <div class="stage" id="stage">
-      <video id="vid" playsinline muted preload="auto"></video>
-      <canvas id="cv"></canvas>
+      <div class="zoomer" id="zoomer"><video id="vid" playsinline muted preload="auto"></video>
+      <canvas id="cv"></canvas></div>
       <div class="hint" id="hint" hidden></div>
       <div class="empty-stage" id="novideo">Tap “Open the segment video” and pick the clip of this segment from Drive (for example 01_1H_00-05.mp4). It plays on this tablet; nothing is uploaded.</div>
     </div>
@@ -105,6 +112,7 @@ button:disabled{opacity:.45;cursor:default}
       <button id="bplay">Replay pass</button>
       <button id="bkick">Kick</button>
       <button id="btouch">Touch</button>
+      <button id="bzoom" aria-pressed="false">Zoom 2×</button>
       <span class="frame" id="flabel">frame –</span>
     </div>
   </div>
@@ -124,6 +132,7 @@ button:disabled{opacity:.45;cursor:default}
         <div class="names" id="namebtns"></div>
         <div class="namein"><input id="nameinput" placeholder="Number or position, e.g. B10 or ALB" autocomplete="off"><button id="bname">Set</button></div>
       </div>
+      <input id="note" class="note" placeholder="Note (optional): corner, header, free kick…" autocomplete="off">
       <div class="seg" role="group" aria-label="Outcome">
         <button id="ocomplete" class="on">Complete</button><button id="oincomplete">Incomplete</button>
       </div>
@@ -131,13 +140,20 @@ button:disabled{opacity:.45;cursor:default}
         <button class="primary" id="bsave">✔ Save pass</button>
         <button class="danger" id="bno">✖ Not a pass</button>
       </div>
+      <button id="breopen" hidden>Reopen this answer</button>
       <div class="msg" id="msg"></div>
     </div>
     <div class="bar" style="margin-top:0">
       <button id="badd">+ Missed pass</button>
       <button id="bnext">Next to review ▶</button>
+      <button id="bfilter" aria-pressed="false">To review only</button>
     </div>
     <div class="list" id="list"></div>
+    <div class="sheet stats">
+      <h2>Passes so far</h2>
+      <div id="stats" class="sub">No passes saved yet.</div>
+      <button id="bexport">Save passes (CSV)</button>
+    </div>
   </div>
 </div>
 
@@ -145,7 +161,7 @@ button:disabled{opacity:.45;cursor:default}
 const $ = id => document.getElementById(id);
 const A_POS = ["GK","RB","RCB","CB","LCB","LB","DM","CM","RM","LM","AM","RW","LW","ST","CF"];
 const S = { idx:null, data:null, boxes:null, frame:0, videoFor:null, cur:null, draft:null, pick:null, playTo:null,
-            reviews:{}, names:{}, db:null, canWrite:true };
+            reviews:{}, names:{}, db:null, canWrite:true, zoom:false, onlyOpen:false, dl:null };
 
 // ---------- data
 async function load(){
@@ -179,6 +195,7 @@ $("vfile").onchange = e => {
   v.addEventListener("loadedmetadata", ()=>seek(S.frame), {once:true});
 };
 async function connect(){
+  try{ S.dl = await claude.use("downloads"); }catch(e){ S.dl=null; }
   try{
     const db = await claude.use("db");
     if(!db){ msg("Saving is not available in this view: answers will not be kept.", true); S.canWrite=false; render(); return; }
@@ -301,8 +318,9 @@ function select(id){
   S.draft = { kick:base.kick, touch:base.touch,
               passer: clone(r&&r.passer || (p.passer && {...p.passer, frame:p.kick})),
               receiver: clone(r&&r.receiver || (p.receiver && {...p.receiver, frame:p.touch})),
-              outcome: (r&&r.outcome)||"complete" };
-  render(); seek(S.draft.kick);
+              outcome: (r&&r.outcome)||(p.same_team===false?"incomplete":"complete") };
+  $("note").value = (r&&r.notes)||"";
+  render(); seek(S.draft.kick); setZoomOrigin();
 }
 const clone = o => o ? JSON.parse(JSON.stringify(o)) : null;
 function whoName(w){ if(!w) return null; return w.jid!=null ? nameAt(w.jid,w.frame) : (w.name||null); }
@@ -316,7 +334,7 @@ async function save(isPass){
   const doc = { status: isPass?"pass":"not_pass", kick:d.kick, touch:d.touch, outcome:d.outcome,
                 passer: d.passer ? {...d.passer, name:whoName(d.passer)} : null,
                 receiver: d.receiver ? {...d.receiver, name:whoName(d.receiver)} : null,
-                added: !!(p && p.added), source: p && p.source || "added", at: Date.now() };
+                added: !!(p && p.added), source: p && p.source || "added", notes: $("note").value.trim(), at: Date.now() };
   try{ await S.db.collection("reviews").doc(id).set(doc); S.reviews[id]=doc; next(); msg(isPass?"Saved. Next pass:":"Marked as not a pass. Next:"); }
   catch(e){ msg("Could not save ("+e.code+"). Try again.", true); }
 }
@@ -325,9 +343,46 @@ function next(){
   const n = all.slice(i+1).find(p=>!S.reviews[p.id]) || all.find(p=>!S.reviews[p.id]);
   if(n) select(n.id); else { msg("Everything in this segment is reviewed."); render(); }
 }
+async function reopen(){
+  const id=S.cur, r=S.reviews[id]; if(!r || !S.db) return;
+  try{ await S.db.collection("reviews").doc(id).delete(); delete S.reviews[id];
+       msg(r.added ? "Pass deleted." : "Answer cleared: this pass is open again."); if(r.added) next(); else render(); }
+  catch(e){ msg("Could not change it ("+e.code+").", true); }
+}
+function setZoomOrigin(){
+  const z=$("zoomer"); if(!S.zoom || !S.data){ z.style.transform=""; return; }
+  const w=S.draft&&S.draft.passer, b=ballAt(S.frame);
+  const x = b ? b[0] : (w&&w.x!=null ? w.x : S.data.width/2), y = b ? b[1] : (w&&w.y!=null ? w.y : S.data.height/2);
+  z.style.transformOrigin = `${(x/S.data.width*100).toFixed(1)}% ${(y/S.data.height*100).toFixed(1)}%`;
+  z.style.transform = "scale(2)";
+}
+function segOf(frame){ return S.idx.segments.find(g=>frame>=g.seg_start && frame<g.seg_start+g.frames); }
+function allSaved(){ return Object.entries(S.reviews).filter(([,r])=>r.status==="pass").map(([id,r])=>({id,...r})).sort((a,b)=>a.kick-b.kick); }
+function teamOf(n){ return n&&n[0]==="A"?"A":n&&n[0]==="B"?"B":"?"; }
+function renderStats(){
+  const saved=allSaved(); if(!saved.length){ $("stats").textContent="No passes saved yet."; return; }
+  const by={}; for(const r of saved){ const n=(r.passer&&r.passer.name)||"?"; by[n]=by[n]||{n,team:teamOf(n),all:0,ok:0}; by[n].all++; if(r.outcome==="complete") by[n].ok++; }
+  const team={A:{all:0,ok:0},B:{all:0,ok:0}}; for(const v of Object.values(by)) if(team[v.team]){ team[v.team].all+=v.all; team[v.team].ok+=v.ok; }
+  const pct=(a,b)=>b?Math.round(100*a/b)+"%":"–";
+  const rows=Object.values(by).sort((a,b)=>b.all-a.all).slice(0,8).map(v=>`<tr><td class="team${v.team}">${v.n}</td><td>${v.all}</td><td>${pct(v.ok,v.all)}</td></tr>`).join("");
+  $("stats").innerHTML = `<p><span class="teamA">Pink A</span>: ${team.A.all} passes, ${pct(team.A.ok,team.A.all)} complete · <span class="teamB">Cyan B</span>: ${team.B.all} passes, ${pct(team.B.ok,team.B.all)} complete</p>
+    <table><tr><th>Passer</th><th>Passes</th><th>Complete</th></tr>${rows}</table>`;
+}
+async function exportCsv(){
+  if(!S.dl){ msg("Saving files is not available in this view.", true); return; }
+  const fps=S.idx.fps, t=f=>{ const s=f/fps; return `${Math.floor(s/60)}:${(s%60).toFixed(1).padStart(4,"0")}`; };
+  const esc=v=>{ v=v==null?"":String(v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  const head=["pass_no","segment","kick_frame","kick_time","touch_frame","touch_time","passer","passer_team","receiver","receiver_team","outcome","source","note","passer_player_id","receiver_player_id"];
+  const lines=[head.join(",")];
+  allSaved().forEach((r,i)=>{ const g=segOf(r.kick), pn=r.passer&&r.passer.name, rn=r.receiver&&r.receiver.name;
+    lines.push([i+1,g?g.name:"",r.kick,t(r.kick),r.touch,t(r.touch),pn,teamOf(pn),rn,teamOf(rn),r.outcome,r.source||"",r.notes||"",
+                r.passer&&r.passer.jid,r.receiver&&r.receiver.jid].map(esc).join(",")); });
+  try{ await S.dl.save({filename:`${S.idx.match}_passes.csv`, data:lines.join("\n")+"\n"}); msg(`Saved ${lines.length-1} passes.`); }
+  catch(e){ if(e.code!=="declined") msg("Could not save the file ("+e.code+").", true); }
+}
 function addPass(){
   const id = "add-" + Date.now().toString(36);
-  S.cur=id; S.draft={kick:S.frame, touch:S.frame, passer:null, receiver:null, outcome:"complete", added:true};
+  S.cur=id; S.draft={kick:S.frame, touch:S.frame, passer:null, receiver:null, outcome:"complete", added:true}; $("note").value="";
   S.pick="passer"; S.nameRole=null; msg("");
   render(); draw();
 }
@@ -355,16 +410,24 @@ function render(){
   const all=proposals(), done=all.filter(p=>S.reviews[p.id]).length, passes=Object.values(S.reviews).filter(r=>r.status==="pass").length;
   $("tally").textContent = `${done}/${all.length} reviewed · ${passes} passes`;
   $("list").innerHTML="";
+  let curRow=null;
   for(const p of all){
-    const r=S.reviews[p.id], row=document.createElement("div");
+    const r=S.reviews[p.id];
+    if(S.onlyOpen && r && p.id!==S.cur) continue;
+    const row=document.createElement("div");
     row.className="row"+(p.id===S.cur?" cur":"");
     const t=(p.kick/S.data.fps), chip = !r ? `<span class="chip">to review</span>` : r.status==="pass" ? `<span class="chip pass">pass</span>` : `<span class="chip no">not a pass</span>`;
     const pn = r&&r.passer ? (r.passer.name||"?") : (p.passer ? (nameAt(p.passer.jid,p.kick)||"?") : "");
     const rn = r&&r.receiver ? (r.receiver.name||"?") : (p.receiver ? (nameAt(p.receiver.jid,p.touch)||"?") : "");
-    row.innerHTML = `<span class="t">${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}</span><span>${pn} → ${rn}${p.added?' <span class="chip hand">added</span>':''}${p.source==="tagged"?' <span class="chip hand">tagged</span>':''}</span>${chip}`;
+    row.innerHTML = `<span class="t">${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}</span><span>${pn} → ${rn}${p.added?' <span class="chip hand">added</span>':''}${p.source==="tagged"?' <span class="chip hand">tagged</span>':''}${p.same_team===false&&!r?' <span class="chip other">other team</span>':''}</span>${chip}`;
     row.onclick=()=>select(p.id);
     $("list").appendChild(row);
+    if(p.id===S.cur) curRow=row;
   }
+  if(curRow){ const L=$("list"), top=curRow.offsetTop-L.offsetTop; if(top<L.scrollTop || top>L.scrollTop+L.clientHeight-40) L.scrollTop=top-60; }
+  for(const o of $("segsel").options){ const g=S.idx.segments.find(x=>x.name===o.value);
+    const done=g.proposals.filter(p=>S.reviews[p.id]).length; o.textContent=`${g.name.replace(/_/g," ")} · ${done}/${g.proposals.length}`; }
+  renderStats();
   const d=S.draft;
   $("sheet").hidden = !d;
   if(!d) return;
@@ -386,6 +449,8 @@ function render(){
   }
   $("ocomplete").classList.toggle("on", d.outcome==="complete"); $("oincomplete").classList.toggle("on", d.outcome==="incomplete");
   $("bsave").disabled = $("bno").disabled = !S.canWrite;
+  const rv=S.reviews[S.cur]; $("breopen").hidden=!rv; $("breopen").textContent = rv&&rv.added ? "Delete this pass" : "Reopen this answer";
+  $("bexport").hidden = !S.dl;
   const hint=$("hint");
   hint.hidden = !S.pick;
   if(S.pick) hint.textContent = S.pick==="passer" ? "Go to the kick frame and tap the passer (no box? tap them anyway)" : "Go to the first touch and tap the receiver";
@@ -411,14 +476,17 @@ $("b-10").onclick=()=>step(-10); $("b-1").onclick=()=>step(-1);
 $("b1").onclick=()=>step(1); $("b10").onclick=()=>step(10);
 $("scrub").oninput=e=>{ const v=$("vid"); if(!v.paused) v.pause(); seek(S.data.seg_start+Number(e.target.value)); };
 $("bplay").onclick=()=>{ const d=S.draft; if(d) playRange(d.kick-20, Math.max(d.touch,d.kick)+20); };
-$("bkick").onclick=()=>{ if(S.draft) seek(S.draft.kick); };
-$("btouch").onclick=()=>{ if(S.draft) seek(S.draft.touch); };
+$("bkick").onclick=()=>{ if(S.draft){ seek(S.draft.kick); setZoomOrigin(); } };
+$("btouch").onclick=()=>{ if(S.draft){ seek(S.draft.touch); setZoomOrigin(); } };
 $("bpickp").onclick=()=>{ S.pick = S.pick==="passer"?null:"passer"; S.nameRole="passer"; render(); };
 $("bpickr").onclick=()=>{ S.pick = S.pick==="receiver"?null:"receiver"; S.nameRole="receiver"; render(); };
 $("ocomplete").onclick=()=>{ S.draft.outcome="complete"; render(); };
 $("oincomplete").onclick=()=>{ S.draft.outcome="incomplete"; render(); };
 $("bsave").onclick=()=>save(true); $("bno").onclick=()=>save(false);
 $("badd").onclick=addPass; $("bnext").onclick=next;
+$("breopen").onclick=reopen; $("bexport").onclick=exportCsv;
+$("bfilter").onclick=()=>{ S.onlyOpen=!S.onlyOpen; $("bfilter").classList.toggle("on",S.onlyOpen); $("bfilter").setAttribute("aria-pressed",S.onlyOpen); render(); };
+$("bzoom").onclick=()=>{ S.zoom=!S.zoom; $("bzoom").classList.toggle("on",S.zoom); $("bzoom").setAttribute("aria-pressed",S.zoom); setZoomOrigin(); draw(); };
 $("bname").onclick=()=>applyName($("nameinput").value);
 $("nameinput").addEventListener("keydown",e=>{ if(e.key==="Enter") applyName(e.target.value); });
 document.querySelectorAll(".name").forEach(el=>el.addEventListener("click",()=>{ S.nameRole = el.id==="pname"?"passer":"receiver"; render(); }));
