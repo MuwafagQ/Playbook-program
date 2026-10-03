@@ -1,0 +1,75 @@
+{
+ "setup": "final = NAS people detector + ROLE_BY_TRACK + built-in ball model (fast search) + challenger switch; old = previous default pipeline",
+ "speed_T4_ball_model_ms": {
+  "full_32_tiles": 875,
+  "around_ball_4_tiles": 102,
+  "fast_mode_avg_estimate": {
+   "night": 140,
+   "day": 136
+  },
+  "full_searches": {
+   "night": 33,
+   "day": 23
+  }
+ },
+ "hilal_hazm_day_heldout": {
+  "old": {
+   "player_IDF1": 0.821,
+   "player_switches": 14,
+   "player_recall": 0.919,
+   "people_IDF1": 0.7965,
+   "people_switches": 123,
+   "role_correct": {
+    "gk": 0.858,
+    "player": 0.971,
+    "referee": 0.867
+   },
+   "ball_hit": 0.677,
+   "ball_at_feet": 0.151
+  },
+  "final": {
+   "player_IDF1": 0.8355,
+   "player_switches": 6,
+   "player_recall": 0.933,
+   "people_IDF1": 0.8196,
+   "people_switches": 17,
+   "role_correct": {
+    "gk": 0.902,
+    "player": 0.98,
+    "referee": 1.0
+   },
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028
+  }
+ },
+ "hilal_ahli_night": {
+  "old": {
+   "player_IDF1": 0.8657,
+   "player_switches": 14,
+   "player_recall": 0.96,
+   "people_IDF1": 0.894,
+   "people_switches": 38,
+   "role_correct": {
+    "gk": 0.164,
+    "player": 0.999,
+    "referee": 0.986
+   },
+   "ball_hit": 0.832,
+   "ball_at_feet": 0.054
+  },
+  "final": {
+   "player_IDF1": 0.8671,
+   "player_switches": 13,
+   "player_recall": 0.989,
+   "people_IDF1": 0.8845,
+   "people_switches": 14,
+   "role_correct": {
+    "gk": 1.0,
+    "player": 0.999,
+    "referee": 1.0
+   },
+   "ball_hit": 0.932,
+   "ball_at_feet": 0.03
+  }
+ }
+}

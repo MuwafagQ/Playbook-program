@@ -110,6 +110,45 @@ def recover_ball_in_roi(
     return det
 
 
+def tile_origins(width: int, height: int, tile: int = 720, min_overlap: int = 64) -> list[tuple[int, int]]:
+    """Top-left corners of square tiles covering the frame with at least min_overlap px overlap."""
+    def starts(n_px):
+        if n_px <= tile:
+            return [0]
+        k = int(np.ceil((n_px - min_overlap) / (tile - min_overlap)))
+        return [int(round(v)) for v in np.linspace(0, n_px - tile, k)]
+    return [(x, y) for y in starts(height) for x in starts(width)]
+
+
+def infer_ball_tiles(player_model, frame: np.ndarray, conf: float = 0.10, tile: int = 720) -> sv.Detections:
+    """Ball candidates from square native-resolution tiles (the ball is ~2.5x larger to the
+    model than in the full-frame pass). Boxes are mapped back to the frame; duplicates from
+    overlapping tiles are merged by NMS."""
+    h, w = frame.shape[:2]
+    origins = tile_origins(w, h, tile)
+    crops = [frame[y:y + tile, x:x + tile] for x, y in origins]
+    try:
+        results = player_model.infer(crops, confidence=conf)
+        if len(results) != len(crops):
+            raise ValueError("batch size mismatch")
+    except Exception:
+        results = [player_model.infer(c, confidence=conf)[0] for c in crops]
+    parts = []
+    for (x, y), res in zip(origins, results):
+        det = sv.Detections.from_inference(res)
+        if det.class_id is None or len(det) == 0:
+            continue
+        det = det[det.class_id == BALL_ID]
+        if len(det) == 0:
+            continue
+        det.xyxy = det.xyxy + np.array([x, y, x, y], dtype=np.float32)
+        parts.append(det)
+    if not parts:
+        return _empty_ball_detections()
+    merged = sv.Detections.merge(parts)
+    return merged.with_nms(threshold=0.3, class_agnostic=True)
+
+
 _KP_CORRESPONDENCE_LOGGED = False
 
 

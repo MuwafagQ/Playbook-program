@@ -1,0 +1,63 @@
+{
+ "clip": "HILAL-HAZM (held out), 530 frames, full pipeline replay vs CVAT ground truth",
+ "ball_model": "tile RF-DETR Small, full-frame search, candidates conf>=0.10, DET_CONF_BALL=0.30",
+ "results": {
+  "old": {
+   "player_IDF1": 0.821,
+   "player_switches": 14,
+   "player_recall": 0.919,
+   "people_IDF1": 0.7965,
+   "people_switches": 123,
+   "role_correct": {
+    "gk": 0.858,
+    "player": 0.971,
+    "referee": 0.867
+   },
+   "ball_hit": 0.677,
+   "ball_at_feet": 0.151
+  },
+  "nas+one_tracker": {
+   "player_IDF1": 0.8355,
+   "player_switches": 6,
+   "player_recall": 0.933,
+   "people_IDF1": 0.8196,
+   "people_switches": 17,
+   "role_correct": {
+    "gk": 0.902,
+    "player": 0.98,
+    "referee": 1.0
+   },
+   "ball_hit": 0.725,
+   "ball_at_feet": 0.102
+  },
+  "nas+one_tracker+ball_model": {
+   "player_IDF1": 0.8355,
+   "player_switches": 6,
+   "player_recall": 0.933,
+   "people_IDF1": 0.8196,
+   "people_switches": 17,
+   "role_correct": {
+    "gk": 0.902,
+    "player": 0.98,
+    "referee": 1.0
+   },
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028
+  }
+ },
+ "built_in_ball_model": {
+  "note": "main.py BALL_MODEL_ENABLED, replayed from full-frame candidates; fast = tiles around the predicted ball, full search when lost (3 frames), unknown, or every 30 frames",
+  "fast_mode": {
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028,
+   "full_searches": 19,
+   "around_ball_searches": 511,
+   "avg_tiles_per_frame": 5.0
+  },
+  "full_search_every_frame": {
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028,
+   "avg_tiles_per_frame": 32
+  }
+ }
+}

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections import deque
+
 import numpy as np
 import supervision as sv
 import cv2
@@ -16,8 +18,23 @@ class ColorTeamClassifier:
         lr: float = 0.05,
         min_margin: float = 0.12,
         track_feat_alpha: float = 0.8,
+        refit_every: int = 0,
+        buffer_size: int = 3000,
+        track_mean: bool = False,
     ):
+        """refit_every > 0: every that many new samples, re-cluster the two kit colours from a rolling
+        buffer of the last buffer_size player features (all tracks), keeping team numbers stable,
+        instead of drifting the first centroids (lr). Refitting uses many frames and both teams,
+        so an unlucky start (few players, one team) is corrected.
+        track_mean: judge each track by the average of all its features so far, re-assigned with the
+        current centroids every time (instead of a short moving average whose per-frame votes are
+        kept): a track judged with poor early centroids is corrected once they improve."""
+        self.track_mean = bool(track_mean)
+        self._track_sum: dict[int, np.ndarray] = {}
         self.init_samples = int(init_samples)
+        self.refit_every = int(refit_every)
+        self._recent: deque[np.ndarray] = deque(maxlen=int(buffer_size))
+        self._since_fit = 0
         self.lr = float(lr)
         self.min_margin = float(min_margin)
         self.track_feat_alpha = float(track_feat_alpha)
@@ -83,43 +100,56 @@ class ColorTeamClassifier:
         return feat
 
     @staticmethod
-    def _init_centroids(features: np.ndarray) -> np.ndarray:
-        n = features.shape[0]
+    def _init_centroids(features: np.ndarray, restarts: int = 10, iters: int = 20, seed: int = 0) -> np.ndarray:
+        """Two kit-colour centroids by k-means with several starts (the farthest pair of samples plus
+        k-means++ seeds), keeping the tightest result. The farthest pair alone tends to pick two
+        outliers (occluded or grass-heavy crops); at night that mixed the two teams."""
+        x = np.asarray(features, dtype=np.float32)
+        n = x.shape[0]
         if n < 2:
-            return np.stack([features[0], features[0]], axis=0)
-
-        # Farthest-pair seeding.
-        best_i, best_j, best_d = 0, 1, -1.0
-        for i in range(n):
-            d = np.linalg.norm(features[i + 1:] - features[i], axis=1) if i + 1 < n else np.array([])
-            if d.size == 0:
-                continue
-            j_rel = int(np.argmax(d))
-            if float(d[j_rel]) > best_d:
-                best_d = float(d[j_rel])
-                best_i = i
-                best_j = i + 1 + j_rel
-
-        c = np.stack([features[best_i], features[best_j]], axis=0).astype(np.float32)
-        for _ in range(8):
-            d0 = np.linalg.norm(features - c[0], axis=1)
-            d1 = np.linalg.norm(features - c[1], axis=1)
-            a = d1 < d0
-            if np.any(~a):
-                c[0] = features[~a].mean(axis=0)
-            if np.any(a):
-                c[1] = features[a].mean(axis=0)
-            c[0] /= max(float(np.linalg.norm(c[0])), 1e-6)
-            c[1] /= max(float(np.linalg.norm(c[1])), 1e-6)
-        return c
+            return np.stack([x[0], x[0]], axis=0)
+        rng = np.random.default_rng(seed)
+        d = np.linalg.norm(x[:, None] - x[None], axis=2) if n <= 1500 else None
+        if d is not None:
+            i0, j0 = np.unravel_index(int(np.argmax(d)), d.shape)
+        else:
+            i0 = 0
+            j0 = int(np.argmax(np.linalg.norm(x - x[0], axis=1)))
+        starts = [(int(i0), int(j0))]
+        for _ in range(max(0, restarts - 1)):
+            a = int(rng.integers(n))
+            p = np.linalg.norm(x - x[a], axis=1) ** 2
+            b = int(rng.choice(n, p=p / p.sum())) if p.sum() > 0 else int(rng.integers(n))
+            starts.append((a, b))
+        best, best_inertia = None, np.inf
+        for a, b in starts:
+            c = np.stack([x[a], x[b]]).astype(np.float32)
+            for _ in range(iters):
+                lab = np.linalg.norm(x - c[1], axis=1) < np.linalg.norm(x - c[0], axis=1)
+                for k, m in ((0, ~lab), (1, lab)):
+                    if np.any(m):
+                        c[k] = x[m].mean(axis=0)
+                        c[k] /= max(float(np.linalg.norm(c[k])), 1e-6)
+            inertia = float(np.minimum(np.linalg.norm(x - c[0], axis=1), np.linalg.norm(x - c[1], axis=1)).sum())
+            if inertia < best_inertia:
+                best, best_inertia = c.copy(), inertia
+        return best
 
     def _maybe_fit(self) -> None:
-        if self.centroids is not None:
+        if self.centroids is None:
+            if len(self._buffer) < self.init_samples:
+                return
+            self.centroids = self._init_centroids(np.asarray(self._buffer, dtype=np.float32))
+            self._since_fit = 0
             return
-        if len(self._buffer) < self.init_samples:
+        if self.refit_every <= 0 or self._since_fit < self.refit_every or len(self._recent) < self.init_samples:
             return
-        feats = np.asarray(self._buffer, dtype=np.float32)
-        self.centroids = self._init_centroids(feats)
+        new = self._init_centroids(np.asarray(self._recent, dtype=np.float32))
+        old = self.centroids
+        keep = np.linalg.norm(new - old, axis=1).sum()
+        swap = np.linalg.norm(new[::-1] - old, axis=1).sum()
+        self.centroids = new if keep <= swap else new[::-1].copy()  # keep team numbers stable
+        self._since_fit = 0
 
     def _assign(self, feat: np.ndarray) -> tuple[int, float]:
         d0 = float(np.linalg.norm(feat - self.centroids[0]))
@@ -148,11 +178,27 @@ class ColorTeamClassifier:
                 continue
 
             tid = int(tid)
+            if self.track_mean:
+                self._recent.append(feat)
+                self._since_fit += 1
+                acc = self._track_sum.get(tid)
+                self._track_sum[tid] = feat.copy() if acc is None or acc.shape != feat.shape else acc + feat
+                mean = self._track_sum[tid] / max(float(np.linalg.norm(self._track_sum[tid])), 1e-6)
+                self._track_feat[tid] = mean
+                if self.centroids is None:
+                    self._buffer.append(feat)
+                    continue
+                team, margin = self._assign(mean)
+                if margin >= self.min_margin:
+                    out[tid] = int(team)
+                continue
             prev = self._track_feat.get(tid)
             if prev is not None and prev.shape == feat.shape:
                 feat = self.track_feat_alpha * prev + (1.0 - self.track_feat_alpha) * feat
                 feat /= max(float(np.linalg.norm(feat)), 1e-6)
             self._track_feat[tid] = feat
+            self._recent.append(feat)
+            self._since_fit += 1
 
             if self.centroids is None:
                 self._buffer.append(feat)
@@ -164,7 +210,7 @@ class ColorTeamClassifier:
 
             out[tid] = int(team)
             # Avoid centroid drift from low-quality assignments; update only on high-confidence margin.
-            if margin >= (self.min_margin * 2.5):
+            if self.refit_every <= 0 and margin >= (self.min_margin * 2.5):
                 self.centroids[team] = (1.0 - self.lr) * self.centroids[team] + self.lr * feat
                 self.centroids[team] /= max(float(np.linalg.norm(self.centroids[team])), 1e-6)
 

@@ -1,0 +1,11 @@
+{
+  "note": "SoccerNet GSR baseline (sn-gamestate, live run in Colab 2026-09-25) on validation clip SNGS-021, scored with tools/gsr_eval.py. HOTA / DetA / AssA in percent. TrackLab's own GS-HOTA was not captured (log parsing bug, since fixed).",
+  "clip": "SNGS-021",
+  "baseline": {
+    "image_hota": {"HOTA": 51.8, "DetA": 63.9, "AssA": 41.9},
+    "pitch":      {"HOTA": 54.5, "DetA": 66.2, "AssA": 45.0},
+    "+role":      {"HOTA": 54.5, "DetA": 66.1, "AssA": 45.0},
+    "+team":      {"HOTA": 54.0, "DetA": 63.8, "AssA": 45.7},
+    "gs_hota":    {"HOTA": 38.4, "DetA": 30.9, "AssA": 47.6}
+  }
+}

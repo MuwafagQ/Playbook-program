@@ -1,0 +1,428 @@
+<title>Playbook-IQ Situation Board</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    --ink:#1C1A19;
+    --ink-2:#4A4441;
+    --ink-3:#7A716C;
+    --ground:#FAF7F4;
+    --panel:#FFFFFF;
+    --rule:#E2DAD3;
+    --rule-2:#CFC4BB;
+    --accent:#E85A2A;
+    --accent-soft:#FBE9E1;
+    --ok:#2E7150;
+    --warn:#9A6B10;
+    --stop:#B3261E;
+    --ok-bg:#E6F0EA;
+    --warn-bg:#F7EEDA;
+    --stop-bg:#F8E4E1;
+    --display:'Archivo',system-ui,sans-serif;
+    --body:'IBM Plex Sans',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --ink:#F2EDE8; --ink-2:#C6BBB3; --ink-3:#938881;
+      --ground:#171513; --panel:#211E1B; --rule:#3A3430; --rule-2:#4E4641;
+      --accent:#FF7A4D; --accent-soft:#3A241B;
+      --ok:#6FC79A; --warn:#E0B05A; --stop:#F08579;
+      --ok-bg:#1C2E25; --warn-bg:#332A18; --stop-bg:#38201D;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --ink:#F2EDE8; --ink-2:#C6BBB3; --ink-3:#938881;
+    --ground:#171513; --panel:#211E1B; --rule:#3A3430; --rule-2:#4E4641;
+    --accent:#FF7A4D; --accent-soft:#3A241B;
+    --ok:#6FC79A; --warn:#E0B05A; --stop:#F08579;
+    --ok-bg:#1C2E25; --warn-bg:#332A18; --stop-bg:#38201D;
+  }
+  body{background:var(--ground);color:var(--ink);font-family:var(--body);line-height:1.55;}
+  .wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:44px 80px;}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,6vw,48px);line-height:1.04;letter-spacing:-.02em;margin:10px 0 0;text-wrap:balance;}
+  .dek{max-width:64ch;color:var(--ink-2);font-size:17px;margin-top:14px;}
+  h2{font-family:var(--display);font-weight:600;font-size:clamp(20px,3.4vw,26px);letter-spacing:-.01em;margin:0;text-wrap:balance;}
+  h3{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.01em;margin:0;}
+  p{margin:0;max-width:68ch;}
+  section{margin-top:56px;display:flex;flex-direction:column;gap:18px;}
+  .sechead{display:flex;flex-direction:column;gap:6px;border-top:2px solid var(--ink);padding-top:12px;}
+  .prose{display:flex;flex-direction:column;gap:14px;color:var(--ink-2);font-size:15.5px;}
+  strong{color:var(--ink);font-weight:600;}
+  /* diagram */
+  figure{margin:0;display:flex;flex-direction:column;gap:12px;}
+  .scroller{overflow-x:auto;background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:8px;}
+  svg.board{display:block;min-width:820px;width:100%;height:auto;color:var(--ink);}
+  .nrect{fill:var(--panel);stroke:var(--rule-2);stroke-width:1.5;}
+  .nrect.ghost{fill:none;stroke-dasharray:5 4;stroke:var(--ink-3);}
+  .nrect.hot{fill:var(--accent-soft);stroke:var(--accent);}
+  .nrect.ok{fill:var(--ok-bg);stroke:var(--ok);}
+  .nrect.warn{fill:var(--warn-bg);stroke:var(--warn);}
+  .nrect.stop{fill:var(--stop-bg);stroke:var(--stop);stroke-width:2;}
+  .lane{fill:none;stroke:var(--rule-2);stroke-width:1;stroke-dasharray:3 4;}
+  .nt{font-family:var(--body);font-size:13px;font-weight:600;fill:var(--ink);}
+  .ns{font-family:var(--mono);font-size:10.5px;fill:var(--ink-3);}
+  .col{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;fill:var(--ink-3);}
+  .edge{stroke:currentColor;stroke-width:1.4;fill:none;}
+  .edge.ghosted{stroke:var(--ink-3);stroke-dasharray:5 4;}
+  .edge.hot{stroke:var(--accent);stroke-width:2.2;}
+  .el{font-family:var(--mono);font-size:10px;fill:var(--ink-3);}
+  figcaption{color:var(--ink-3);font-size:13.5px;max-width:70ch;}
+  /* status grid */
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;}
+  .card{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:16px 16px 18px;display:flex;flex-direction:column;gap:10px;}
+  .card .tag{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;}
+  .pip{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  .t-ok{color:var(--ok);} .t-ok .pip{background:var(--ok);}
+  .t-warn{color:var(--warn);} .t-warn .pip{background:var(--warn);}
+  .t-stop{color:var(--stop);} .t-stop .pip{background:var(--stop);}
+  ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:7px;color:var(--ink-2);font-size:14.5px;}
+  li::marker{color:var(--ink-3);}
+  /* tables */
+  .tscroll{overflow-x:auto;}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:14.5px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--rule);vertical-align:top;}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);border-bottom:1.5px solid var(--rule-2);font-weight:500;}
+  td:first-child{font-weight:600;color:var(--ink);white-space:nowrap;}
+  .num{font-variant-numeric:tabular-nums;}
+  /* priority list */
+  .plist{display:flex;flex-direction:column;gap:2px;}
+  .prow{display:grid;grid-template-columns:44px 1fr;gap:16px;padding:15px 0;border-bottom:1px solid var(--rule);align-items:start;}
+  .prow:first-child{border-top:1px solid var(--rule);}
+  .rank{font-family:var(--display);font-weight:700;font-size:26px;color:var(--accent);line-height:1;font-variant-numeric:tabular-nums;}
+  .prow .why{color:var(--ink-2);font-size:14.5px;margin-top:5px;}
+  /* correction blocks */
+  .corr{border-left:3px solid var(--accent);background:var(--panel);padding:14px 16px;display:flex;flex-direction:column;gap:7px;border-radius:0 4px 4px 0;}
+  .corr .was{color:var(--ink-3);font-size:14px;}
+  .corr .now{font-size:14.5px;color:var(--ink-2);}
+  .callout{background:var(--panel);border:1px solid var(--rule-2);border-radius:4px;padding:18px 20px;}
+  .callout .big{font-family:var(--display);font-weight:600;font-size:clamp(17px,2.6vw,21px);line-height:1.35;letter-spacing:-.01em;text-wrap:balance;}
+  .foot{margin-top:64px;padding-top:16px;border-top:1px solid var(--rule);color:var(--ink-3);font-size:13px;font-family:var(--mono);}
+  @media (max-width:520px){ .prow{grid-template-columns:32px 1fr;gap:12px} .rank{font-size:20px} }
+</style>
+
+<div class="wrap">
+
+  <div class="eyebrow">Playbook-IQ · Honest assessment · 23 September 2026 &middot; rev. 2</div>
+  <h1>Where we actually stand</h1>
+  <p class="dek">Everything on the board at once: what works, what is blocked, what we believed yesterday that turned out to be wrong, and what the next five weeks should buy us. Written to be argued with.</p>
+
+  <section>
+    <div class="sechead">
+      <div class="eyebrow">01 — The mechanism</div>
+      <h2>Two ways to produce the same product</h2>
+    </div>
+    <figure>
+      <div class="scroller">
+        <svg class="board" viewBox="0 0 960 512" role="img" aria-label="Diagram: broadcast footage feeds two lanes. Lane A is manual event tagging, twelve person-hours per match, working today. Lane B is the automated computer vision pipeline, where detection works, tracking is partial, and re-identification is blocked. Both lanes produce events and positional data, which feed the metrics layer and the four product surfaces: match, team and player analysis, and KEMO. A KAUST research partnership feeds the blocked re-identification stage.">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,1 L9,5 L0,9 z" fill="currentColor"></path>
+            </marker>
+            <marker id="ar-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,1 L9,5 L0,9 z" fill="#8a807a"></path>
+            </marker>
+          </defs>
+
+          <text class="col" x="16" y="26">INPUT</text>
+          <text class="col" x="260" y="26">DATA PRODUCTION</text>
+          <text class="col" x="592" y="26">DATA</text>
+          <text class="col" x="796" y="26">WHAT WE SELL</text>
+
+          <!-- INPUT -->
+          <rect class="nrect ok" x="16" y="48" width="188" height="76" rx="3"></rect>
+          <text class="nt" x="32" y="74">Broadcast footage</text>
+          <text class="ns" x="32" y="93">Ministry platform · permitted</text>
+          <text class="ns" x="32" y="109">open to everyone · no moat</text>
+
+          <rect class="nrect ghost" x="16" y="196" width="188" height="76" rx="3"></rect>
+          <text class="nt" x="32" y="222">Tactical footage</text>
+          <text class="ns" x="32" y="241">clubs own it · better input</text>
+          <text class="ns" x="32" y="257">needs new models · not yet</text>
+
+          <!-- LANE A -->
+          <rect class="lane" x="248" y="40" width="268" height="104" rx="3"></rect>
+          <text class="col" x="260" y="58">LANE A — TODAY</text>
+          <rect class="nrect ok" x="264" y="68" width="236" height="62" rx="3"></rect>
+          <text class="nt" x="280" y="92">Manual event tagging</text>
+          <text class="ns" x="280" y="111">12 person-hours / match · 2 people</text>
+
+          <!-- LANE B -->
+          <rect class="lane" x="248" y="164" width="268" height="204" rx="3"></rect>
+          <text class="col" x="260" y="182">LANE B — THE PIPELINE</text>
+          <rect class="nrect ok" x="264" y="192" width="236" height="44" rx="3"></rect>
+          <text class="nt" x="280" y="212">Detection + team classification</text>
+          <text class="ns" x="280" y="228">works</text>
+
+          <rect class="nrect warn" x="264" y="246" width="236" height="44" rx="3"></rect>
+          <text class="nt" x="280" y="266">Tracking + homography</text>
+          <text class="ns" x="280" y="282">works, with confidence flags</text>
+
+          <rect class="nrect stop" x="264" y="300" width="236" height="52" rx="3"></rect>
+          <text class="nt" x="280" y="322">Re-ID — stable player identity</text>
+          <text class="ns" x="280" y="340">BLOCKED · months of manual fixing</text>
+
+          <!-- KAUST -->
+          <rect class="nrect hot" x="264" y="410" width="236" height="62" rx="3"></rect>
+          <text class="nt" x="280" y="434">KAUST research partnership</text>
+          <text class="ns" x="280" y="453">CV lab · SoccerNet · no contact yet</text>
+
+          <!-- DATA -->
+          <rect class="nrect" x="560" y="176" width="172" height="88" rx="3"></rect>
+          <text class="nt" x="576" y="204">Events +</text>
+          <text class="nt" x="576" y="222">positional notes</text>
+          <text class="ns" x="576" y="243">the metrics are mostly</text>
+          <text class="ns" x="576" y="257">event-based</text>
+
+          <!-- PRODUCT -->
+          <rect class="nrect" x="788" y="160" width="156" height="52" rx="3"></rect>
+          <text class="nt" x="802" y="182">Metrics layer</text>
+          <text class="ns" x="802" y="199">our own + researchers</text>
+
+          <rect class="nrect" x="788" y="228" width="156" height="34" rx="3"></rect>
+          <text class="nt" x="802" y="250">Match analysis</text>
+          <rect class="nrect" x="788" y="270" width="156" height="34" rx="3"></rect>
+          <text class="nt" x="802" y="292">Team analysis</text>
+          <rect class="nrect" x="788" y="312" width="156" height="34" rx="3"></rect>
+          <text class="nt" x="802" y="334">Player analysis</text>
+          <rect class="nrect hot" x="788" y="354" width="156" height="50" rx="3"></rect>
+          <text class="nt" x="802" y="376">KEMO</text>
+          <text class="ns" x="802" y="393">Arabic · the interface</text>
+
+          <!-- EDGES -->
+          <path class="edge" d="M204,86 L258,86" marker-end="url(#ar)"></path>
+          <path class="edge" d="M204,104 L226,104 L226,214 L258,214" marker-end="url(#ar)"></path>
+          <path class="edge ghosted" d="M204,234 L226,234" marker-end="url(#ar-g)"></path>
+          <path class="edge hot" d="M500,99 L534,99 L534,200 L554,200" marker-end="url(#ar)"></path>
+          <text class="el" x="508" y="92">produces now</text>
+          <path class="edge ghosted" d="M500,326 L534,326 L534,240 L554,240" marker-end="url(#ar-g)"></path>
+          <text class="el" x="508" y="344">produces later</text>
+          <path class="edge hot" d="M382,410 L382,358" marker-end="url(#ar)"></path>
+          <text class="el" x="392" y="390">unblocks</text>
+          <path class="edge hot" d="M732,204 L782,186" marker-end="url(#ar)"></path>
+          <path class="edge" d="M866,212 L866,226" marker-end="url(#ar)"></path>
+          <path class="edge" d="M780,245 L780,371 L784,371" marker-end="url(#ar)"></path>
+          <text class="el" x="592" y="290">capacity at Lane A: ~3 matches/week → ~3 teams</text>
+          <text class="el" x="592" y="306">automation becomes urgent at customer #4</text>
+        </svg>
+      </div>
+      <figcaption>The product is the right-hand column. Lane A and Lane B are two ways of filling the same box — which means Re-ID blocks scale, not revenue. That is the whole strategic argument in one picture.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <div class="eyebrow">02 — Status</div>
+      <h2>Works, blocked, unknown</h2>
+    </div>
+    <div class="grid3">
+      <div class="card">
+        <span class="tag t-ok"><span class="pip"></span>Works today</span>
+        <ul>
+          <li>Team classification on broadcast footage</li>
+          <li>Tracking and per-frame homography, with confidence flags on every output row — <strong>the pipeline knows when it is unsure</strong></li>
+          <li>KEMO, Arabic and English, confirmed working</li>
+          <li>Dashboard and API (FastAPI, Streamlit, Firebase auth)</li>
+          <li>Manual event tagging at ~12 person-hours per match</li>
+          <li>Ministry footage access — verbal, and open to all companies</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="tag t-stop"><span class="pip"></span>Blocked</span>
+        <ul>
+          <li><strong>Re-ID.</strong> Stable player identity across a match. Months of manual work for ten minutes of footage</li>
+          <li><strong>Team-shape metrics.</strong> Need a tactical camera view; broadcast never shows all 22</li>
+          <li><strong>Tactical footage.</strong> Clubs have it, but the camera pans — so it needs new detection and keypoint models, not just access</li>
+          <li><strong>Automatic event tagging.</strong> Downstream of the above</li>
+          <li><strong>Player detection recall is 72.5%</strong> &mdash; trained on 78 images, and the preprocessing stretches 16:9 into a square. This is upstream of everything and is now priority #1</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="tag t-warn"><span class="pip"></span>Unknown</span>
+        <ul>
+          <li><strong>Will anyone pay.</strong> Seven interviews, zero pricing evidence</li>
+          <li>What a coach does <em>differently</em> after reading a report</li>
+          <li>Whether 12 hours per match holds under real conditions</li>
+          <li>What an academy budget actually is</li>
+          <li>Whether KAUST will engage at all</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <div class="eyebrow">03 — Corrections</div>
+      <h2>Four things we believed that were wrong</h2>
+    </div>
+    <div class="prose"><p>Each of these was written down as fact and has now been fixed in the repository. Listing them is not self-flagellation — it is the difference between a plan and a wish.</p></div>
+    <div class="corr">
+      <h3>“A team-level tier runs automatically today, no Re-ID needed”</h3>
+      <p class="was">Was: the basis of the whole MVP proposal.</p>
+      <p class="now"><strong>Wrong.</strong> Those metrics need a tactical camera. We have broadcast only. There is no free automated tier, and Re-ID is must-have, not a premium upsell — the mentor was right, and clubs have already rejected a competitor over unstable IDs.</p>
+    </div>
+    <div class="corr">
+      <h3>“Our footage is an asset we can trade to a research lab”</h3>
+      <p class="was">Was: the opening pitch to KAUST.</p>
+      <p class="now"><strong>Wrong.</strong> The Ministry platform is open to every company. What we can offer a lab is club access and a real deployment site — not data.</p>
+    </div>
+    <div class="corr">
+      <h3>“Clubs already buy event feeds, so sell metrics on top”</h3>
+      <p class="was">Was: a proposed zero-cost wedge.</p>
+      <p class="now"><strong>Wrong for our market.</strong> Wyscout and Opta do not cover grassroots. There is no feed to plug into. Tagging by hand is the only source.</p>
+    </div>
+    <div class="corr">
+      <h3>“Only 34 startups reach the funding stage”</h3>
+      <p class="was">Was: in the program timeline CSV.</p>
+      <p class="now"><strong>Wrong.</strong> The Ministry of Sport deck states the Phase 2 filtration as <span class="num">125 → 50</span>. The original recollection of 50 was right. SportTech track: <span class="num">1000+</span> applications, <span class="num">95+</span> SportTech, <span class="num">31</span> onboarded.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <div class="eyebrow">04 — The reframe</div>
+      <h2>Sell the metric layer, not the pipeline</h2>
+    </div>
+    <div class="callout">
+      <p class="big">The product is the metric layer. How the data underneath is produced is an implementation detail that can change from manual, to tracking, to full automation without the customer ever noticing.</p>
+    </div>
+    <div class="prose">
+      <p>This is the move that makes the situation survivable. It works because <strong>the metrics that define the product are mostly event-based</strong> — so hand-tagged Layer 1 delivers the real product, slowly, rather than a mock-up of it. Re-ID stops being the thing that blocks the business and becomes the thing that scales it.</p>
+      <p>And the timing fits. A youth coach needs the analysis <strong>before the next training session</strong> — roughly 48 hours. Twelve person-hours fits inside that. We are not hiding a broken promise; we are meeting the one that matters.</p>
+    </div>
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>Layer</th><th>How data is produced</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>1 — Events</td><td>Founder + Data Operations Specialist tag ball events and positional notes by hand</td><td>Now · ~12 person-hours per match</td></tr>
+          <tr><td>2 — Tracking</td><td>Automated tracking with stable identities</td><td>Blocked on Re-ID · research track via KAUST</td></tr>
+          <tr><td>3 — Automation</td><td>End to end, unattended</td><td>Triggered by demand, at customer #4</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <p><strong>SPL coaches use data to win. Youth coaches use it to develop.</strong> That sentence is the sharpest positioning we have, and it carries a product consequence: development is invisible in a single match. A one-match pilot under-sells us. Only a trend across three or four fixtures tests the actual claim.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <div class="eyebrow">05 — Priorities</div>
+      <h2>What the next five weeks are for</h2>
+    </div>
+    <div class="plist">
+      <div class="prow">
+        <div class="rank">1</div>
+        <div>
+          <h3>Fix the player detector — the Re-ID problem is largely a detection problem</h3>
+          <p class="why">Recall is 72.5% on a model trained on 78 images, so more than one player in four is missed. 883 of the 1,802 gaps inside tracks are only 1&ndash;5 frames long &mdash; that is the detector blinking, not occlusion, and it is where the 952 fragments come from. The preprocessing also stretches 16:9 into a square, squashing every player. Cheapest item on the board and it attacks the cause, not the symptom.</p>
+        </div>
+      </div>
+      <div class="prow">
+        <div class="rank">2</div>
+        <div>
+          <h3>Run one pilot: 3&ndash;4 matches, one youth team</h3>
+          <p class="why">Delivered before each next training session, at Layer 1. The only thing here that produces the evidence seven interviews did not. Roughly 36&ndash;48 person-hours &mdash; it fits.</p>
+        </div>
+      </div>
+      <div class="prow">
+        <div class="rank">3</div>
+        <div>
+          <h3>Name a price to a decision-maker and record the reaction</h3>
+          <p class="why">It does not need to be the right number. If October ends without one real reaction to one real price, we finish the month with the same hole we started it with.</p>
+        </div>
+      </div>
+      <div class="prow">
+        <div class="rank">4</div>
+        <div>
+          <h3>Open KAUST in week one</h3>
+          <p class="why">Academic calendars are slow. The ask is a collaboration &mdash; a deployment site and club access in exchange for work on identity under broadcast conditions &mdash; not a request for help. Score ourselves on the SoccerNet GSR benchmark first so the ask carries a number.</p>
+        </div>
+      </div>
+      <div class="prow">
+        <div class="rank">5</div>
+        <div>
+          <h3>Log human hours per match, every match</h3>
+          <p class="why">This single number sets what turnaround we can promise and what price is survivable. Without it, pricing is guesswork dressed as strategy.</p>
+        </div>
+      </div>
+      <div class="prow">
+        <div class="rank">6</div>
+        <div>
+          <h3>Resolve the model licences</h3>
+          <p class="why">The player detector in production is yolov8n &mdash; Ultralytics, AGPL-3.0, which triggers on network use. Ultralytics require an Enterprise licence for proprietary commercial products, and that applies to YOLO26 too, at any Roboflow plan tier. Retraining as RF-DETR fixes the accuracy and the licence in one job. Verify every trained model&rsquo;s licence badge before deploying it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <div class="eyebrow">06 — Schedule</div>
+      <h2>Five one-week sprints to 30 October</h2>
+    </div>
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>Sprint</th><th>Dates</th><th>Goal</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td class="num">28 Sep – 4 Oct</td><td>Lock the pilot academy and coach. Freeze the tagging schema and report template. Open KAUST.</td></tr>
+          <tr><td>2</td><td class="num">5 – 11 Oct</td><td>Match 1 delivered before the next training session. Log hours.</td></tr>
+          <tr><td>3</td><td class="num">12 – 18 Oct</td><td>Match 2 delivered. Coach uses KEMO in Arabic. Measure the automation baseline.</td></tr>
+          <tr><td>4</td><td class="num">19 – 25 Oct</td><td>Match 3 delivered. First cross-match trend. Ask the coach what he would change in training.</td></tr>
+          <tr><td>5</td><td class="num">26 – 30 Oct</td><td>Match 4 and the development report. Name a price. KAUST meeting.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose"><p>Running through all five: buyer interviews with the academy director and the scouting agency owner, and a PDPL consent note for under-18 player data.</p></div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <div class="eyebrow">07 — Exposure</div>
+      <h2>Open risks, including the ones nobody raised</h2>
+    </div>
+    <div class="grid3">
+      <div class="card">
+        <span class="tag t-stop"><span class="pip"></span>Unresolved, raised repeatedly</span>
+        <ul>
+          <li><strong>The repository is public</strong> and contains the risk register, named interviewees with their clubs, and the candid technical assessment. Raised three times, still open.</li>
+          <li><strong>The dashboard front-end source is in no version control anywhere.</strong> One laptop failure loses it.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="tag t-warn"><span class="pip"></span>Commercial</span>
+        <ul>
+          <li>Pricing is entirely unvalidated — ~30k SAR/yr was “what feels payable,” and grassroots budgets are far below pro clubs</li>
+          <li>Manual delivery has labour cost, not compute cost — a learning phase, not a model</li>
+          <li>Once a club sees us as a manual service, repositioning is hard. The lab framing survives all three layers; “automated platform” does not</li>
+          <li>StepOut.ai: two years in and still failing on ID stability. We cannot claim superiority we have not demonstrated</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="tag t-warn"><span class="pip"></span>Legal &amp; structural</span>
+        <ul>
+          <li><strong>Grassroots means minors.</strong> Individual analysis on under-18s, shared with coaches and parents, sits under PDPL. Academies will ask — an answer ready is a credibility asset</li>
+          <li>Ministry footage permission is <strong>verbal</strong>, and the commercial-use question is unanswered</li>
+          <li>Royal Decree M/121 — registry transition to 11 June 2027. A real trigger, but it mandates registration, not analytics purchases</li>
+          <li>Effectively a solo founder with one part-time non-programmer</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <div class="eyebrow">08 — The one sentence</div>
+      <h2>If you read nothing else</h2>
+    </div>
+    <div class="callout">
+      <p class="big">We cannot ship automation by 30 October, by any route — so we should stop trying, deliver the real product by hand to one youth team across four matches, and find out whether anyone will pay for it. Re-ID is the scaling problem, and it belongs to a research partner, not to five weeks of founder time.</p>
+    </div>
+  </section>
+
+  <p class="foot">Sources: TECH_REALITY.md · MVP-STRATEGY.md · RISKS.md · BUSINESS_MODEL.md · REGULATORY.md · interviews/CONSOLIDATED.md · materials/sessions/DIGEST.md &middot; DETECTION-PLAN.md &middot; REID-REVIEW-TOOL.md &middot; SN-GAMESTATE.md</p>
+
+</div>

@@ -1,0 +1,511 @@
+<title>Pass Review · match_video_2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one working screen — the match video (drawn on a canvas, zoom follows the ball) left, the current pass and the list right; stacks below 900px. */
+:root{
+  --bg:#eef1ec; --surface:#ffffff; --line:#cdd5cb; --fg:#17201a; --muted:#5b6a5f;
+  --accent:#1f7a4d; --accent-fg:#ffffff; --passer:#0e9f5a; --receiver:#2b6fd6; --bad:#c2412d; --warn:#b7791f;
+  --teamA:#d6458c; --teamB:#1597b8; --stage:#0d1410;
+  --display:"Saira Condensed","Arial Narrow",sans-serif; --body:"Source Sans 3",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1512; --surface:#18211c; --line:#2c3a31; --fg:#e7efe8; --muted:#94a598;
+  --accent:#3fbf7f; --accent-fg:#06110b; --passer:#34d27f; --receiver:#6aa2ff; --bad:#ef6a52; --warn:#e2a64a;
+  --teamA:#f07ab4; --teamB:#45c6e6; --stage:#000; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1512; --surface:#18211c; --line:#2c3a31; --fg:#e7efe8; --muted:#94a598;
+  --accent:#3fbf7f; --accent-fg:#06110b; --passer:#34d27f; --receiver:#6aa2ff; --bad:#ef6a52; --warn:#e2a64a;
+  --teamA:#f07ab4; --teamB:#45c6e6; --stage:#000; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.4 var(--body);padding:12px 16px}
+h1{font:700 22px/1.1 var(--display);letter-spacing:.02em;margin:0}
+h2{font:700 16px var(--display);letter-spacing:.04em;margin:0;text-transform:uppercase}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:10px}
+.tally{font:500 13px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.top .right{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:auto}
+.layout{display:flex;gap:16px;align-items:flex-start}
+.left{flex:3;min-width:0}
+.side{flex:2;min-width:0;display:flex;flex-direction:column;gap:12px}
+@media (max-width:900px){.layout{flex-direction:column}.left,.side{width:100%}}
+.stage{touch-action:none;position:relative;background:var(--stage);border-radius:6px;overflow:hidden;aspect-ratio:16/9;max-width:100%}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.stage video{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0;pointer-events:none;will-change:transform}
+.hint{position:absolute;left:8px;right:8px;bottom:8px;background:rgba(0,0,0,.66);color:#fff;font-size:14px;padding:6px 10px;border-radius:4px;pointer-events:none}
+.novideo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#cfe3d6;padding:16px}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.frame{font:500 13px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);margin-left:auto}
+input[type=range]{width:100%;margin-top:6px;accent-color:var(--accent)}
+button,select,.filebtn{font:600 14px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:6px;padding:8px 12px;min-height:42px;cursor:pointer}
+.filebtn{display:inline-flex;align-items:center;background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+button:disabled{opacity:.45;cursor:default}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.who{display:grid;grid-template-columns:auto 1fr auto;gap:8px 10px;align-items:center}
+.dot{width:12px;height:12px;border-radius:50%}.dot.p{background:var(--passer)}.dot.r{background:var(--receiver)}
+.name{font:700 19px var(--display);letter-spacing:.03em;cursor:pointer}
+.name.empty{color:var(--muted);font:400 14px var(--body)}
+.sub{color:var(--muted);font-size:13px}
+.teams{display:flex}
+.teams button{min-height:36px;padding:4px 12px;border-radius:0;font-size:13px}
+.teams button:first-child{border-radius:6px 0 0 6px}.teams button:last-child{border-radius:0 6px 6px 0}
+.teams button.A.on{background:var(--teamA);border-color:var(--teamA);color:#fff}
+.teams button.B.on{background:var(--teamB);border-color:var(--teamB);color:#fff}
+.names{display:flex;flex-wrap:wrap;gap:6px}
+.names button{min-height:36px;padding:5px 9px;font:700 14px var(--display);letter-spacing:.03em}
+.names button.A{border-color:var(--teamA)}.names button.B{border-color:var(--teamB)}
+.row2{display:flex;gap:6px}
+.row2 input{flex:1;min-width:0;font:15px var(--body);padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+.seg{display:grid;grid-template-columns:repeat(4,1fr)}
+.seg button{border-radius:0;padding-inline:4px;min-width:0}
+.seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0}
+@media (max-width:520px){.seg{grid-template-columns:1fr 1fr}.seg button,.seg button:first-child,.seg button:last-child{border-radius:0}}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:8px;max-height:320px;overflow:auto}
+.row{display:grid;grid-template-columns:54px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer}
+.row:last-child{border-bottom:0}.row.cur{background:var(--bg)}
+.row .t{font:500 12px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.chip{font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:10px;border:1px solid var(--line);color:var(--muted)}
+.chip.complete{color:var(--accent);border-color:var(--accent)}.chip.intercepted,.chip.incomplete{color:var(--bad);border-color:var(--bad)}.chip.out{color:var(--warn);border-color:var(--warn)}
+.empty-list{padding:14px;color:var(--muted)}
+.msg{font-size:13px;color:var(--muted);min-height:18px}.msg.err{color:var(--bad)}
+.stats table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.stats td,.stats th{padding:3px 4px;text-align:left;border-bottom:1px solid var(--line);font-size:13px}
+.stats th{color:var(--muted);font-weight:600}
+.tA{color:var(--teamA)}.tB{color:var(--teamB)}
+</style>
+
+<div class="top">
+  <h1>Pass Review</h1>
+  <span class="tally" id="tally">Loading…</span>
+  <div class="right">
+    <select id="segsel" aria-label="Segment"></select>
+    <label class="filebtn" for="vfile">Open video</label>
+    <input type="file" id="vfile" accept="video/*,.mp4" hidden>
+    <button id="bexport" hidden>Save CSV</button>
+  </div>
+</div>
+<div class="layout">
+  <div class="left">
+    <div class="stage" id="stage">
+      <video id="vid" playsinline muted preload="auto"></video>
+      <canvas id="cv"></canvas>
+      <div class="novideo" id="novideo">Tap “Open video” and pick this segment's clip from Drive (for example 01_1H_00-05.mp4). It plays on this tablet; nothing is uploaded.</div>
+      <div class="hint" id="hint" hidden></div>
+    </div>
+    <input type="range" id="scrub" min="0" max="1" value="0" aria-label="Position in the segment">
+    <div class="bar">
+      <button id="bpp" class="primary">▶ Play</button>
+      <select id="speed" aria-label="Speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option></select>
+      <button id="b-10" aria-label="Back 10 frames">◀ 10</button>
+      <button id="b-1" aria-label="Back 1 frame">◀ 1</button>
+      <button id="b1" aria-label="Forward 1 frame">1 ▶</button>
+      <button id="b10" aria-label="Forward 10 frames">10 ▶</button>
+      <select id="zoom" aria-label="Zoom"><option value="1">Zoom 1×</option><option value="1.5">Zoom 1.5×</option><option value="2">Zoom 2×</option><option value="3">Zoom 3×</option><option value="4">Zoom 4×</option></select>
+      <button id="bundo" disabled>↶ Undo</button>
+      <span class="frame" id="flabel"></span>
+    </div>
+  </div>
+  <div class="side">
+    <div class="card" id="passcard">
+      <h2 id="ptitle">Tap the passer</h2>
+      <div class="who">
+        <span class="dot p"></span>
+        <div><div class="name" id="pname">–</div><div class="sub" id="psub"></div></div>
+        <div class="teams" role="group" aria-label="Passer's team"><button class="A" data-role="passer" data-team="0">A</button><button class="B" data-role="passer" data-team="1">B</button></div>
+        <span class="dot r"></span>
+        <div><div class="name" id="rname">–</div><div class="sub" id="rsub"></div></div>
+        <div class="teams" role="group" aria-label="Receiver's team"><button class="A" data-role="receiver" data-team="0">A</button><button class="B" data-role="receiver" data-team="1">B</button></div>
+      </div>
+      <div class="seg" role="group" aria-label="Outcome">
+        <button id="o-complete">Complete</button><button id="o-intercepted">Intercepted</button><button id="o-incomplete">Incomplete</button><button id="o-out">Out of play</button>
+      </div>
+      <div id="namebox" hidden>
+        <div class="sub" id="namefor"></div>
+        <div class="names" id="namebtns"></div>
+        <div class="row2" style="margin-top:6px"><input id="nameinput" placeholder="Number or position, e.g. B10 or ALB" autocomplete="off"><button id="bname">Set</button></div>
+      </div>
+      <div class="row2"><input id="note" placeholder="Note (optional): corner, header…" autocomplete="off"><button id="bdelete" hidden>Delete pass</button></div>
+      <div class="msg" id="msg"></div>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="card stats"><h2>Passes so far</h2><div id="stats" class="sub">No passes yet.</div></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const A_POS = ["GK","RB","RCB","CB","LCB","LB","DM","CM","RM","LM","AM","RW","LW","ST","CF"];
+const S = { idx:null, data:null, boxes:null, frame:0, videoFor:null, reviews:{}, names:{}, db:null, dl:null,
+            cur:null, draft:null, stack:[], nameRole:null, zoom:1, cx:null, cy:null, focus:null, dirty:true };
+
+// ---------- data
+async function load(){
+  S.idx = await fetch("review_index.json").then(r=>r.json());
+  for(const g of S.idx.segments){ const o=document.createElement("option"); o.value=g.name; o.textContent=g.name.replace(/_/g," "); $("segsel").appendChild(o); }
+  let start=S.idx.segments[0].name; try{ start=localStorage.getItem("seg")||start; }catch(e){}
+  if(!S.idx.segments.find(g=>g.name===start)) start=S.idx.segments[0].name;
+  $("segsel").value=start; connect(); await openSegment(start);
+}
+async function connect(){
+  try{ S.dl = await claude.use("downloads"); }catch(e){}
+  $("bexport").hidden = !S.dl;
+  try{
+    const db = await claude.use("db");
+    if(!db){ msg("Saving is not available in this view.", true); return; }
+    S.db=db;
+    db.collection("reviews").onSnapshot(s=>{ S.reviews={}; s.docs.forEach(x=>S.reviews[x.id]=x.data()); render(); }, e=>msg("Lost the connection to saved passes ("+e.code+").", true));
+    db.collection("names").onSnapshot(s=>{ S.names={}; s.docs.forEach(x=>S.names[x.id]=x.data().entries||[]); render(); S.dirty=true; });
+  }catch(e){ msg("Saving is not available in this view.", true); }
+}
+async function openSegment(name){
+  const g=S.idx.segments.find(x=>x.name===name);
+  S.data={...g, fps:S.idx.fps}; S.boxes=null; S.cur=null; S.draft=null; S.stack=[];
+  try{ localStorage.setItem("seg",name); }catch(e){}
+  $("tally").textContent="Loading "+name+"…";
+  S.boxes = await fetch(g.boxes).then(r=>r.json());
+  $("scrub").max=g.frames-1; S.frame=g.seg_start; S.cx=null;
+  $("novideo").hidden = S.videoFor===name;
+  render(); S.dirty=true;
+}
+$("segsel").onchange=e=>openSegment(e.target.value);
+$("vfile").onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const v=$("vid"); if(v.src && v.src.startsWith("blob:")) URL.revokeObjectURL(v.src);
+  v.src=URL.createObjectURL(f); S.videoFor=S.data.name; $("novideo").hidden=true;
+  if(!f.name.includes(S.data.name)) msg(`This file is ${f.name}; the segment is ${S.data.name}. Pick the matching clip if the boxes don't sit on the players.`, true);
+  v.addEventListener("loadeddata",()=>seek(S.frame),{once:true});
+};
+const local=f=>f-S.data.seg_start;
+const boxesAt=f=>(S.boxes&&S.boxes.people[local(f)])||[];
+const ballAt=f=>(S.boxes&&S.boxes.ball[local(f)])||null;
+function nameAt(jid,frame){ const e=S.names[String(jid)]; if(!e||!e.length) return null; let n=e[0][1]; for(const [f,v] of e) if(f<=frame) n=v; return n; }
+async function setName(jid,frame,name){
+  if(jid==null||!S.db||nameAt(jid,frame)===name) return;
+  const e=(S.names[String(jid)]||[]).filter(x=>x[0]!==frame); e.push([frame,name]); e.sort((a,b)=>a[0]-b[0]);
+  S.names[String(jid)]=e; await S.db.collection("names").doc(String(jid)).set({entries:e});
+}
+const whoName=w=>!w?null:(w.name || (w.jid!=null?nameAt(w.jid,w.frame):null));
+const sideOf=w=>{ if(!w) return null; if(w.team===0) return "A"; if(w.team===1) return "B"; const n=whoName(w); return n&&/^[AB]/.test(n)?n[0]:null; };
+const clone=o=>o?JSON.parse(JSON.stringify(o)):null;
+
+// ---------- video
+function seek(f){
+  if(!S.data||!S.boxes) return;
+  f=Math.max(S.data.seg_start, Math.min(S.data.seg_start+S.data.frames-1, Math.round(f)));
+  S.frame=f; const v=$("vid");
+  if(S.videoFor===S.data.name && v.readyState>=1) v.currentTime=(local(f)+0.5)/S.data.fps;
+  S.cx=null; S.dirty=true;
+}
+const frameFromVideo=()=>S.data.seg_start+Math.floor($("vid").currentTime*S.data.fps+1e-3);
+function playPause(){
+  const v=$("vid");
+  if(S.videoFor!==S.data.name){ msg("Open the segment video first.", true); return; }
+  if(v.paused){ v.playbackRate=Number($("speed").value); v.play().catch(()=>{}); } else { v.pause(); seek(frameFromVideo()); }
+}
+$("vid").addEventListener("play",()=>$("bpp").textContent="❚❚ Pause");
+$("vid").addEventListener("pause",()=>$("bpp").textContent="▶ Play");
+$("vid").addEventListener("seeked",()=>{ S.dirty=true; });
+function loop(){
+  requestAnimationFrame(loop);                 // scheduled first: an error in one frame never stops the loop
+  const v=$("vid");
+  if(S.data && S.boxes){
+    if(!v.paused){ const f=frameFromVideo(); if(f!==S.frame){ S.frame=f; S.dirty=true; } }
+    if(S.dirty){ S.dirty=false; try{ draw(); }catch(e){ console.error(e); } }
+  }
+}
+
+// ---------- drawing (video frame + boxes, cropped around the ball when zoomed)
+function view(){
+  const W=S.data.width, H=S.data.height, z=S.zoom, vw=W/z, vh=H/z;
+  if(z<=1) return {x:0,y:0,w:W,h:H};
+  if(S.focus){ S.cx=S.focus.x; S.cy=S.focus.y; }
+  const x0=Math.max(0,Math.min(W-vw,(S.cx??W/2)-vw/2)), y0=Math.max(0,Math.min(H-vh,(S.cy??H/2)-vh/2));
+  if(S.focus) return {x:x0,y:y0,w:vw,h:vh};
+  const b=ballAt(S.frame), d=S.draft;
+  let tx = b?b[0]:(d&&d.passer?d.passer.x:(S.cx??W/2)), ty = b?b[1]:(d&&d.passer?d.passer.y:(S.cy??H/2));
+  if(S.cx==null || $("vid").paused){ S.cx=tx; S.cy=ty; } else { S.cx+=(tx-S.cx)*0.15; S.cy+=(ty-S.cy)*0.15; }
+  const x=Math.max(0,Math.min(W-vw,S.cx-vw/2)), y=Math.max(0,Math.min(H-vh,S.cy-vh/2));
+  return {x,y,w:vw,h:vh};
+}
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let COL=null; const cols=()=>COL||(COL={a:css("--teamA"),b:css("--teamB"),p:css("--passer"),r:css("--receiver")});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{ COL=null; S.dirty=true; });
+function draw(){
+  const cv=$("cv"), dpr=Math.min(2,window.devicePixelRatio||1), W=cv.clientWidth, H=cv.clientHeight;
+  if(!W) return;
+  if(cv.width!==Math.round(W*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
+  const g=cv.getContext("2d"), V=view(), k=cv.width/V.w, X=x=>(x-V.x)*k, Y=y=>(y-V.y)*k;
+  S.V=V;
+  const kd=W/V.w, tf=`translate(${(-V.x*kd).toFixed(1)}px,${(-V.y*kd).toFixed(1)}px) scale(${S.zoom})`;
+  if($("vid").style.transform!==tf) $("vid").style.transform=tf;
+  g.clearRect(0,0,cv.width,cv.height);
+  const C=cols(), tc={0:C.a,1:C.b}, f=S.frame;
+  g.lineWidth=Math.max(1.5,1.2*dpr*Math.sqrt(S.zoom)); g.font=`700 ${Math.round(13*dpr)}px Saira Condensed, sans-serif`;
+  for(const [x1,y1,x2,y2,jid,team,cls] of boxesAt(f)){
+    if(x2<V.x||x1>V.x+V.w||y2<V.y||y1>V.y+V.h) continue;
+    g.strokeStyle = cls===3 ? "#f39c12" : (tc[team]||"#bbb");
+    g.strokeRect(X(x1),Y(y1),(x2-x1)*k,(y2-y1)*k);
+    const n = cls!==3 ? nameAt(jid,f) : null;
+    if(n){ g.fillStyle=g.strokeStyle; g.fillText(n, X(x1), Y(y1)-3*dpr); }
+  }
+  const b=ballAt(f); if(b){ g.strokeStyle="#ffe14d"; g.lineWidth=2*dpr; g.beginPath(); g.arc(X(b[0]),Y(b[1]),6*dpr,0,7); g.stroke(); }
+  const d=S.draft; if(d){ mark(g,X,Y,k,dpr,d.passer,C.p,"PASSER"); mark(g,X,Y,k,dpr,d.receiver,C.r,"RECEIVER"); }
+  const s=f/S.data.fps, tag=`${Math.floor(s/60)}:${String(Math.floor(s)%60).padStart(2,"0")}  ·  frame ${f}`;
+  g.font=`700 ${Math.round(18*dpr)}px JetBrains Mono, monospace`;
+  const tw=g.measureText(tag).width; g.fillStyle="rgba(0,0,0,.6)"; g.fillRect(8*dpr,8*dpr,tw+16*dpr,28*dpr);
+  g.fillStyle="#fff"; g.fillText(tag,16*dpr,28*dpr);
+  $("flabel").textContent=`frame ${f}`; $("scrub").value=local(f);
+}
+function mark(g,X,Y,k,dpr,w,col,label){
+  if(!w||w.frame!==S.frame) return;
+  const bx = w.jid!=null ? boxesAt(S.frame).find(b=>b[4]===w.jid) : null;
+  const [x1,y1,x2,y2] = bx || [w.x-12,w.y-46,w.x+12,w.y];
+  g.strokeStyle=col; g.lineWidth=4*dpr; g.strokeRect(X(x1)-4*dpr,Y(y1)-4*dpr,(x2-x1)*k+8*dpr,(y2-y1)*k+8*dpr);
+  g.fillStyle=col; g.font=`700 ${Math.round(14*dpr)}px Saira Condensed, sans-serif`; g.fillText(label,X(x1)-4*dpr,Y(y1)-8*dpr);
+}
+
+// ---------- tagging: tap the passer, tap the receiver; the pass saves itself
+// ---------- gestures on the video: tap = tag, pinch = zoom, drag = move the zoomed view
+const G={pts:new Map(), start:null, moved:false, multi:false, pinch:null, lastEnd:0};
+// A finger the browser never reports lifting (system gesture, app switch, lost capture) would leave a
+// stale pointer behind, and every later tap would look like a second finger. Clear such leftovers.
+function resetGesture(){ G.pts.clear(); G.start=null; G.moved=false; G.multi=false; G.pinch=null; G.lastPan=null; }
+const toSrc=(cx,cy)=>{ const r=$("cv").getBoundingClientRect(), V=S.V||{x:0,y:0,w:S.data.width,h:S.data.height};
+  return [V.x+(cx-r.left)/r.width*V.w, V.y+(cy-r.top)/r.height*V.h]; };
+$("cv").addEventListener("pointerdown", ev=>{
+  if(!S.data||!S.boxes) return;
+  const now=performance.now();
+  for(const [id,p] of G.pts) if(id===ev.pointerId || now-p.t>1500) G.pts.delete(id);
+  if(ev.isPrimary) resetGesture();             // first finger down: nothing else can be on the screen
+  try{ $("cv").setPointerCapture(ev.pointerId); }catch(e){}
+  G.pts.set(ev.pointerId,{x:ev.clientX,y:ev.clientY,t:now});
+  if(G.pts.size===1){ G.start={x:ev.clientX,y:ev.clientY,t:performance.now()}; G.moved=false; G.multi=false; G.lastPan=null; }
+  if(G.pts.size===2){ G.multi=true; const [a,b]=[...G.pts.values()];
+    G.pinch={d:Math.hypot(a.x-b.x,a.y-b.y), z:S.zoom, mid:toSrc((a.x+b.x)/2,(a.y+b.y)/2)}; }
+});
+$("cv").addEventListener("pointermove", ev=>{
+  if(!G.pts.has(ev.pointerId)) return;
+  G.pts.set(ev.pointerId,{x:ev.clientX,y:ev.clientY,t:performance.now()});
+  if(G.pts.size>=2 && G.pinch){
+    const [a,b]=[...G.pts.values()], d=Math.hypot(a.x-b.x,a.y-b.y);
+    S.zoom=Math.max(1,Math.min(4,G.pinch.z*d/Math.max(G.pinch.d,1)));
+    S.focus = S.zoom>1.01 ? {x:G.pinch.mid[0], y:G.pinch.mid[1]} : null;
+    syncZoomMenu(); S.dirty=true; return;
+  }
+  if(G.start && Math.hypot(ev.clientX-G.start.x, ev.clientY-G.start.y)>12) G.moved=true;
+  if(G.moved && !G.multi && S.zoom>1){            // one-finger drag moves the zoomed view
+    const r=$("cv").getBoundingClientRect(), V=S.V, p=G.lastPan||G.start;
+    const fx=(S.focus?S.focus.x:S.cx), fy=(S.focus?S.focus.y:S.cy);
+    S.focus={x:fx-(ev.clientX-p.x)/r.width*V.w, y:fy-(ev.clientY-p.y)/r.height*V.h};
+    G.lastPan={x:ev.clientX,y:ev.clientY}; S.dirty=true;
+  }
+});
+const endPointer=ev=>{
+  if(!G.pts.has(ev.pointerId)) return;
+  G.pts.delete(ev.pointerId); G.lastEnd=performance.now();
+  if(G.pts.size>0) return;
+  const quick = G.start && performance.now()-G.start.t < 700;
+  const isTap = ev.type==="pointerup" && quick && !G.moved && !G.multi;
+  G.pinch=null; G.start=null;
+  if(isTap) safeTap(ev.clientX, ev.clientY);
+};
+$("cv").addEventListener("pointerup", endPointer);
+$("cv").addEventListener("pointercancel", endPointer);
+$("cv").addEventListener("lostpointercapture", endPointer);
+// Backup: if the browser delivers a click but the pointer events above missed the tap, tag from the click.
+$("cv").addEventListener("click", ev=>{
+  if(performance.now()-(G.lastEnd||0)<800) return;   // the pointer events saw this touch: already handled
+  resetGesture(); safeTap(ev.clientX, ev.clientY);
+});
+document.addEventListener("visibilitychange", resetGesture);
+window.addEventListener("blur", resetGesture);
+function safeTap(x,y){ try{ tapAt(x,y); }catch(e){ console.error(e); msg("Tap failed ("+e.message+"). Try again.", true); } }
+function syncZoomMenu(){ const z=$("zoom"); let best=z.options[0];
+  for(const o of z.options) if(Math.abs(Number(o.value)-S.zoom)<Math.abs(Number(best.value)-S.zoom)) best=o; z.value=best.value; }
+function tapAt(cx, cy){
+  const v=$("vid"); if(!v.paused){ v.pause(); S.frame=frameFromVideo(); }
+  const [x,y]=toSrc(cx,cy), m=6/S.zoom+4;
+  const hits=boxesAt(S.frame).filter(b=>b[6]!==3 && x>=b[0]-m && x<=b[2]+m && y>=b[1]-m && y<=b[3]+m)
+                             .sort((a,b)=>(a[2]-a[0])*(a[3]-a[1])-(b[2]-b[0])*(b[3]-b[1]));
+  const h=hits[0];
+  const who = h ? {jid:h[4], team:h[5], frame:S.frame, x:(h[0]+h[2])/2, y:h[3]} : {jid:null, team:-1, frame:S.frame, x, y, name:null};
+  if(who.jid!=null){ const n=nameAt(who.jid,S.frame); if(n&&/^[AB]/.test(n)) who.team = n[0]==="A"?0:1; }
+  tap(who);
+}
+function waitingReceiver(){ const d=S.draft; return !!(d && d.passer && !d.receiver && d.outcome!=="out" && !S.reviews[S.cur]); }
+function tap(who){
+  const d=S.draft;
+  if(!waitingReceiver()){
+    const id="add-"+Date.now().toString(36);
+    S.cur=id; S.draft={kick:S.frame, touch:S.frame, passer:who, receiver:null, outcome:"complete"};
+    $("note").value=""; S.nameRole="passer"; S.stack.push({type:"passer", id});
+    msg("Passer set. Play to the first touch and tap the receiver."); render(); S.dirty=true; return;
+  }
+  if(S.frame<=d.kick){ S.stack.push({type:"repasser", id:S.cur, prev:clone(d.passer), prevKick:d.kick}); d.passer=who; d.kick=S.frame;
+    msg("Passer changed. Play to the first touch and tap the receiver."); render(); S.dirty=true; return; }
+  d.receiver=who; d.touch=S.frame; S.nameRole="receiver";
+  autoOutcome(); saveDraft(true);
+}
+function autoOutcome(){ const d=S.draft; if(!d||!d.passer||!d.receiver) return; const a=sideOf(d.passer), b=sideOf(d.receiver); if(a&&b) d.outcome = a===b?"complete":"intercepted"; }
+function docOf(d){ return { status:"pass", kick:d.kick, touch:d.touch, outcome:d.outcome,
+  passer:d.passer?{...d.passer, name:whoName(d.passer)}:null, receiver:d.receiver?{...d.receiver, name:whoName(d.receiver)}:null,
+  added:true, source:"added", notes:$("note").value.trim(), at:Date.now() }; }
+async function saveDraft(isNew){
+  if(!S.db){ msg("Saving is not available in this view.", true); return; }
+  const id=S.cur, doc=docOf(S.draft), before=clone(S.reviews[id]);
+  try{
+    await S.db.collection("reviews").doc(id).set(doc); S.reviews[id]=doc;
+    if(isNew){ S.stack.push({type:"saved", id, doc:clone(doc)});
+      const lab={complete:"complete",intercepted:"intercepted",incomplete:"incomplete",out:"out of play"}[doc.outcome];
+      msg(`Saved: ${(doc.passer&&doc.passer.name)||"passer"} → ${(doc.receiver&&doc.receiver.name)||(doc.outcome==="out"?"out":"receiver")} (${lab}). Tap the next passer.`); }
+    else { S.stack.push({type:"edit", id, before}); msg("Updated."); }
+    render(); S.dirty=true;
+  }catch(e){ msg("Could not save ("+e.code+"). Try again.", true); if(isNew){ S.draft.receiver=null; render(); } }
+}
+async function undo(){
+  const a=S.stack.pop(); if(!a) return;
+  if(a.type==="passer"){ if(S.cur===a.id && !S.reviews[a.id]){ S.draft=null; S.cur=null; } msg("Passer removed."); }
+  else if(a.type==="repasser"){ if(S.cur===a.id&&S.draft){ S.draft.passer=a.prev; S.draft.kick=a.prevKick; } msg("Passer change undone."); }
+  else if(a.type==="saved"){
+    try{ await S.db.collection("reviews").doc(a.id).delete(); }catch(e){ S.stack.push(a); msg("Could not undo ("+e.code+").", true); return; }
+    delete S.reviews[a.id]; S.cur=a.id; S.draft={kick:a.doc.kick, touch:a.doc.kick, passer:a.doc.passer, receiver:null, outcome:"complete"};
+    seek(a.doc.kick); msg("Pass undone: the passer is kept, tap the receiver again (Undo again removes the passer).");
+  } else if(a.type==="edit"){
+    try{ if(a.before) await S.db.collection("reviews").doc(a.id).set(a.before); }catch(e){ msg("Could not undo ("+e.code+").", true); return; }
+    S.reviews[a.id]=a.before; if(S.cur===a.id) S.draft=clone(a.before); msg("Change undone.");
+  } else if(a.type==="deleted"){
+    try{ await S.db.collection("reviews").doc(a.id).set(a.doc); }catch(e){ msg("Could not undo ("+e.code+").", true); return; }
+    S.reviews[a.id]=a.doc; S.cur=a.id; S.draft=clone(a.doc); msg("Pass restored.");
+  }
+  render(); S.dirty=true;
+}
+function selectPass(id){
+  const r=S.reviews[id]; if(!r) return;
+  S.cur=id; S.draft=clone(r); S.nameRole=null; $("note").value=r.notes||""; msg(""); seek(r.kick); render();
+}
+async function deletePass(){
+  const id=S.cur, r=S.reviews[id]; if(!r||!S.db) return;
+  try{ await S.db.collection("reviews").doc(id).delete(); delete S.reviews[id]; S.stack.push({type:"deleted", id, doc:r});
+       S.cur=null; S.draft=null; msg("Pass deleted (Undo brings it back)."); render(); S.dirty=true; }
+  catch(e){ msg("Could not delete ("+e.code+").", true); }
+}
+function editSaved(){ if(S.reviews[S.cur]) saveDraft(false); }
+function setOutcome(o){
+  const d=S.draft; if(!d||!d.passer) return;
+  if(o==="out" && waitingReceiver()){ d.outcome="out"; d.receiver=null; d.touch=Math.max(S.frame,d.kick+1); saveDraft(true); return; }
+  d.outcome=o; render(); editSaved();
+}
+function setTeam(role,team){
+  const d=S.draft, w=d&&d[role]; if(!w) return;
+  w.team=team; autoOutcome(); render(); S.dirty=true; editSaved();
+}
+
+// ---------- names
+function nameButtons(team){
+  const used={}; for(const e of Object.values(S.names)) for(const [,n] of e) used[n]=(used[n]||0)+1;
+  for(const r of Object.values(S.reviews)) for(const w of [r.passer,r.receiver]) if(w&&w.name) used[w.name]=(used[w.name]||0)+1;
+  const letter=team===0?"A":team===1?"B":null;
+  const list=Object.keys(used).filter(n=>!letter||n.startsWith(letter)).sort((a,b)=>used[b]-used[a]);
+  if(letter!=="B") for(const p of A_POS) if(!list.includes("A"+p)) list.push("A"+p);
+  return list.slice(0,32);
+}
+function applyName(n){
+  n=String(n||"").trim().toUpperCase().replace(/\s+/g,"");
+  const w=S.draft&&S.draft[S.nameRole]; if(!w||!n) return;
+  if(/^\d+$/.test(n)){ if(w.team===0||w.team===1) n=(w.team===0?"A":"B")+n; else { msg("Set the team (A or B) first, or type the letter: A10 / B10.", true); return; } }
+  if(w.jid!=null) setName(w.jid,w.frame,n).catch(e=>msg("Could not save the name ("+e.code+").", true));
+  w.name=n; if(/^[AB]/.test(n)) w.team = n[0]==="A"?0:1;
+  $("nameinput").value=""; autoOutcome(); render(); S.dirty=true; editSaved();
+}
+
+// ---------- render
+const fmt=f=>{ const s=f/S.idx.fps; return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`; };
+function segPasses(){ const g=S.data; return Object.entries(S.reviews).filter(([,r])=>r.status==="pass" && r.kick>=g.seg_start && r.kick<g.seg_start+g.frames).sort((a,b)=>a[1].kick-b[1].kick); }
+function render(){
+  if(!S.data||!S.boxes) return;
+  const mine=segPasses(), all=Object.values(S.reviews).filter(r=>r.status==="pass");
+  $("tally").textContent=`${mine.length} passes in this segment · ${all.length} in the match`;
+  const L=$("list"); L.innerHTML="";
+  if(!mine.length) L.innerHTML='<div class="empty-list">No passes in this segment yet. Play the video, pause at a kick and tap the passer.</div>';
+  let curRow=null;
+  for(const [id,r] of mine){
+    const row=document.createElement("div"); row.className="row"+(id===S.cur?" cur":"");
+    const pn=(r.passer&&r.passer.name)||"?", rn=r.outcome==="out"?"out":((r.receiver&&r.receiver.name)||"?");
+    row.innerHTML=`<span class="t">${fmt(r.kick)}</span><span>${pn} → ${rn}</span><span class="chip ${r.outcome}">${r.outcome==="out"?"out":r.outcome}</span>`;
+    row.onclick=()=>selectPass(id); L.appendChild(row); if(id===S.cur) curRow=row;
+  }
+  if(curRow){ const top=curRow.offsetTop-L.offsetTop; if(top<L.scrollTop||top>L.scrollTop+L.clientHeight-40) L.scrollTop=top-60; }
+  const d=S.draft;
+  $("ptitle").textContent = !d ? "Tap the passer" : (S.reviews[S.cur] ? "Saved pass" : (waitingReceiver() ? "Tap the receiver" : "Pass"));
+  for(const [role,el,sub] of [["passer","pname","psub"],["receiver","rname","rsub"]]){
+    const w=d&&d[role], n=whoName(w);
+    $(el).textContent = w ? (n||"no name yet") : (role==="receiver"&&d&&d.outcome==="out" ? "out of play" : "–");
+    $(el).className="name"+(w&&n?"":" empty");
+    $(sub).textContent = w ? `${w.jid==null?"added by hand · ":""}${fmt(w.frame)} · frame ${w.frame}` : "";
+    for(const b of document.querySelectorAll(`.teams button[data-role="${role}"]`)){ b.classList.toggle("on", !!w && String(w.team)===b.dataset.team); b.disabled=!w; }
+  }
+  for(const o of ["complete","intercepted","incomplete","out"]){ $("o-"+o).classList.toggle("on", !!d && d.outcome===o); $("o-"+o).disabled=!d||!d.passer; }
+  const w=d&&S.nameRole&&d[S.nameRole];
+  $("namebox").hidden=!w;
+  if(w){
+    $("namefor").textContent=`Name the ${S.nameRole}${whoName(w)?" (now "+whoName(w)+")":""} · tap the other player's name above to name them instead:`;
+    const box=$("namebtns"); box.innerHTML="";
+    for(const n of nameButtons(w.team)){ const b=document.createElement("button"); b.textContent=n; b.className=n[0]; b.onclick=()=>applyName(n); box.appendChild(b); }
+  }
+  $("bdelete").hidden=!S.reviews[S.cur];
+  $("bundo").disabled=!S.stack.length;
+  $("hint").hidden=!waitingReceiver(); $("hint").textContent="Passer set · play to the first touch and tap the receiver";
+  for(const o of $("segsel").options){ const g=S.idx.segments.find(x=>x.name===o.value);
+    const n=Object.values(S.reviews).filter(r=>r.status==="pass"&&r.kick>=g.seg_start&&r.kick<g.seg_start+g.frames).length;
+    o.textContent=`${g.name.replace(/_/g," ")}${n?` · ${n}`:""}`; }
+  renderStats(all);
+}
+function renderStats(all){
+  if(!all.length){ $("stats").textContent="No passes yet."; return; }
+  const by={}, team={A:{n:0,ok:0},B:{n:0,ok:0}};
+  for(const r of all){ const n=(r.passer&&r.passer.name)||"?", t=sideOf(r.passer)||"?";
+    const k=n+"|"+t; by[k]=by[k]||{n,t,all:0,ok:0,lost:0}; by[k].all++; if(r.outcome==="complete") by[k].ok++; if(r.outcome==="intercepted") by[k].lost++;
+    if(team[t]){ team[t].n++; if(r.outcome==="complete") team[t].ok++; } }
+  const pct=(a,b)=>b?Math.round(100*a/b)+"%":"–";
+  const rows=Object.values(by).sort((a,b)=>b.all-a.all).slice(0,10).map(v=>`<tr><td class="t${v.t}">${v.n}</td><td>${v.all}</td><td>${pct(v.ok,v.all)}</td><td>${v.lost}</td></tr>`).join("");
+  $("stats").innerHTML=`<p><span class="tA">A</span>: ${team.A.n} passes, ${pct(team.A.ok,team.A.n)} complete · <span class="tB">B</span>: ${team.B.n} passes, ${pct(team.B.ok,team.B.n)} complete</p>
+    <table><tr><th>Passer</th><th>Passes</th><th>Complete</th><th>Intercepted</th></tr>${rows}</table>`;
+}
+function msg(t,err){ $("msg").textContent=t; $("msg").className="msg"+(err?" err":""); }
+
+async function exportCsv(){
+  if(!S.dl){ msg("Saving files is not available in this view.", true); return; }
+  const fps=S.idx.fps, t=f=>{ const s=f/fps; return `${Math.floor(s/60)}:${(s%60).toFixed(1).padStart(4,"0")}`; };
+  const esc=v=>{ v=v==null?"":String(v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  const seg=f=>(S.idx.segments.find(g=>f>=g.seg_start&&f<g.seg_start+g.frames)||{}).name||"";
+  const lines=[["pass_no","segment","kick_frame","kick_time","touch_frame","touch_time","passer","passer_team","receiver","receiver_team","outcome","note","passer_player_id","receiver_player_id"].join(",")];
+  Object.values(S.reviews).filter(r=>r.status==="pass").sort((a,b)=>a.kick-b.kick).forEach((r,i)=>{
+    lines.push([i+1,seg(r.kick),r.kick,t(r.kick),r.touch,t(r.touch),r.passer&&r.passer.name,sideOf(r.passer),r.receiver&&r.receiver.name,sideOf(r.receiver),
+                r.outcome,r.notes||"",r.passer&&r.passer.jid,r.receiver&&r.receiver.jid].map(esc).join(",")); });
+  try{ await S.dl.save({filename:`${S.idx.match}_passes.csv`, data:lines.join("\n")+"\n"}); msg(`Saved ${lines.length-1} passes.`); }
+  catch(e){ if(e.code!=="declined") msg("Could not save the file ("+e.code+").", true); }
+}
+
+// ---------- controls
+const step=n=>{ const v=$("vid"); if(!v.paused){ v.pause(); S.frame=frameFromVideo(); } seek(S.frame+n); };
+$("bpp").onclick=playPause;
+$("speed").onchange=e=>{ $("vid").playbackRate=Number(e.target.value); };
+$("b-10").onclick=()=>step(-10); $("b-1").onclick=()=>step(-1); $("b1").onclick=()=>step(1); $("b10").onclick=()=>step(10);
+$("scrub").oninput=e=>{ const v=$("vid"); if(!v.paused) v.pause(); seek(S.data.seg_start+Number(e.target.value)); };
+$("zoom").onchange=e=>{ S.zoom=Number(e.target.value); S.focus=null; S.cx=null; S.dirty=true; };
+$("bundo").onclick=undo; $("bdelete").onclick=deletePass; $("bexport").onclick=exportCsv;
+for(const o of ["complete","intercepted","incomplete","out"]) $("o-"+o).onclick=()=>setOutcome(o);
+document.querySelectorAll(".teams button").forEach(b=>b.onclick=()=>setTeam(b.dataset.role, Number(b.dataset.team)));
+$("pname").onclick=()=>{ if(S.draft&&S.draft.passer){ S.nameRole="passer"; render(); } };
+$("rname").onclick=()=>{ if(S.draft&&S.draft.receiver){ S.nameRole="receiver"; render(); } };
+$("bname").onclick=()=>applyName($("nameinput").value);
+$("nameinput").addEventListener("keydown",e=>{ if(e.key==="Enter") applyName(e.target.value); });
+$("note").addEventListener("change",editSaved);
+document.addEventListener("keydown",e=>{ if(e.target.tagName==="INPUT") return;
+  if(e.key===" "){ e.preventDefault(); playPause(); } else if(e.key==="ArrowRight") step(e.shiftKey?10:1);
+  else if(e.key==="ArrowLeft") step(e.shiftKey?-10:-1); else if(e.key==="z"||e.key==="Z") undo(); });
+window.addEventListener("resize",()=>{ S.dirty=true; });
+load().then(()=>requestAnimationFrame(loop)).catch(e=>{ $("tally").textContent="Could not load the match data."; console.error(e); });
+</script>

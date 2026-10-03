@@ -1,0 +1,93 @@
+{
+ "_note": "Keypoint models on the 48 test frames of football-field-detection v10/v11 (same split: unseen by both). Found = share of labelled points predicted with conf >= 0.5 (KP_CONF); error in px at 1920x1080. Roboflow point ids are positions in its name list (01..13,15..18,20..32,14,19), mapped to pitch labels.",
+ "roboflow_v10 (current)": {
+  "points": 540,
+  "found": 0.97,
+  "median_err_px": 10.0,
+  "p90_err_px": 35.2,
+  "within_10px_of_found": 0.49
+ },
+ "ours_v11_run1 (invalid: trained without points 1-9)": {
+  "frames": 42,
+  "points": 345,
+  "found": 0.699,
+  "median_err_px": 21.6,
+  "p90_err_px": 66.9
+ },
+ "ours_v11_run2 (768 px, 80 epochs, all 32 points)": {
+  "points": 540,
+  "found": 0.759,
+  "median_err_px": 37.9,
+  "p90_err_px": 132.5,
+  "note": "still improving at the end (val keypoint mAP50:95 0.66 @49, 0.74 @59, 0.79 @69, 0.83 @79); the learning-rate drop (epoch 100) never reached. Not left/right swaps (1 of 127 bad points). Weak on points 1-13."
+ },
+ "ours_v11_run3 (run 2 continued to epoch 129, early stop)": {
+  "points": 540,
+  "found": 0.793,
+  "median_err_px": 35.1,
+  "p90_err_px": 168.5,
+  "within_10px_of_found": 0.13,
+  "note": "val keypoint mAP 0.83 -> 0.88 then flat; errors spread over all frames, no systematic offset. Scored on enhanced frames (pipeline preprocessing) although trained on plain frames: next check."
+ },
+ "ours_v11_run3 plain frames": {
+  "points": 540,
+  "found": 0.744,
+  "median_err_px": 15.3,
+  "p90_err_px": 45.9,
+  "found_at_conf_0.3": 0.94,
+  "note": "pipeline enhancement cost 2x; BUT in the pipeline it fires a second label (label-17) at points it sees (~5/frame), wrecking the plain homography (26-40 m off). Not usable yet."
+ },
+ "roboflow_v10 local (downloaded weights, rfdetr)": {
+  "stretch": {
+   "found": 0.974,
+   "median_err_px": 12.0,
+   "p90_err_px": 42.7
+  },
+  "plain": {
+   "found": 0.976,
+   "median_err_px": 14.9,
+   "p90_err_px": 48.9
+  },
+  "licence": "Apache-2.0 per Roboflow download dialog and model page",
+  "note": "first run 200 ms/frame on T4 due to a slow contrast stretch (fixed: lookup table)"
+ },
+ "night_clip_player_positions_vs_hand_placed_pitch_points": {
+  "hosted v10, enhanced frames (until now)": {
+   "players": 154,
+   "median_m": 2.18,
+   "p90_m": 4.06,
+   "max_m": 7.49
+  },
+  "local v10, plain + stretch": {
+   "players": 154,
+   "median_m": 0.78,
+   "p90_m": 2.58,
+   "max_m": 6.26
+  },
+  "ours, plain + robust fit": {
+   "players": 148,
+   "median_m": 1.86,
+   "p90_m": 13.9,
+   "max_m": 45.1
+  }
+ },
+ "night_clip_keypoints_vs_hand_placed_pitch_points_px": {
+  "hosted v10 enhanced": {
+   "median": 13.5,
+   "p90": 30.0,
+   "matched": "121/132"
+  },
+  "local v10 stretch": {
+   "median": 11.1,
+   "p90": 19.1,
+   "matched": "123/132"
+  },
+  "ours plain": {
+   "median": 10.7,
+   "p90": 24.3,
+   "matched": "97/132"
+  }
+ },
+ "bug_found": "pitch config lists vertices in Roboflow order, not 1..32: our training mirror pairs were wrong for every pair (fixed in tools/keypoint_dataset.py); likely cause of our model stray label-17 points",
+ "decision": "keypoints = Roboflow v10 weights run locally (FIELD_MODEL_KIND=roboflow_v10, plain frames + contrast stretch): 0.78 m median on the night clip vs 2.18 m before; no credits"
+}
