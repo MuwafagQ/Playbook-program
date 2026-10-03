@@ -168,7 +168,7 @@ button:disabled{opacity:.45;cursor:default}
 const $ = id => document.getElementById(id);
 const A_POS = ["GK","RB","RCB","CB","LCB","LB","DM","CM","RM","LM","AM","RW","LW","ST","CF"];
 const S = { idx:null, data:null, boxes:null, frame:0, videoFor:null, cur:null, draft:null, pick:null, playTo:null,
-            reviews:{}, names:{}, db:null, canWrite:true, zoom:false, onlyOpen:false, dl:null, hist:[], useSugg:true };
+            reviews:{}, names:{}, db:null, canWrite:true, zoom:false, onlyOpen:false, dl:null, hist:[], useSugg:true, qstack:[] };
 try{ S.useSugg = localStorage.getItem("sugg")!=="off"; }catch(e){}
 
 // ---------- data
@@ -292,12 +292,14 @@ function mark(g,k,dpr,who,col,label){
 // ---------- tapping players
 $("cv").addEventListener("pointerdown", ev=>{
   const v=$("vid");
-  if(!v.paused){ v.pause(); S.frame=frameFromVideo(); seek(S.frame); if(!S.pick) return; }
-  if(!S.pick || !S.draft) return;
+  if(!v.paused){ v.pause(); S.frame=frameFromVideo(); seek(S.frame); }
   const r=$("cv").getBoundingClientRect(), x=(ev.clientX-r.left)/r.width*S.data.width, y=(ev.clientY-r.top)/r.height*S.data.height;
   const m=6, hits=boxesAt(S.frame).filter(b=>b[6]!==3 && x>=b[0]-m && x<=b[2]+m && y>=b[1]-m && y<=b[3]+m);
   hits.sort((a,b)=>(a[2]-a[0])*(a[3]-a[1])-(b[2]-b[0])*(b[3]-b[1]));
   const h=hits[0];
+  if(S.pick !== "edit-passer" && S.pick !== "edit-receiver"){ quickTap(h, x, y); return; }
+  S.pick = S.pick==="edit-passer" ? "passer" : "receiver";
+  if(!S.draft) return;
   pushHist();
   const who = h ? {jid:h[4], team:h[5], frame:S.frame, x:(h[0]+h[2])/2, y:h[3]}
                 : {jid:null, team:-1, frame:S.frame, x, y, name:null};
@@ -305,10 +307,75 @@ $("cv").addEventListener("pointerdown", ev=>{
   if(S.pick==="passer"){ S.draft.kick=S.frame; } else { S.draft.touch=S.frame; }
   autoOutcome();
   const role=S.pick;
-  S.pick = (role==="passer" && !S.draft.receiver) ? "receiver" : null;
-  S.nameRole = role;
+  S.pick = null; S.nameRole = role;
+  if(S.reviews[S.cur]) persist();          // a saved pass edited with Change: keep it saved
   render(); draw();
 });
+
+// ---------- quick tagging: tap the passer, tap the receiver, the pass saves itself
+function quickTap(h, x, y){
+  const who = h ? {jid:h[4], team:h[5], frame:S.frame, x:(h[0]+h[2])/2, y:h[3]}
+                : {jid:null, team:-1, frame:S.frame, x, y, name:null};
+  const d = S.draft;
+  const pending = d && d.added && d.passer && !d.receiver && d.outcome!=="out" && !S.reviews[S.cur];
+  if(!pending){
+    // first tap: a new pass with this passer
+    const id = "add-" + Date.now().toString(36);
+    S.cur=id; S.draft={kick:S.frame, touch:S.frame, passer:who, receiver:null, outcome:"complete", added:true};
+    $("note").value=""; S.hist=[]; S.nameRole="passer";
+    S.qstack.push({type:"passer", id});
+    msg(`Passer set at frame ${S.frame}. Play to the first touch and tap the receiver.`);
+    render(); draw(); return;
+  }
+  if(S.frame <= d.kick){
+    // same or earlier frame: the tap corrects the passer instead
+    d.passer = who; d.kick = S.frame; S.qstack.push({type:"repasser", id:S.cur});
+    msg("Passer changed. Play to the first touch and tap the receiver."); render(); draw(); return;
+  }
+  d.receiver = who; d.touch = S.frame; S.nameRole = "receiver";
+  autoOutcome();
+  quickSave();
+}
+async function quickSave(){
+  const d=S.draft, id=S.cur;
+  if(!S.db){ msg("Saving is not available in this view.", true); return; }
+  const doc = { status:"pass", kick:d.kick, touch:d.touch, outcome:d.outcome,
+                passer: d.passer ? {...d.passer, name:whoName(d.passer)} : null,
+                receiver: d.receiver ? {...d.receiver, name:whoName(d.receiver)} : null,
+                added:true, source:"added", notes:$("note").value.trim(), at:Date.now() };
+  try{
+    await S.db.collection("reviews").doc(id).set(doc); S.reviews[id]=doc;
+    S.qstack.push({type:"saved", id, doc:clone(doc)});
+    const label = {complete:"complete", intercepted:"intercepted", incomplete:"incomplete", out:"out of play"}[doc.outcome];
+    msg(`Saved: ${(doc.passer&&doc.passer.name)||"passer"} → ${(doc.receiver&&doc.receiver.name)||(doc.outcome==="out"?"out":"receiver")} (${label}). Tap the next passer.`);
+    render(); draw();
+  }catch(e){ msg("Could not save ("+e.code+"). Tap the receiver again.", true); d.receiver=null; render(); }
+}
+async function persist(){
+  const d=S.draft, id=S.cur; if(!S.db || !d || !S.reviews[id]) return;
+  const old=S.reviews[id];
+  const doc={...old, kick:d.kick, touch:d.touch, outcome:d.outcome, notes:$("note").value.trim(),
+             passer: d.passer ? {...d.passer, name:whoName(d.passer)} : null,
+             receiver: d.receiver ? {...d.receiver, name:whoName(d.receiver)} : null, at:Date.now()};
+  try{ await S.db.collection("reviews").doc(id).set(doc); S.reviews[id]=doc; msg("Updated."); render(); }
+  catch(e){ msg("Could not update ("+e.code+").", true); }
+}
+async function quickUndo(){
+  const a=S.qstack.pop(); if(!a) return false;
+  if(a.type==="passer"){                      // remove the passer just tapped
+    if(S.cur===a.id && !S.reviews[a.id]){ S.draft=null; S.cur=null; }
+    msg("Passer removed."); render(); draw(); return true;
+  }
+  if(a.type==="repasser"){ msg("Tap the passer again if needed."); return true; }
+  if(a.type==="saved"){                       // un-save the last pass and wait for its receiver again
+    try{ await S.db.collection("reviews").doc(a.id).delete(); }catch(e){ msg("Could not undo ("+e.code+").", true); S.qstack.push(a); return true; }
+    delete S.reviews[a.id];
+    S.cur=a.id; S.draft={kick:a.doc.kick, touch:a.doc.kick, passer:a.doc.passer, receiver:null, outcome:"complete", added:true};
+    msg("Last pass undone: its passer is kept, tap the receiver again (or Undo once more to remove the passer).");
+    seek(a.doc.kick); render(); draw(); return true;
+  }
+  return false;
+}
 
 // ---------- selection and review
 function proposals(){
@@ -329,7 +396,8 @@ function autoOutcome(){
   if(a && b) d.outcome = a===b ? "complete" : "intercepted";
 }
 function pushHist(){ if(S.draft){ S.hist.push(clone({draft:S.draft, pick:S.pick, nameRole:S.nameRole})); if(S.hist.length>30) S.hist.shift(); } }
-function undoTap(){
+async function undoTap(){
+  if(S.hist.length===0){ await quickUndo(); return; }
   const h=S.hist.pop(); if(!h) return;
   S.draft=h.draft; S.pick=h.pick; S.nameRole=h.nameRole; msg("Undone."); render(); draw();
 }
@@ -446,6 +514,7 @@ function applyName(n){
   if(w.jid!=null) setName(w.jid, w.frame, n).catch(e=>msg("Could not save the name ("+e.code+").", true)); else w.name=n;
   if(w.team!==0 && w.team!==1 && (n[0]==="A"||n[0]==="B")) w.team = n[0]==="A"?0:1;
   autoOutcome();
+  if(S.reviews[S.cur]) setTimeout(persist, 0);
   $("nameinput").value=""; msg(""); render(); draw();
 }
 
@@ -486,7 +555,7 @@ function render(){
     $(el).className = "name"+(w&&n?"":" empty");
     $(sub).textContent = w ? `${w.jid==null?"added by hand":(w.team===0?"pink · A":w.team===1?"cyan · B":"team ?")} · frame ${w.frame}` : "";
   }
-  $("bpickp").classList.toggle("on", S.pick==="passer"); $("bpickr").classList.toggle("on", S.pick==="receiver");
+  $("bpickp").classList.toggle("on", S.pick==="edit-passer"); $("bpickr").classList.toggle("on", S.pick==="edit-receiver");
   const role=S.nameRole, w=role&&d[role];
   $("namebox").hidden = !w;
   if(w){
@@ -501,10 +570,13 @@ function render(){
   $("bexport").hidden = !S.dl;
   $("bsugg").textContent = "Suggestions: " + (S.useSugg?"on":"off"); $("bsugg").setAttribute("aria-pressed", S.useSugg);
   $("bnext").hidden = $("bfilter").hidden = !S.useSugg;
-  $("bundo").disabled = !S.hist.length;
+  $("bundo").disabled = !S.hist.length && !S.qstack.length;
   const hint=$("hint");
-  hint.hidden = !S.pick;
-  if(S.pick) hint.textContent = S.pick==="passer" ? "Go to the kick frame and tap the passer (no box? tap them anyway)" : "Go to the first touch and tap the receiver";
+  const waitingReceiver = d.added && d.passer && !d.receiver && d.outcome!=="out" && !S.reviews[S.cur];
+  hint.hidden = !(S.pick || waitingReceiver);
+  if(S.pick==="edit-passer") hint.textContent = "Tap the right passer (on the kick frame)";
+  else if(S.pick==="edit-receiver") hint.textContent = "Tap the right receiver (on the first touch)";
+  else if(waitingReceiver) hint.textContent = "Passer set · play to the first touch and tap the receiver";
 }
 function msg(t,err){ $("msg").textContent=t; $("msg").className="msg"+(err?" err":""); }
 
@@ -530,15 +602,19 @@ $("scrub").oninput=e=>{ const v=$("vid"); if(!v.paused) v.pause(); seek(S.data.s
 $("bplay").onclick=()=>{ const d=S.draft; if(d) playRange(d.kick-20, Math.max(d.touch,d.kick)+20); };
 $("bkick").onclick=()=>{ if(S.draft){ seek(S.draft.kick); setZoomOrigin(); } };
 $("btouch").onclick=()=>{ if(S.draft){ seek(S.draft.touch); setZoomOrigin(); } };
-$("bpickp").onclick=()=>{ S.pick = S.pick==="passer"?null:"passer"; S.nameRole="passer"; render(); };
-$("bpickr").onclick=()=>{ S.pick = S.pick==="receiver"?null:"receiver"; S.nameRole="receiver"; render(); };
-$("ocomplete").onclick=()=>{ S.draft.outcome="complete"; render(); };
-$("ointercepted").onclick=()=>{ S.draft.outcome="intercepted"; render(); };
-$("oincomplete").onclick=()=>{ S.draft.outcome="incomplete"; render(); };
+$("bpickp").onclick=()=>{ S.pick = S.pick==="edit-passer"?null:"edit-passer"; S.nameRole="passer"; render(); };
+$("bpickr").onclick=()=>{ S.pick = S.pick==="edit-receiver"?null:"edit-receiver"; S.nameRole="receiver"; render(); };
+const setOutcome = o => { if(!S.draft) return; S.draft.outcome=o; render(); if(S.reviews[S.cur]) persist(); };
+$("ocomplete").onclick=()=>setOutcome("complete");
+$("ointercepted").onclick=()=>setOutcome("intercepted");
+$("oincomplete").onclick=()=>setOutcome("incomplete");
+$("note").addEventListener("change",()=>{ if(S.reviews[S.cur]) persist(); });
 $("oout").onclick=()=>{ const d=S.draft; if(!d) return; pushHist();
   // the ball leaves the pitch: no receiver; the touch frame is where it goes out (this frame)
   d.outcome="out"; if(!d.receiver || S.pick==="receiver"){ d.receiver=null; d.touch=Math.max(S.frame, d.kick+1); S.pick=null; }
-  msg("Out of play: no receiver needed. Go to where the ball leaves the pitch if this is not that frame, then tap Out of play again."); render(); draw(); };
+  if(d.added && !S.reviews[S.cur] && d.passer){ quickSave(); return; }
+  if(S.reviews[S.cur]){ persist(); return; }
+  msg("Out of play: no receiver needed."); render(); draw(); };
 $("bsave").onclick=()=>save(true); $("bno").onclick=()=>save(false);
 $("badd").onclick=addPass; $("bnext").onclick=next;
 $("bundo").onclick=undoTap; $("bkickhere").onclick=kickHere;
