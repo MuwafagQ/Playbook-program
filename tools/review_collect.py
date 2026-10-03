@@ -56,7 +56,12 @@ def pitch_m(t_frame: pd.DataFrame, who: dict | None):
     return round(float(p[0]) / 100, 2), round(float(p[1]) / 100, 2)
 
 
-def team_letter(name) -> str:
+def team_letter(who: dict | None) -> str:
+    """A / B from the team set in the app (0 / 1), else from the name's letter, else ?."""
+    who = who or {}
+    if who.get("team") in (0, 1):
+        return "AB"[who["team"]]
+    name = who.get("name")
     return name[0] if isinstance(name, str) and name[:1] in ("A", "B") else "?"
 
 
@@ -74,8 +79,8 @@ def collect(reviews: dict, tracks: pd.DataFrame, index: dict | None, fps: float 
         rxm, rym = pitch_m(by_frame.get(t), rc)
         rows.append({"review_id": rid, "segment": seg_of(k), "kick_frame": k, "kick_s": round(k / fps, 2),
                      "touch_frame": t, "touch_s": round(t / fps, 2), "duration_s": round((t - k) / fps, 2),
-                     "passer": ps.get("name"), "passer_team": team_letter(ps.get("name")), "passer_player_id": ps.get("jid"),
-                     "receiver": rc.get("name"), "receiver_team": team_letter(rc.get("name")), "receiver_player_id": rc.get("jid"),
+                     "passer": ps.get("name"), "passer_team": team_letter(ps), "passer_player_id": ps.get("jid"),
+                     "receiver": rc.get("name"), "receiver_team": team_letter(rc), "receiver_player_id": rc.get("jid"),
                      "outcome": r.get("outcome"), "note": r.get("notes", ""), "source": r.get("source"),
                      "passer_x_m": pxm, "passer_y_m": pym, "receiver_x_m": rxm, "receiver_y_m": rym,
                      "length_m": round(float(np.hypot(rxm - pxm, rym - pym)), 1) if None not in (pxm, rxm) else None})
