@@ -59,7 +59,9 @@ button:disabled{opacity:.45;cursor:default}
 .names button.A{border-color:var(--teamA)}.names button.B{border-color:var(--teamB)}
 .namein{display:flex;gap:6px}
 .namein input{flex:1;min-width:0;font:15px var(--body);padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
-.seg{display:flex;gap:0}
+.seg{display:flex;gap:0;flex-wrap:wrap}
+.seg button{min-width:0;padding-inline:6px}
+@media (max-width:520px){.seg{display:grid;grid-template-columns:1fr 1fr}.seg button,.seg button:first-child,.seg button:last-child{border-radius:0}}
 .seg button{border-radius:0;flex:1}.seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0}
 .seg button.on{background:var(--fg);color:var(--bg);outline:none}
 .verdict{display:flex;gap:8px;flex-wrap:wrap}.verdict button{flex:1}
@@ -127,6 +129,10 @@ button:disabled{opacity:.45;cursor:default}
         <div><div class="name" id="rname">–</div><div class="sub" id="rsub"></div></div>
         <button id="bpickr">Change</button>
       </div>
+      <div class="bar" style="margin-top:0">
+        <button id="bkickhere" title="The passer already marked kicks at this frame">Kick here</button>
+        <button id="bundo" disabled>↶ Undo tap</button>
+      </div>
       <div id="namebox" hidden>
         <div class="sub" id="namefor"></div>
         <div class="names" id="namebtns"></div>
@@ -134,7 +140,7 @@ button:disabled{opacity:.45;cursor:default}
       </div>
       <input id="note" class="note" placeholder="Note (optional): corner, header, free kick…" autocomplete="off">
       <div class="seg" role="group" aria-label="Outcome">
-        <button id="ocomplete" class="on">Complete</button><button id="oincomplete">Incomplete</button>
+        <button id="ocomplete" class="on">Complete</button><button id="ointercepted">Intercepted</button><button id="oincomplete">Incomplete</button><button id="oout">Out of play</button>
       </div>
       <div class="verdict">
         <button class="primary" id="bsave">✔ Save pass</button>
@@ -144,8 +150,9 @@ button:disabled{opacity:.45;cursor:default}
       <div class="msg" id="msg"></div>
     </div>
     <div class="bar" style="margin-top:0">
-      <button id="badd">+ Missed pass</button>
-      <button id="bnext">Next to review ▶</button>
+      <button id="badd" class="primary">+ New pass</button>
+      <button id="bsugg" aria-pressed="true">Suggestions: on</button>
+      <button id="bnext">Next suggestion ▶</button>
       <button id="bfilter" aria-pressed="false">To review only</button>
     </div>
     <div class="list" id="list"></div>
@@ -161,7 +168,8 @@ button:disabled{opacity:.45;cursor:default}
 const $ = id => document.getElementById(id);
 const A_POS = ["GK","RB","RCB","CB","LCB","LB","DM","CM","RM","LM","AM","RW","LW","ST","CF"];
 const S = { idx:null, data:null, boxes:null, frame:0, videoFor:null, cur:null, draft:null, pick:null, playTo:null,
-            reviews:{}, names:{}, db:null, canWrite:true, zoom:false, onlyOpen:false, dl:null };
+            reviews:{}, names:{}, db:null, canWrite:true, zoom:false, onlyOpen:false, dl:null, hist:[], useSugg:true };
+try{ S.useSugg = localStorage.getItem("sugg")!=="off"; }catch(e){}
 
 // ---------- data
 async function load(){
@@ -182,7 +190,7 @@ async function openSegment(name){
   $("scrub").max = g.frames - 1;
   S.frame = g.seg_start;
   $("novideo").hidden = S.videoFor===name;
-  const firstOpen = proposals().find(p=>!S.reviews[p.id]) || proposals()[0];
+  const firstOpen = S.useSugg ? (proposals().find(p=>!S.reviews[p.id]) || proposals()[0]) : null;
   select(firstOpen ? firstOpen.id : null);
 }
 $("segsel").onchange = e => openSegment(e.target.value);
@@ -290,10 +298,12 @@ $("cv").addEventListener("pointerdown", ev=>{
   const m=6, hits=boxesAt(S.frame).filter(b=>b[6]!==3 && x>=b[0]-m && x<=b[2]+m && y>=b[1]-m && y<=b[3]+m);
   hits.sort((a,b)=>(a[2]-a[0])*(a[3]-a[1])-(b[2]-b[0])*(b[3]-b[1]));
   const h=hits[0];
+  pushHist();
   const who = h ? {jid:h[4], team:h[5], frame:S.frame, x:(h[0]+h[2])/2, y:h[3]}
                 : {jid:null, team:-1, frame:S.frame, x, y, name:null};
   S.draft[S.pick] = who;
   if(S.pick==="passer"){ S.draft.kick=S.frame; } else { S.draft.touch=S.frame; }
+  autoOutcome();
   const role=S.pick;
   S.pick = (role==="passer" && !S.draft.receiver) ? "receiver" : null;
   S.nameRole = role;
@@ -305,20 +315,42 @@ function proposals(){
   const inSeg = f => f>=S.data.seg_start && f<S.data.seg_start+S.data.frames;
   const done = Object.values(S.reviews).filter(r=>r.added && r.status==="pass");
   const dup = p => done.some(r=>Math.abs(r.kick-p.kick)<=10 && r.touch-p.touch>=-10 && r.touch-p.touch<=35);
-  const l = S.data.proposals.filter(p=>S.reviews[p.id] || !dup(p)).concat(Object.entries(S.reviews).filter(([id,r])=>r.added && inSeg(r.kick)).map(([id,r])=>({id,kick:r.kick,touch:r.touch,added:true})));
+  const sugg = S.useSugg ? S.data.proposals.filter(p=>S.reviews[p.id] || !dup(p))
+                         : S.data.proposals.filter(p=>S.reviews[p.id] && S.reviews[p.id].status==="pass");
+  const l = sugg.concat(Object.entries(S.reviews).filter(([id,r])=>r.added && inSeg(r.kick)).map(([id,r])=>({id,kick:r.kick,touch:r.touch,added:true})));
   // a missed pass being added lives only in the draft until it is saved
   if(S.cur && S.cur.startsWith("add-") && !l.find(p=>p.id===S.cur)) l.push({id:S.cur, kick:S.draft?S.draft.kick:S.frame, touch:0, added:true});
   return l.sort((a,b)=>a.kick-b.kick);
 }
+function sideOf(w){ if(!w) return null; if(w.team===0) return "A"; if(w.team===1) return "B"; const n=whoName(w); return n&&(n[0]==="A"||n[0]==="B") ? n[0] : null; }
+function autoOutcome(){
+  const d=S.draft; if(!d || !d.passer || !d.receiver) return;
+  const a=sideOf(d.passer), b=sideOf(d.receiver);
+  if(a && b) d.outcome = a===b ? "complete" : "intercepted";
+}
+function pushHist(){ if(S.draft){ S.hist.push(clone({draft:S.draft, pick:S.pick, nameRole:S.nameRole})); if(S.hist.length>30) S.hist.shift(); } }
+function undoTap(){
+  const h=S.hist.pop(); if(!h) return;
+  S.draft=h.draft; S.pick=h.pick; S.nameRole=h.nameRole; msg("Undone."); render(); draw();
+}
+function kickHere(){
+  const d=S.draft; if(!d || !d.passer){ msg("Tap the passer first.", true); return; }
+  const w=d.passer;
+  if(w.jid!=null && !boxesAt(S.frame).some(b=>b[4]===w.jid)){ msg("The passer has no box on this frame: tap them instead.", true); return; }
+  pushHist();
+  d.passer={...w, frame:S.frame}; d.kick=S.frame;
+  if(d.receiver && d.receiver.frame<=S.frame){ d.receiver=null; }
+  S.pick = d.receiver ? null : "receiver"; msg(""); render(); draw();
+}
 function select(id){
-  S.cur=id; S.pick=null; S.nameRole=null; msg("");
+  S.cur=id; S.pick=null; S.nameRole=null; S.hist=[]; msg("");
   if(id==null){ S.draft=null; render(); return; }
   const p=proposals().find(x=>x.id===id), r=S.reviews[id];
   const base = r && r.passer ? r : p;
   S.draft = { kick:base.kick, touch:base.touch,
               passer: clone(r&&r.passer || (p.passer && {...p.passer, frame:p.kick})),
               receiver: clone(r&&r.receiver || (p.receiver && {...p.receiver, frame:p.touch})),
-              outcome: (r&&r.outcome)||(p.same_team===false?"incomplete":"complete") };
+              outcome: (r&&r.outcome)||(p.same_team===false?"intercepted":"complete") };
   $("note").value = (r&&r.notes)||"";
   render(); seek(S.draft.kick); setZoomOrigin();
 }
@@ -327,7 +359,8 @@ function whoName(w){ if(!w) return null; return w.jid!=null ? nameAt(w.jid,w.fra
 async function save(isPass){
   if(!S.db){ msg("Saving is not available in this view.", true); return; }
   const d=S.draft, id=S.cur;
-  if(isPass && (!d.passer || !d.receiver)){ msg("Tap the passer and the receiver first.", true); return; }
+  if(isPass && !d.passer){ msg("Tap the passer first.", true); return; }
+  if(isPass && !d.receiver && d.outcome!=="out"){ msg("Tap the receiver, or choose Out of play.", true); return; }
   if(isPass && d.touch<=d.kick){ msg("The touch must come after the kick.", true); return; }
   for(const role of ["passer","receiver"]){ const w=d[role]; if(isPass && w && w.jid==null && !w.name){ msg(`The ${role} has no box: give them a name or number first.`, true); return; } }
   const p=proposals().find(x=>x.id===id);
@@ -335,7 +368,11 @@ async function save(isPass){
                 passer: d.passer ? {...d.passer, name:whoName(d.passer)} : null,
                 receiver: d.receiver ? {...d.receiver, name:whoName(d.receiver)} : null,
                 added: !!(p && p.added), source: p && p.source || "added", notes: $("note").value.trim(), at: Date.now() };
-  try{ await S.db.collection("reviews").doc(id).set(doc); S.reviews[id]=doc; next(); msg(isPass?"Saved. Next pass:":"Marked as not a pass. Next:"); }
+  try{
+    await S.db.collection("reviews").doc(id).set(doc); S.reviews[id]=doc;
+    if(isPass && (doc.added || !S.useSugg)){ chainFrom(doc); msg("Saved. Next pass starts from the receiver: play to the kick and tap Kick here (or tap another passer)."); }
+    else { next(); msg(isPass?"Saved. Next suggestion:":"Marked as not a pass. Next suggestion:"); }
+  }
   catch(e){ msg("Could not save ("+e.code+"). Try again.", true); }
 }
 function next(){
@@ -361,12 +398,12 @@ function allSaved(){ return Object.entries(S.reviews).filter(([,r])=>r.status===
 function teamOf(n){ return n&&n[0]==="A"?"A":n&&n[0]==="B"?"B":"?"; }
 function renderStats(){
   const saved=allSaved(); if(!saved.length){ $("stats").textContent="No passes saved yet."; return; }
-  const by={}; for(const r of saved){ const n=(r.passer&&r.passer.name)||"?"; by[n]=by[n]||{n,team:teamOf(n),all:0,ok:0}; by[n].all++; if(r.outcome==="complete") by[n].ok++; }
+  const by={}; for(const r of saved){ const n=(r.passer&&r.passer.name)||"?"; by[n]=by[n]||{n,team:teamOf(n),all:0,ok:0,lost:0}; by[n].all++; if(r.outcome==="complete") by[n].ok++; if(r.outcome==="intercepted") by[n].lost++; }
   const team={A:{all:0,ok:0},B:{all:0,ok:0}}; for(const v of Object.values(by)) if(team[v.team]){ team[v.team].all+=v.all; team[v.team].ok+=v.ok; }
   const pct=(a,b)=>b?Math.round(100*a/b)+"%":"–";
-  const rows=Object.values(by).sort((a,b)=>b.all-a.all).slice(0,8).map(v=>`<tr><td class="team${v.team}">${v.n}</td><td>${v.all}</td><td>${pct(v.ok,v.all)}</td></tr>`).join("");
+  const rows=Object.values(by).sort((a,b)=>b.all-a.all).slice(0,8).map(v=>`<tr><td class="team${v.team}">${v.n}</td><td>${v.all}</td><td>${pct(v.ok,v.all)}</td><td>${v.lost}</td></tr>`).join("");
   $("stats").innerHTML = `<p><span class="teamA">Pink A</span>: ${team.A.all} passes, ${pct(team.A.ok,team.A.all)} complete · <span class="teamB">Cyan B</span>: ${team.B.all} passes, ${pct(team.B.ok,team.B.all)} complete</p>
-    <table><tr><th>Passer</th><th>Passes</th><th>Complete</th></tr>${rows}</table>`;
+    <table><tr><th>Passer</th><th>Passes</th><th>Complete</th><th>Intercepted</th></tr>${rows}</table>`;
 }
 async function exportCsv(){
   if(!S.dl){ msg("Saving files is not available in this view.", true); return; }
@@ -383,7 +420,13 @@ async function exportCsv(){
 function addPass(){
   const id = "add-" + Date.now().toString(36);
   S.cur=id; S.draft={kick:S.frame, touch:S.frame, passer:null, receiver:null, outcome:"complete", added:true}; $("note").value="";
-  S.pick="passer"; S.nameRole=null; msg("");
+  S.pick="passer"; S.nameRole=null; S.hist=[]; msg("Play to the kick and tap the passer.");
+  render(); draw();
+}
+function chainFrom(doc){
+  // the receiver usually plays the next pass: start it with them as the passer
+  addPass();
+  if((doc.outcome==="complete" || doc.outcome==="intercepted") && doc.receiver){ S.draft.passer={...clone(doc.receiver), frame:doc.touch}; S.draft.kick=doc.touch; S.nameRole="passer"; }
   render(); draw();
 }
 
@@ -401,6 +444,8 @@ function applyName(n){
   const role=S.nameRole, w=S.draft&&S.draft[role]; if(!w||!n) return;
   if(/^\d+$/.test(n)){ if(w.team===0||w.team===1) n=(w.team===0?"A":"B")+n; else { msg("This player has no team colour: add the letter, e.g. A10 or B10.", true); return; } }
   if(w.jid!=null) setName(w.jid, w.frame, n).catch(e=>msg("Could not save the name ("+e.code+").", true)); else w.name=n;
+  if(w.team!==0 && w.team!==1 && (n[0]==="A"||n[0]==="B")) w.team = n[0]==="A"?0:1;
+  autoOutcome();
   $("nameinput").value=""; msg(""); render(); draw();
 }
 
@@ -418,7 +463,7 @@ function render(){
     row.className="row"+(p.id===S.cur?" cur":"");
     const t=(p.kick/S.data.fps), chip = !r ? `<span class="chip">to review</span>` : r.status==="pass" ? `<span class="chip pass">pass</span>` : `<span class="chip no">not a pass</span>`;
     const pn = r&&r.passer ? (r.passer.name||"?") : (p.passer ? (nameAt(p.passer.jid,p.kick)||"?") : "");
-    const rn = r&&r.receiver ? (r.receiver.name||"?") : (p.receiver ? (nameAt(p.receiver.jid,p.touch)||"?") : "");
+    const rn = r&&r.receiver ? (r.receiver.name||"?") : (r&&r.outcome==="out" ? "out" : (p.receiver ? (nameAt(p.receiver.jid,p.touch)||"?") : ""));
     row.innerHTML = `<span class="t">${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}</span><span>${pn} → ${rn}${p.added?' <span class="chip hand">added</span>':''}${p.source==="tagged"?' <span class="chip hand">tagged</span>':''}${p.same_team===false&&!r?' <span class="chip other">other team</span>':''}</span>${chip}`;
     row.onclick=()=>select(p.id);
     $("list").appendChild(row);
@@ -428,6 +473,8 @@ function render(){
   for(const o of $("segsel").options){ const g=S.idx.segments.find(x=>x.name===o.value);
     const done=g.proposals.filter(p=>S.reviews[p.id]).length; o.textContent=`${g.name.replace(/_/g," ")} · ${done}/${g.proposals.length}`; }
   renderStats();
+  $("bsugg").textContent = "Suggestions: " + (S.useSugg?"on":"off");
+  $("bnext").hidden = $("bfilter").hidden = !S.useSugg;
   const d=S.draft;
   $("sheet").hidden = !d;
   if(!d) return;
@@ -447,10 +494,14 @@ function render(){
     const box=$("namebtns"); box.innerHTML="";
     for(const n of nameButtons(w.team)){ const b=document.createElement("button"); b.textContent=n; b.className=n[0]==="A"?"A":n[0]==="B"?"B":""; b.onclick=()=>applyName(n); box.appendChild(b); }
   }
-  $("ocomplete").classList.toggle("on", d.outcome==="complete"); $("oincomplete").classList.toggle("on", d.outcome==="incomplete");
+  for(const o of ["complete","intercepted","incomplete","out"]) $("o"+o).classList.toggle("on", d.outcome===o);
+  if(d.outcome==="out" && !d.receiver) { $("rname").textContent="no receiver (out of play)"; $("rname").className="name empty"; $("rsub").textContent=`frame ${d.touch}`; }
   $("bsave").disabled = $("bno").disabled = !S.canWrite;
   const rv=S.reviews[S.cur]; $("breopen").hidden=!rv; $("breopen").textContent = rv&&rv.added ? "Delete this pass" : "Reopen this answer";
   $("bexport").hidden = !S.dl;
+  $("bsugg").textContent = "Suggestions: " + (S.useSugg?"on":"off"); $("bsugg").setAttribute("aria-pressed", S.useSugg);
+  $("bnext").hidden = $("bfilter").hidden = !S.useSugg;
+  $("bundo").disabled = !S.hist.length;
   const hint=$("hint");
   hint.hidden = !S.pick;
   if(S.pick) hint.textContent = S.pick==="passer" ? "Go to the kick frame and tap the passer (no box? tap them anyway)" : "Go to the first touch and tap the receiver";
@@ -470,6 +521,7 @@ $("vid").addEventListener("play",()=>{ $("bpp").textContent="❚❚ Pause"; });
 $("vid").addEventListener("pause",()=>{ $("bpp").textContent="▶ Play"; });
 document.addEventListener("keydown",e=>{ if(e.target.tagName==="INPUT") return;
   if(e.key===" "){ e.preventDefault(); playPause(); }
+  else if((e.key==="z"||e.key==="Z") && !e.ctrlKey){ undoTap(); }
   else if(e.key==="ArrowRight") seek(S.frame+(e.shiftKey?10:1)); else if(e.key==="ArrowLeft") seek(S.frame-(e.shiftKey?10:1)); });
 const step = n => { const v=$("vid"); if(!v.paused){ v.pause(); S.frame=frameFromVideo(); } seek(S.frame+n); };
 $("b-10").onclick=()=>step(-10); $("b-1").onclick=()=>step(-1);
@@ -481,9 +533,17 @@ $("btouch").onclick=()=>{ if(S.draft){ seek(S.draft.touch); setZoomOrigin(); } }
 $("bpickp").onclick=()=>{ S.pick = S.pick==="passer"?null:"passer"; S.nameRole="passer"; render(); };
 $("bpickr").onclick=()=>{ S.pick = S.pick==="receiver"?null:"receiver"; S.nameRole="receiver"; render(); };
 $("ocomplete").onclick=()=>{ S.draft.outcome="complete"; render(); };
+$("ointercepted").onclick=()=>{ S.draft.outcome="intercepted"; render(); };
 $("oincomplete").onclick=()=>{ S.draft.outcome="incomplete"; render(); };
+$("oout").onclick=()=>{ const d=S.draft; if(!d) return; pushHist();
+  // the ball leaves the pitch: no receiver; the touch frame is where it goes out (this frame)
+  d.outcome="out"; if(!d.receiver || S.pick==="receiver"){ d.receiver=null; d.touch=Math.max(S.frame, d.kick+1); S.pick=null; }
+  msg("Out of play: no receiver needed. Go to where the ball leaves the pitch if this is not that frame, then tap Out of play again."); render(); draw(); };
 $("bsave").onclick=()=>save(true); $("bno").onclick=()=>save(false);
 $("badd").onclick=addPass; $("bnext").onclick=next;
+$("bundo").onclick=undoTap; $("bkickhere").onclick=kickHere;
+$("bsugg").onclick=()=>{ S.useSugg=!S.useSugg; try{ localStorage.setItem("sugg", S.useSugg?"on":"off"); }catch(e){}
+  msg(S.useSugg ? "Suggestions on: proposed passes are listed to confirm or reject." : "Suggestions off: tag passes yourself with + New pass; only your passes are listed."); render(); };
 $("breopen").onclick=reopen; $("bexport").onclick=exportCsv;
 $("bfilter").onclick=()=>{ S.onlyOpen=!S.onlyOpen; $("bfilter").classList.toggle("on",S.onlyOpen); $("bfilter").setAttribute("aria-pressed",S.onlyOpen); render(); };
 $("bzoom").onclick=()=>{ S.zoom=!S.zoom; $("bzoom").classList.toggle("on",S.zoom); $("bzoom").setAttribute("aria-pressed",S.zoom); setZoomOrigin(); draw(); };
