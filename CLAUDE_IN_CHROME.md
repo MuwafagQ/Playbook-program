@@ -55,3 +55,14 @@ In the open Pass Review tab (claude.ai artifact "Pass Review · match_video_2"):
 3. Take a screenshot of the video area with the boxes.
 Do not press Save, Not a pass, Delete or Reopen. Report the three items above.
 ```
+
+## 5. Photo cards + ball candidates (GPU, about 2 hours)
+
+```
+Open https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/cards_and_ball.ipynb
+Runtime -> Change runtime type -> L4 GPU -> Save, then Runtime -> Run all. Accept the Drive connection.
+Keep the tab open; every 20 minutes check Cell 4 ("05_1H_20-25: ... | N segments left"). If disconnected,
+reconnect and Run all again (finished segments are skipped). Never edit cells or enter keys. On an error,
+copy the last 30 lines of that cell.
+Report: the lines printed by Cell 3 (one per segment) and the last 3 lines of Cell 4.
+```
