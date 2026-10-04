@@ -96,6 +96,12 @@ button:disabled{opacity:.45;cursor:default}
 .clash{position:absolute;top:8px;right:8px;background:var(--bad);color:#fff;font:700 10px var(--body);padding:1px 6px;border-radius:9px}
 .actbar{position:sticky;bottom:0;background:var(--bg);padding:10px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
 .actbar .row2{flex-wrap:wrap;align-items:center}
+.splitbox{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px}
+.photos{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.photo{border:3px solid var(--accent);border-radius:6px;padding:2px;cursor:pointer;text-align:center;font:700 13px var(--display)}
+.photo canvas{width:100%;aspect-ratio:1/2;display:block;background:var(--stage)}
+.photo.other{border-color:var(--bad)}
+.badge{position:absolute;top:8px;left:8px;background:var(--warn);color:#fff;font:700 10px var(--body);padding:1px 6px;border-radius:9px}
 </style>
 
 <div class="top">
@@ -183,6 +189,14 @@ button:disabled{opacity:.45;cursor:default}
   <div class="actbar" id="actbar">
     <div class="row2"><span class="sub" id="selinfo">Tap the cards that are not this player.</span></div>
     <div class="chips" id="movechips"></div>
+    <div class="row2"><button id="bsplit" hidden>Mixed card: some photos are someone else</button></div>
+    <div class="splitbox" id="splitbox" hidden>
+      <div class="sub" id="splithelp"></div>
+      <div class="photos" id="photos"></div>
+      <div class="sub">The other person is:</div>
+      <div class="chips" id="otherchips"></div>
+      <div class="row2"><button id="bsplitsave" class="primary">Save the split</button><button id="bsplitcancel">Cancel</button></div>
+    </div>
     <div class="row2"><button id="bconfirm" class="primary">Confirm the rest</button><button id="bclearsel">Clear selection</button><button id="bcundo">↶ Undo</button><span class="msg" id="cmsg"></span></div>
   </div>
 </section>
@@ -634,6 +648,7 @@ async function openCards(){
 }
 // the name a piece has now: your fix wins, else the proposal (unsure proposals count as no name)
 function pieceNow(id){ const fx=S.pieces[id], p=S.props.pieces[id];
+  if(fx&&fx.photos) return {name:fx.name||(fx.role==="referee"?"Referee":"Unknown"), done:true, mixed:true};
   if(fx&&fx.role==="referee") return {name:"Referee", done:true};
   if(fx&&fx.name) return {name:fx.name, done:true};
   if(fx&&fx.role==="unknown") return {name:"Unknown", done:true};
@@ -673,18 +688,59 @@ function renderCards(rebuild){
   for(const d of grid.children){ const id=d.dataset.id, p=S.props.pieces[id], fx=S.pieces[id];
     d.classList.toggle("sel",S.csel.has(id)); d.classList.toggle("done",!!fx);
     const t=d.querySelector(".tier"); t.className="tier "+(fx?"ok":p[5]); t.textContent=fx?"✓ yours":(p[7]?"from passes":p[5]);
+    let bd=d.querySelector(".badge"); if(fx&&fx.photos&&!bd){ bd=document.createElement("span"); bd.className="badge"; bd.textContent="split"; d.appendChild(bd); } else if(!(fx&&fx.photos)&&bd) bd.remove();
     let c=d.querySelector(".clash"); if(cl.has(id)&&!c){ c=document.createElement("span"); c.className="clash"; c.textContent="together"; d.appendChild(c); } else if(!cl.has(id)&&c) c.remove(); }
   // move targets: alternatives of the selected cards first, then every name
   const alt={}; for(const id of S.csel){ for(const a of S.props.pieces[id][6]) alt[a]=(alt[a]||0)+1; }
   const order=[...new Set([...Object.keys(alt).sort((a,b)=>alt[b]-alt[a]), ...S.props.names, "Referee", "Unknown"])].filter(n=>n!==S.cname);
   const mv=$("movechips"); mv.innerHTML="";
-  if(S.csel.size) for(const n of order){ const b=document.createElement("button"); b.textContent=n; b.className=(n[0]==="A"||n[0]==="B")?n[0]:""; b.onclick=()=>moveSel(n); mv.appendChild(b); }
+  if(S.csel.size && $("splitbox").hidden) for(const n of order){ const b=document.createElement("button"); b.textContent=n; b.className=(n[0]==="A"||n[0]==="B")?n[0]:""; b.onclick=()=>moveSel(n); mv.appendChild(b); }
   $("selinfo").textContent = S.csel.size ? `${S.csel.size} selected · move them to:` : "Tap the cards that are not this player.";
   const real=S.props.names.includes(S.cname);
   $("bconfirm").hidden=!real; $("bconfirm").textContent=`Confirm the rest as ${S.cname} (${ids.filter(id=>!S.pieces[id]&&!S.csel.has(id)).length})`;
   $("bconfirm").disabled=!ids.some(id=>!S.pieces[id]&&!S.csel.has(id));
   $("bclearsel").disabled=!S.csel.size;
+  $("bsplit").hidden = S.csel.size!==1 || !$("splitbox").hidden;
 }
+// ---------- a card with two people in it: tap the photos that are someone else, pick who
+const SP={id:null, other:new Set(), name:null};
+async function openSplit(){
+  const id=[...S.csel][0], p=S.props.pieces[id], sg=S.idx.segments[p[0]]; if(!sg) return;
+  SP.id=id; SP.other=new Set(); SP.name=null;
+  let ix, img;
+  try{ if(!S.sheets[sg.name]) S.sheets[sg.name]=await fetch(`cards_${sg.name}.json`).then(r=>r.json());
+       ix=S.sheets[sg.name]; img=new Image(); img.src=`cards_${sg.name}.jpg`; await img.decode(); }
+  catch(err){ $("cmsg").textContent="The photos of this card could not load. Try again."; return; }
+  const e=ix.pieces[id]; if(!e) return;
+  const box=$("photos"); box.innerHTML="";
+  e[2].forEach((f,k)=>{ const d=document.createElement("div"); d.className="photo"; const cv=document.createElement("canvas"); cv.width=ix.w; cv.height=ix.h;
+    cv.getContext("2d").drawImage(img, e[0]+k*ix.w, e[1], ix.w, ix.h, 0, 0, ix.w, ix.h);
+    const lab=document.createElement("div"); d.append(cv,lab); d.dataset.k=k; d.dataset.f=f;
+    d.onclick=()=>{ if(SP.other.has(k)) SP.other.delete(k); else SP.other.add(k); renderSplit(); }; box.appendChild(d); });
+  img.src="";
+  const oc=$("otherchips"); oc.innerHTML="";
+  for(const n of [...new Set([...p[6], ...S.props.names, "Referee", "Unknown"])].filter(n=>n!==S.cname)){
+    const b=document.createElement("button"); b.textContent=n; b.className=(n[0]==="A"||n[0]==="B")?n[0]:""; b.onclick=()=>{ SP.name=n; renderSplit(); }; oc.appendChild(b); }
+  $("splitbox").hidden=false; $("selinfo").textContent=""; renderSplit(); renderCards(false);
+}
+function renderSplit(){
+  for(const d of $("photos").children){ const k=Number(d.dataset.k), o=SP.other.has(k);
+    d.classList.toggle("other",o); d.lastChild.textContent = o ? (SP.name||"someone else") : S.cname; }
+  for(const b of $("otherchips").children) b.classList.toggle("on", b.textContent===SP.name);
+  $("splithelp").textContent=`Tap the photos that are NOT ${S.cname} (they turn red), then pick who they are.`;
+  $("bsplitsave").disabled = !SP.other.size || SP.other.size===4 || !SP.name;
+}
+$("bsplit").onclick=openSplit;
+$("bsplitcancel").onclick=()=>{ $("splitbox").hidden=true; renderCards(false); };
+$("bsplitsave").onclick=async()=>{
+  const photos=[...$("photos").children].map(d=>[Number(d.dataset.f), SP.other.has(Number(d.dataset.k)) ? SP.name : S.cname]);
+  const mine=photos.filter(x=>x[1]===S.cname).length, main = mine>=photos.length-mine ? S.cname : SP.name;
+  const id=SP.id; S.csel.clear(); $("splitbox").hidden=true;
+  const k=await writeFix([id], {photos, mixed:true, name: (main==="Referee"||main==="Unknown")?null:main, role: main==="Referee"?"referee":null})
+    .catch(e=>{ $("cmsg").textContent="Could not save ("+e.code+")."; return 0; });
+  if(k) $("cmsg").textContent=`Split saved: ${photos.map(x=>x[1]).join(" · ")}. Claude cuts the track where it changes person when building the player IDs.`;
+  renderCards(true);
+};
 // draw each card from its segment's sheet; one sheet decoded at a time, then released
 async function drawCards(need){
   for(const seg of Object.keys(need)){
