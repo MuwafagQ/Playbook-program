@@ -132,6 +132,28 @@ def assign_exclusive(props: pd.DataFrame, fixed: pd.Series, pieces: pd.DataFrame
     return out
 
 
+def apply_kit(props: pd.DataFrame, dark: dict[int, float], dark_names=("AGK",), dark_cut: float = 0.20,
+              light_cut: float = 0.15) -> pd.DataFrame:
+    """Kit colour rule: a piece in a dark kit (dark share >= dark_cut) can only carry one of dark_names
+    (else it is a referee); a clearly light piece (< light_cut) never carries them; in between, no rule.
+    match_video_2: team A keeper in black, like the referees; team B keeper in sky blue. On the user's
+    labels, 90% of field players and of BGK pieces are <= 0.12 dark, 90% of AGK pieces >= 0.22."""
+    out = props.copy()
+    new = []
+    for r in out.itertuples():
+        d = dark.get(int(r.piece))
+        if d is None:
+            new.append(r.scores)
+        elif d >= dark_cut:
+            new.append([(n, v) for n, v in r.scores if n in dark_names])
+        elif d < light_cut:
+            new.append([(n, v) for n, v in r.scores if n not in dark_names])
+        else:
+            new.append(r.scores)
+    out["scores"] = new
+    return out
+
+
 def clashes(named: pd.Series, pieces: pd.DataFrame, min_overlap: int = 15) -> list[tuple[int, int, str]]:
     """Pairs of pieces that carry the same name while both are on screen (more than min_overlap frames)."""
     x = pieces.loc[pieces.index.intersection(named.index)].assign(name=named)
@@ -161,7 +183,7 @@ def tier(score: float, labelled: bool) -> str:
 
 
 def app_json(props: pd.DataFrame, pieces: pd.DataFrame, segments: list[dict], assigned: dict | None = None,
-             min_frames: int = 30) -> dict:
+             min_frames: int = 30, referees: set | None = None) -> dict:
     """The proposals for the app's Cards mode: names, and per piece
     [segment index, start, end, team, proposed name, tier, alternatives, labelled by the user].
     With `assigned` (assign_exclusive), a piece left without a name is 'unsure' with its best guesses."""
@@ -174,7 +196,9 @@ def app_json(props: pd.DataFrame, pieces: pd.DataFrame, segments: list[dict], as
         name, score = (r.name, r.score)
         if assigned is not None:
             name, score = assigned.get(int(r.piece), (r.name, -1.0))
-        alts = [n for n, _ in r.scores if n != name][:2]
+        if referees is not None and int(r.piece) in referees and int(r.piece) not in (assigned or {}):
+            name, score = "Referee", 0.8
+        alts = [n for n, _ in r.scores if n != name][:2] + (["Referee"] if referees and int(r.piece) in referees and name != "Referee" else [])
         out[str(r.piece)] = [seg_of(r.start), int(r.start), int(r.end), int(r.team), lab or name,
                              tier(score, lab is not None), alts, 1 if lab else 0]
     names = sorted({v[4] for v in out.values()} | {a for v in out.values() for a in v[6]})

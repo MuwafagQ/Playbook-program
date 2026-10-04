@@ -651,7 +651,7 @@ function clashSet(ids){ // pieces of this list that are on screen together with 
   return c; }
 function renderCards(rebuild){
   if(!S.props) return;
-  const all=[...S.props.names, "Unsure", "Unknown", "Referee"], counts={};
+  const all=[...new Set([...S.props.names, "Unsure", "Unknown", "Referee"])], counts={};
   for(const id in S.props.pieces){ const n=pieceNow(id); if(!n.name) continue; counts[n.name]=counts[n.name]||{all:0,todo:0}; counts[n.name].all++; if(!n.done) counts[n.name].todo++; }
   const chips=$("namechips"); chips.innerHTML="";
   for(const n of all){ if(!counts[n] && !S.props.names.includes(n)) continue; const c=counts[n]||{all:0,todo:0};
@@ -676,7 +676,7 @@ function renderCards(rebuild){
     let c=d.querySelector(".clash"); if(cl.has(id)&&!c){ c=document.createElement("span"); c.className="clash"; c.textContent="together"; d.appendChild(c); } else if(!cl.has(id)&&c) c.remove(); }
   // move targets: alternatives of the selected cards first, then every name
   const alt={}; for(const id of S.csel){ for(const a of S.props.pieces[id][6]) alt[a]=(alt[a]||0)+1; }
-  const order=[...Object.keys(alt).sort((a,b)=>alt[b]-alt[a]), ...S.props.names.filter(n=>!alt[n]), "Referee", "Unknown"].filter(n=>n!==S.cname);
+  const order=[...new Set([...Object.keys(alt).sort((a,b)=>alt[b]-alt[a]), ...S.props.names, "Referee", "Unknown"])].filter(n=>n!==S.cname);
   const mv=$("movechips"); mv.innerHTML="";
   if(S.csel.size) for(const n of order){ const b=document.createElement("button"); b.textContent=n; b.className=(n[0]==="A"||n[0]==="B")?n[0]:""; b.onclick=()=>moveSel(n); mv.appendChild(b); }
   $("selinfo").textContent = S.csel.size ? `${S.csel.size} selected · move them to:` : "Tap the cards that are not this player.";
@@ -706,14 +706,15 @@ async function writeFix(ids, fields){
       await S.db.collection("pieces").doc(id).set(doc); S.pieces[id]=doc; before.push([id,b]); n++; })); }
   S.stack.push({type:"pieces", items:before}); $("bundo").disabled=false;
   return n; }
+const fixFor=n=> n==="Referee" ? {role:"referee", name:null, team:null} : n==="Unknown" ? {role:"unknown", name:null}
+          : {name:n, role:/GK$/.test(n)?"gk":"player", team:n[0]==="A"?0:n[0]==="B"?1:null};
 async function moveSel(n){
   const ids=[...S.csel]; S.csel.clear();
-  const f = n==="Referee" ? {role:"referee", name:null} : n==="Unknown" ? {role:"unknown", name:null}
-          : {name:n, role:/GK$/.test(n)?"gk":"player", team:n[0]==="A"?0:n[0]==="B"?1:null};
+  const f = fixFor(n);
   const k=await writeFix(ids,f).catch(e=>{ $("cmsg").textContent="Could not save ("+e.code+")."; return 0; });
   $("cmsg").textContent=`${k} moved to ${n}.`; renderCards(true); }
 $("bconfirm").onclick=async()=>{ const n=S.cname, ids=cardList(n).filter(id=>!S.pieces[id]&&!S.csel.has(id));
-  const k=await writeFix(ids,{name:n, role:/GK$/.test(n)?"gk":"player", team:n[0]==="A"?0:n[0]==="B"?1:null}).catch(e=>{ $("cmsg").textContent="Could not save ("+e.code+")."; return 0; });
+  const k=await writeFix(ids,fixFor(n)).catch(e=>{ $("cmsg").textContent="Could not save ("+e.code+")."; return 0; });
   $("cmsg").textContent=`${k} confirmed as ${n}.`; renderCards(false); };
 $("bclearsel").onclick=()=>{ S.csel.clear(); renderCards(false); };
 $("bcundo").onclick=()=>undo();

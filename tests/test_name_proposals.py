@@ -52,3 +52,12 @@ def test_exclusive_assignment_keeps_one_piece_per_name_at_a_time():
     assert out[1] == ("A7", 1.0)
     assert out[2][0] == "B9"                 # A7 is taken by piece 1 at that time
     assert out[3][0] == "A7" and out[4][0] == "B9"
+
+
+def test_kit_rule_keeps_dark_kits_for_the_dark_keeper():
+    from tools.name_proposals import apply_kit
+    props = pd.DataFrame({"piece": [1, 2, 3], "scores": [[("BGK", 0.9), ("AGK", 0.8)]] * 3})
+    out = apply_kit(props, {1: 0.4, 2: 0.02, 3: 0.17}).set_index("piece").scores
+    assert out[1] == [("AGK", 0.8)]                  # black kit: only the black keeper
+    assert out[2] == [("BGK", 0.9)]                  # light kit: never the black keeper
+    assert out[3] == [("BGK", 0.9), ("AGK", 0.8)]    # in between: no rule

@@ -104,3 +104,16 @@ def ball_candidates(video: str, predict_fn, every: int = 2, conf: float = 0.05, 
     df = pd.DataFrame(a, columns=["frame", "x", "y", "w", "h", "conf"])
     df["frame"] = df.frame.astype(int)
     return df.round({"x": 1, "y": 1, "w": 1, "h": 1, "conf": 3})
+
+
+def dark_share(sheet: np.ndarray, entry, per_piece: int = 4, value_max: int = 70) -> float:
+    """Share of dark pixels in the chest/shorts centre of a piece's crops (median over its crops):
+    high for black kits (match_video_2: team A keeper and the referees), low otherwise."""
+    import cv2
+
+    x0, y0 = entry[0], entry[1]
+    vals = []
+    for k in range(per_piece):
+        c = sheet[y0 + 25:y0 + 75, x0 + k * CARD_W + 18:x0 + k * CARD_W + 46]
+        vals.append(float((cv2.cvtColor(c, cv2.COLOR_BGR2HSV)[..., 2] < value_max).mean()))
+    return float(np.median(vals))
