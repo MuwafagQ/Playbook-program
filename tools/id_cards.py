@@ -117,3 +117,17 @@ def dark_share(sheet: np.ndarray, entry, per_piece: int = 4, value_max: int = 70
         c = sheet[y0 + 25:y0 + 75, x0 + k * CARD_W + 18:x0 + k * CARD_W + 46]
         vals.append(float((cv2.cvtColor(c, cv2.COLOR_BGR2HSV)[..., 2] < value_max).mean()))
     return float(np.median(vals))
+
+
+def red_shares(sheet: np.ndarray, entry, per_piece: int = 4) -> list[float]:
+    """Per crop of a piece: share of strongly red pixels in the chest/shorts centre (match_video_2:
+    team A plays in red). Per crop, so a card that changes team between photos can be spotted."""
+    import cv2
+
+    x0, y0 = entry[0], entry[1]
+    out = []
+    for k in range(per_piece):
+        c = cv2.cvtColor(sheet[y0 + 25:y0 + 75, x0 + k * CARD_W + 18:x0 + k * CARD_W + 46], cv2.COLOR_BGR2HSV)
+        h, s, v = c[..., 0], c[..., 1], c[..., 2]
+        out.append(float((((h <= 8) | (h >= 170)) & (s > 90) & (v > 60)).mean()))
+    return out

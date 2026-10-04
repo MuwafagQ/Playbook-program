@@ -63,3 +63,11 @@ def test_ball_candidates_every_other_frame(tmp_path):
     c = ball_candidates(str(v), fn, every=2, preprocess=False)
     assert list(c.frame) == [0, 2, 4]
     assert c.x.iloc[0] == 13 and c.conf.iloc[0] == 0.9
+
+
+def test_red_shares_per_photo():
+    from tools.id_cards import red_shares
+    sheet = np.zeros((CARD_H, 4 * CARD_W, 3), np.uint8)
+    sheet[:, :CARD_W] = (0, 0, 220)          # first photo red (BGR), the rest black
+    r = red_shares(sheet, [0, 0, []])
+    assert r[0] > 0.9 and max(r[1:]) == 0
