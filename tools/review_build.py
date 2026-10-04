@@ -6,8 +6,8 @@ and the proposed passes; plus the passes already tagged by hand.
 
 Input per segment (notebooks/review_export.ipynb): tracks_small.csv.gz (match frames) and segment.json.
 Output: review_index.json (segments, proposals) and boxes_<segment>.json (per segment frame: people
-[x1, y1, x2, y2, player, team, class] in source-video pixels, and the ball [x, y]); `player` is the
-joined player id. Also seed.json: the review and name documents to write into the app's store for the
+[x1, y1, x2, y2, player, team, class, piece] in source-video pixels, and the ball [x, y]); `player` is
+the joined player id, `piece` the raw tracker id (one unbroken track, nearly always one person). Also seed.json: the review and name documents to write into the app's store for the
 passes tagged so far (tools seed them with the ArtifactData tool).
 """
 from __future__ import annotations
@@ -28,11 +28,12 @@ def boxes(t: pd.DataFrame, seg_start: int, frames: int) -> dict:
     people = [[] for _ in range(frames)]
     ball = [None] * frames
     pid = t.joined_id if "joined_id" in t.columns else t.raw_tracker_id
-    t = t.assign(pid_=pid.fillna(-1).astype(int), team_=t.team_id.fillna(-1).astype(int))
+    t = t.assign(pid_=pid.fillna(-1).astype(int), team_=t.team_id.fillna(-1).astype(int),
+                 piece_=t.raw_tracker_id.fillna(-1).astype(int))
     for r in t[t.class_id.isin(PEOPLE)].itertuples():
         i = int(r.frame) - seg_start
         if 0 <= i < frames:
-            people[i].append([int(r.x1), int(r.y1), int(r.x2), int(r.y2), int(r.pid_), int(r.team_), int(r.class_id)])
+            people[i].append([int(r.x1), int(r.y1), int(r.x2), int(r.y2), int(r.pid_), int(r.team_), int(r.class_id), int(r.piece_)])
     for r in t[t.class_id == 0].drop_duplicates("frame").itertuples():
         i = int(r.frame) - seg_start
         if 0 <= i < frames:
