@@ -102,6 +102,12 @@ button:disabled{opacity:.45;cursor:default}
 .photo{border:3px solid var(--accent);border-radius:6px;padding:2px;cursor:pointer;text-align:center;font:700 13px var(--display)}
 .photo canvas{width:100%;aspect-ratio:1/2;display:block;background:var(--stage)}
 .photo.other{border-color:var(--bad)}
+.guide{border-color:var(--accent)}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.steps span{font:600 12px var(--body);letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:12px;border:1px solid var(--line);color:var(--muted)}
+.steps span.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.steps span.done{color:var(--accent);border-color:var(--accent)}
+#gtext{font-size:15px}
 .badge{position:absolute;top:8px;left:8px;background:var(--warn);color:#fff;font:700 10px var(--body);padding:1px 6px;border-radius:9px}
 </style>
 
@@ -109,7 +115,9 @@ button:disabled{opacity:.45;cursor:default}
   <h1>Pass Review</h1>
   <span class="tally" id="tally">Loading…</span>
   <div class="right">
-    <div class="teams mode" role="group" aria-label="Mode"><button id="m-pass" class="on">Passes</button><button id="m-players">Players</button><button id="m-cards">Cards</button><button id="m-relay">Relay</button><button id="m-cross">Crossings</button></div>
+    <div class="teams mode" role="group" aria-label="Mode"><button id="m-fix" class="on">Fix IDs</button><button id="m-pass">Passes</button></div>
+    <select id="moretools" aria-label="More tools"><option value="">More tools…</option><option value="m-players">Players (fix any box)</option><option value="m-cards">Photo cards</option><option value="m-relay">Relay only</option><option value="m-cross">Crossings only</option></select>
+    <span hidden><button id="m-players"></button><button id="m-cards"></button><button id="m-relay"></button><button id="m-cross"></button></span>
     <select id="segsel" aria-label="Segment"></select>
     <label class="filebtn" for="vfile">Open video</label>
     <input type="file" id="vfile" accept="video/*,.mp4" hidden>
@@ -145,6 +153,11 @@ button:disabled{opacity:.45;cursor:default}
     </div>
   </div>
   <div class="side">
+    <div class="card guide" id="guide" hidden>
+      <div class="steps"><span id="g1">1 · Crossings</span><span id="g2">2 · Name team A</span><span id="g3">3 · Done</span></div>
+      <div id="gtext"></div>
+      <div class="row2" id="gnextrow" hidden><button id="gnext" class="primary">Next segment ▶</button></div>
+    </div>
     <div class="card" id="passcard">
       <h2 id="ptitle">Tap the passer</h2>
       <div class="who">
@@ -198,7 +211,7 @@ button:disabled{opacity:.45;cursor:default}
       <div class="msg" id="xmsg"></div>
     </div>
     <div class="list" id="list"></div>
-    <div class="card stats"><h2>Passes so far</h2><div id="stats" class="sub">No passes yet.</div></div>
+    <div class="card stats" id="statscard"><h2>Passes so far</h2><div id="stats" class="sub">No passes yet.</div></div>
   </div>
 </div>
 <section class="cards" id="cardsview" hidden>
@@ -253,7 +266,8 @@ async function connect(){
     db.collection("names").onSnapshot(s=>{ S.names={}; s.docs.forEach(x=>S.names[x.id]=x.data().entries||[]); render(); S.dirty=true; });
     db.collection("pieces").onSnapshot(s=>{ S.pieces={}; s.docs.forEach(x=>S.pieces[x.id]=x.data()); render(); S.dirty=true; if(S.mode==="cards") renderCards(false); });
     db.collection("cuts").onSnapshot(s=>{ S.cuts={}; s.docs.forEach(x=>S.cuts[x.id]=x.data().fs||[]); CV++; render(); S.dirty=true; });
-    db.collection("swaps").onSnapshot(s=>{ S.swaps={}; s.docs.forEach(x=>S.swaps[x.id]=x.data()); CV++; render(); S.dirty=true; if(S.mode==="cross") renderCross(); });
+    db.collection("swaps").onSnapshot(s=>{ S.swaps={}; s.docs.forEach(x=>S.swaps[x.id]=x.data()); CV++; render(); S.dirty=true;
+      if(S.mode==="cross"){ if(S.guided&&S.xcur&&(xid(S.xcur) in S.swaps)&&!S.xshowAuto) openCross(); else renderCross(); } });
     db.collection("clock").onSnapshot(s=>{ S.clock={}; s.docs.forEach(x=>S.clock[x.id]=x.data().entries||[]); S.dirty=true; });
   }catch(e){ msg("Saving is not available in this view.", true); }
 }
@@ -267,13 +281,13 @@ async function openSegment(name){
   $("novideo").hidden = S.videoFor===name;
   render(); S.dirty=true;
 }
-$("segsel").onchange=e=>openSegment(e.target.value).then(()=>{ if(S.mode==="relay") nextRelay(); if(S.mode==="cross") openCross(); });
+$("segsel").onchange=e=>openSegment(e.target.value).then(()=>{ if(S.guided) startFix(); else if(S.mode==="relay") nextRelay(); else if(S.mode==="cross") openCross(); });
 $("vfile").onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
   const v=$("vid"); if(v.src && v.src.startsWith("blob:")) URL.revokeObjectURL(v.src);
   v.src=URL.createObjectURL(f); S.videoFor=S.data.name; $("novideo").hidden=true;
   if(!f.name.includes(S.data.name)) msg(`This file is ${f.name}; the segment is ${S.data.name}. Pick the matching clip if the boxes don't sit on the players.`, true);
-  v.addEventListener("loadeddata",()=>seek(S.frame),{once:true});
+  v.addEventListener("loadeddata",()=>{ seek(S.frame); if(S.guided) startFix(); },{once:true});
 };
 const local=f=>f-S.data.seg_start;
 const boxesAt=f=>(S.boxes&&S.boxes.people[local(f)])||[];
@@ -282,10 +296,12 @@ const ballAt=f=>(S.boxes&&S.boxes.ball[local(f)])||null;
 // Cuts come from colour (cuts_auto.json, the shirt changed team), from "Switched here", and from
 // crossings judged as swaps (automatically or by you): then each tail takes the other track's name.
 let CV=0, SWc=null, SWv=-1;
-const XTHR=0.12;                       // |swap score| above this: decided automatically
-function crossDecision(c){             // c = [p, q, f0, f1, cut, score, basis, p_after, q_after] -> true swap / false kept / null open
+// c = [p, q, f0, f1, cut, score, basis, p_after, q_after, ask] -> true swap / false kept / null: ask the person
+// Shirt colour decides crossings of players in different kits; two red players overlapping clearly are asked.
+function crossDecision(c){
   const d=S.swaps[`${c[0]}_${c[1]}_${c[2]}`]; if(d&&typeof d.swap==="boolean") return d.swap;
-  if(c[5]==null||Math.abs(c[5])<XTHR*(c[6]==="colour"?4:1)) return null; return c[5]>0; }
+  if(c[6]==="colour"&&c[5]!=null&&Math.abs(c[5])>=0.5) return c[5]>0;
+  return c[9] ? null : false; }
 function switches(){
   if(SWc&&SWv===CV) return SWc; SWv=CV;
   const cuts={}, from={}, team={}, add=(p,f)=>{ (cuts[p]=cuts[p]||new Set()).add(f); };
@@ -633,12 +649,14 @@ function render(){
   $("bundo").disabled=!S.stack.length;
   $("m-pass").classList.toggle("on",S.mode==="pass"); $("m-players").classList.toggle("on",S.mode==="players");
   $("passcard").hidden=S.mode!=="pass"; $("playercard").hidden=S.mode!=="players"; $("relaycard").hidden=S.mode!=="relay";
+  $("m-fix").classList.toggle("on",!!S.guided); $("m-pass").classList.toggle("on",S.mode==="pass"&&!S.guided); renderGuide();
   $("m-relay").classList.toggle("on",S.mode==="relay"); $("m-cross").classList.toggle("on",S.mode==="cross"); $("crosscard").hidden=S.mode!=="cross";
   $("m-cards").classList.toggle("on",S.mode==="cards");
   document.querySelector(".layout").hidden=S.mode==="cards"; $("cardsview").hidden=S.mode!=="cards";
   const nx=S.mode==="pass" && S.next && !waitingReceiver();
   $("bnext").hidden=!nx; if(nx) $("bnext").textContent=`▶ Kick by ${whoName(S.next)||"last receiver"}`;
   renderPlayer();
+  $("list").hidden=!!S.guided; $("statscard").hidden=!!S.guided;
   $("hint").hidden=!waitingReceiver(); $("hint").textContent="Passer set · play to the first touch and tap the receiver";
   for(const o of $("segsel").options){ const g=S.idx.segments.find(x=>x.name===o.value);
     const n=Object.values(S.reviews).filter(r=>r.status==="pass"&&r.kick>=g.seg_start&&r.kick<g.seg_start+g.frames).length;
@@ -909,7 +927,15 @@ function nextRelay(){
                      const r=S.relay.pieces[e[0]], g=r?r[6]:-1; if(g>=0&&seen.has(g)) return false; seen.add(g); return true; });
   if(!e) e=ev.find(e=>!rName(e[0])&&!S.rSkip.has(e[0]));
   S.rEv=e||null;
-  if(e){ const v=$("vid"); if(!v.paused) v.pause(); seek(e[1]+2); S.sel={piece:e[0], frame:e[1]}; }
+  if(e){ const v=$("vid"); if(!v.paused) v.pause();
+    // show the track where it is fully on screen and biggest within its first second, not where it enters at the edge
+    let best=null; for(let f=e[1]; f<=e[1]+30; f++){ const x=boxesAt(f).find(x=>isKey(x,e[0],f)); if(!x) continue;
+      const edge=x[0]<=2||x[2]>=S.data.width-2||x[1]<=2||x[3]>=S.data.height-2, sc=(x[3]-x[1])*(edge?0.3:1);
+      if(!best||sc>best[0]) best=[sc,f,x.slice(0,4)]; }
+    const fs=best?best[1]:e[1]+2; seek(fs); S.sel={piece:e[0], frame:fs};
+    const b=best?best[2]:e[2];
+    if(b){ S.zoom=Math.max(S.zoom,2); $("zoom").value=String(S.zoom); S.focus={x:(b[0]+b[2])/2, y:(b[1]+b[3])/2}; S.cx=null; } }
+  else S.sel=null;
   renderRelay(); S.dirty=true;
 }
 function inPlay(n,f){ const s=S.relay.subs, h=S.relay.half;      // subbed off at half time / not on yet
@@ -929,6 +955,7 @@ function relaySugg(pid, f){
   return out.slice(0,4);
 }
 function renderRelay(){
+  renderGuide();
   if(S.mode!=="relay"||!S.relay) return;
   const ev=relayEvents(), done=ev.filter(e=>rName(e[0])).length, pid=S.sel&&S.sel.piece, f=S.sel?S.sel.frame:S.frame;
   $("rinfo").textContent = pid==null ? `This segment is done (${done}/${ev.length} tracks named). Pick the next segment and open its video.`
@@ -952,26 +979,51 @@ $("rreplay").onclick=()=>{ const f=S.sel?S.sel.frame:S.frame, v=$("vid"); if(S.v
   seek(f-60); v.playbackRate=0.5; v.play().catch(()=>{});
   const stop=()=>{ if(frameFromVideo()>=f+10){ v.pause(); seek(f+2); v.removeEventListener("timeupdate",stop); } }; v.addEventListener("timeupdate",stop); };
 
+// ---------- guided flow: per segment, 1) crossings to check, 2) new team A tracks to name, 3) done
+function relayLeft(){ if(!S.relay||!S.data) return null; return relayEvents().filter(e=>!rName(e[0])&&!S.rSkip.has(e[0])).length; }
+function renderGuide(){
+  const g=$("guide"); g.hidden=!S.guided; if(!S.guided||!S.data) return;
+  const xo=S.cross?crossOpen().length:0, rl=relayLeft(), step = S.mode==="cross"?1 : (S.mode==="relay"&&S.sel)?2 : 3;
+  [["g1",1],["g2",2],["g3",3]].forEach(([id,n])=>{ $(id).className = n===step?"on":(n<step?"done":""); });
+  const seg=S.data.name.replace(/_/g," "), vid=S.videoFor===S.data.name;
+  $("gtext").innerHTML = !vid ? `<b>${seg}</b>: tap <b>Open video</b> and pick this segment's clip first.`
+    : step===1 ? `<b>${seg}</b> · Step 1: two red players crossed. Watch, then tap <b>Same players</b> or <b>They swapped</b>. ${xo} left.`
+    : step===2 ? `<b>${seg}</b> · Step 2: who is the highlighted red player? Tap a name. ${rl==null?"":rl+" left."}`
+    : `<b>${seg}</b> is done ✓ Everything is saved automatically.`;
+  const last=S.idx.segments[S.idx.segments.length-1].name===S.data.name;
+  $("gnextrow").hidden = step!==3 || last;
+}
+async function startFix(){
+  S.guided=true; const v=$("vid"); if(!v.paused) v.pause();
+  if(!S.relay){ try{ S.relay=await fetch("relay_A.json").then(r=>r.json()); S.relay.half=(S.idx.segments.find(g=>g.name.includes("2H"))||{seg_start:1e12}).seg_start; }catch(e){} }
+  if(S.cross&&crossOpen().length){ S.xshowAuto=false; openCross(); } else openRelay();
+}
+$("m-fix").onclick=startFix;
+$("gnext").onclick=()=>{ const i=S.idx.segments.findIndex(g=>g.name===S.data.name), n=S.idx.segments[i+1]; if(!n) return;
+  $("segsel").value=n.name; openSegment(n.name).then(()=>{ startFix(); }); };
+$("moretools").onchange=e=>{ const id=e.target.value; e.target.value=""; if(!id) return; S.guided=false; $(id).click(); };
+
 // ---------- crossings: one tap per crossing the computer could not decide
 function crossList(){ return (S.cross&&S.cross[S.data.name])||[]; }
 const xid=c=>`${c[0]}_${c[1]}_${c[2]}`;
 function crossOpen(){ return crossList().filter(c=>!(xid(c) in S.swaps)&&crossDecision(c)==null&&!S.rSkip.has(xid(c))); }
 function openCross(id){
-  S.mode="cross"; S.sel=null; render();
+  S.mode="cross"; S.sel=null; $("xmsg").textContent=""; render();
   if(!S.cross){ $("xinfo").textContent="Crossing data is not published yet."; return; }
-  const L=S.xshowAuto?crossList().filter(c=>crossDecision(c)!=null&&!(xid(c) in S.swaps)):crossOpen();
+  const L=S.xshowAuto?crossList().filter(c=>c[6]==="colour"&&crossDecision(c)&&!(xid(c) in S.swaps)):crossOpen();
   S.xcur = (id&&crossList().find(c=>xid(c)===id)) || L[0] || null;
   renderCross(); if(S.xcur) xreplay();
 }
 function renderCross(){
+  renderGuide();
   if(S.mode!=="cross") return;
-  const all=crossList(), auto=all.filter(c=>!(xid(c) in S.swaps)&&crossDecision(c)!=null).length, mine=all.filter(c=>xid(c) in S.swaps).length, open=crossOpen().length;
+  const all=crossList(), auto=all.filter(c=>!(xid(c) in S.swaps)&&c[6]==="colour"&&crossDecision(c)).length, mine=all.filter(c=>xid(c) in S.swaps).length, open=crossOpen().length;
   const c=S.xcur, d=c?crossDecision(c):null;
   $("xtitle").textContent = c ? `Crossing at ${mmss((c[2]-S.data.seg_start)/S.data.fps)}` : "Crossings";
   $("xinfo").textContent = (c ? (S.xshowAuto?`Decided automatically: ${d?"swapped":"same players"} (${c[6]}). Correct it if it is wrong. · `:(c[7]&&c[8]?"":c[7]?"Track 2 ends here: is 1 still the same player? · ":"Track 1 ends here: is 2 still the same player? · ")) : "Nothing left to check in this segment. ")
-    + `${open} to check · ${auto} decided automatically · ${mine} by you`;
+    + `${open} to check · ${auto} swaps fixed automatically · ${mine} answered by you`;
   $("xkept").disabled=$("xswap").disabled=!c; $("xreplay").disabled=!c;
-  $("xauto").textContent=S.xshowAuto?"Back to the ones to check":"Show automatic ones"; S.dirty=true;
+  $("xauto").textContent=S.xshowAuto?"Back to the ones to check":"Review automatic fixes"; S.dirty=true;
 }
 function xfocus(c){ for(let g=c[2]; g>=c[2]-15; g--){ const b=boxesAt(g).find(x=>x[7]===c[0]); if(b){ S.zoom=Math.max(S.zoom,3); $("zoom").value=String(S.zoom); S.focus={x:(b[0]+b[2])/2, y:(b[1]+b[3])/2}; S.cx=null; return; } } }
 function xreplay(){ const c=S.xcur, v=$("vid"); if(!c) return; xfocus(c); if(S.videoFor!==S.data.name){ $("xmsg").textContent="Open the segment video first."; seek(c[3]+15); return; }
@@ -982,7 +1034,9 @@ async function xdecide(swap){
   S.swaps[id]=doc; CV++; S.stack.push({type:"swap", id, before});
   try{ await S.db.collection("swaps").doc(id).set(doc); }catch(e){ $("xmsg").textContent="Could not save ("+e.code+")."; return; }
   $("xmsg").textContent=swap?"Saved: swapped. The names after the crossing now follow the right players.":"Saved: same players.";
-  const L=S.xshowAuto?crossList().filter(x=>crossDecision(x)!=null&&!(xid(x) in S.swaps)):crossOpen(); S.xcur=L[0]||null; renderCross(); if(S.xcur) xreplay();
+  const L=S.xshowAuto?crossList().filter(x=>x[6]==="colour"&&crossDecision(x)&&!(xid(x) in S.swaps)):crossOpen(); S.xcur=L[0]||null;
+  if(!S.xcur&&S.guided&&!S.xshowAuto){ openRelay(); return; }
+  renderCross(); if(S.xcur) xreplay();
 }
 $("xkept").onclick=()=>xdecide(false); $("xswap").onclick=()=>xdecide(true);
 $("xreplay").onclick=xreplay; $("xundo").onclick=()=>undo();
@@ -1016,7 +1070,7 @@ $("rname").onclick=()=>{ if(S.draft&&S.draft.receiver){ S.nameRole="receiver"; r
 $("bname").onclick=()=>applyName($("nameinput").value);
 $("nameinput").addEventListener("keydown",e=>{ if(e.key==="Enter") applyName(e.target.value); });
 $("note").addEventListener("change",editSaved);
-$("m-pass").onclick=()=>{ S.mode="pass"; S.sel=null; S.focus=null; render(); S.dirty=true; };
+$("m-pass").onclick=()=>{ S.guided=false; S.mode="pass"; S.sel=null; S.focus=null; render(); S.dirty=true; };
 $("m-players").onclick=()=>{ S.mode="players"; render(); S.dirty=true; };
 $("m-relay").onclick=()=>openRelay();
 $("m-cross").onclick=()=>openCross();
@@ -1048,5 +1102,5 @@ document.addEventListener("keydown",e=>{ if(e.target.tagName==="INPUT") return;
   if(e.key===" "){ e.preventDefault(); playPause(); } else if(e.key==="ArrowRight") step(e.shiftKey?10:1);
   else if(e.key==="ArrowLeft") step(e.shiftKey?-10:-1); else if(e.key==="z"||e.key==="Z") undo(); });
 window.addEventListener("resize",()=>{ S.dirty=true; });
-load().then(()=>requestAnimationFrame(loop)).catch(e=>{ $("tally").textContent="Could not load the match data."; console.error(e); });
+load().then(()=>{ requestAnimationFrame(loop); startFix(); }).catch(e=>{ $("tally").textContent="Could not load the match data."; console.error(e); });
 </script>
