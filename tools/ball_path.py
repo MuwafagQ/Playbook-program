@@ -45,8 +45,8 @@ def static_mask(c: pd.DataFrame, offsets=(-60, -30, 30, 60), px: float = 4.0) ->
     return out
 
 
-def solve(cands: pd.DataFrame, max_skip: int = 30, max_px_per_frame: float = 45.0, scale: float = 25.0,
-          gap_cost: float = 0.35, start_cost: float = 3.0, min_conf: float = 0.05, base_conf: float = 0.25,
+def solve(cands: pd.DataFrame, max_skip: int = 30, max_px_per_frame: float = 35.0, scale: float = 25.0,
+          gap_cost: float = 0.35, start_cost: float = 3.0, min_conf: float = 0.05, base_conf: float = 0.7,
           static_cost: float = 0.6) -> pd.DataFrame:
     """cands: frame, x, y, conf (several per frame). Returns the chosen candidates, one per used frame.
     max_skip is in frames of the candidate table (with candidates every 2nd frame, 30 frames = 1 s)."""
