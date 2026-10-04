@@ -109,7 +109,7 @@ button:disabled{opacity:.45;cursor:default}
   <h1>Pass Review</h1>
   <span class="tally" id="tally">Loading…</span>
   <div class="right">
-    <div class="teams mode" role="group" aria-label="Mode"><button id="m-pass" class="on">Passes</button><button id="m-players">Players</button><button id="m-cards">Cards</button></div>
+    <div class="teams mode" role="group" aria-label="Mode"><button id="m-pass" class="on">Passes</button><button id="m-players">Players</button><button id="m-cards">Cards</button><button id="m-relay">Relay</button></div>
     <select id="segsel" aria-label="Segment"></select>
     <label class="filebtn" for="vfile">Open video</label>
     <input type="file" id="vfile" accept="video/*,.mp4" hidden>
@@ -178,6 +178,16 @@ button:disabled{opacity:.45;cursor:default}
       <div class="row2"><input id="plinput" placeholder="Number or position, e.g. B10 or ALB" autocomplete="off"><button id="blname">Set</button><button id="blclear">Clear fixes</button></div>
       <div class="msg" id="plmsg"></div>
     </div>
+    <div class="card" id="relaycard" hidden>
+      <h2 id="rtitle">Relay · team A</h2>
+      <div class="sub" id="rinfo"></div>
+      <div class="sub">Who is the highlighted player? Suggestions first: the player who just disappeared there, then who is missing from the screen and was last seen nearest.</div>
+      <div class="names" id="rsugg"></div>
+      <div class="sub">All team A:</div>
+      <div class="names" id="rall"></div>
+      <div class="row2"><button id="rreplay">⟲ Replay 2 s</button><button id="rskip">Skip</button><button id="rnota">Not team A</button><button id="rundo">↶ Undo</button></div>
+      <div class="msg" id="rmsg"></div>
+    </div>
     <div class="list" id="list"></div>
     <div class="card stats"><h2>Passes so far</h2><div id="stats" class="sub">No passes yet.</div></div>
   </div>
@@ -209,7 +219,7 @@ const A_POS = ["GK","RB","RCB","CB","LCB","LB","DM","CM","RM","LM","AM","RW","LW
 const S = { idx:null, data:null, boxes:null, frame:0, videoFor:null, reviews:{}, names:{}, db:null, dl:null,
             cur:null, draft:null, stack:[], nameRole:null, zoom:1, cx:null, cy:null, focus:null, dirty:true,
             pieces:{}, clock:{}, mode:"pass", sel:null, next:null,
-            props:null, cname:null, csel:new Set(), sheets:{}, nsheets:{} };
+            props:null, cname:null, csel:new Set(), sheets:{}, nsheets:{}, relay:null, rEv:null, rSkip:new Set() };
 
 // ---------- data
 async function load(){
@@ -242,7 +252,7 @@ async function openSegment(name){
   $("novideo").hidden = S.videoFor===name;
   render(); S.dirty=true;
 }
-$("segsel").onchange=e=>openSegment(e.target.value);
+$("segsel").onchange=e=>openSegment(e.target.value).then(()=>{ if(S.mode==="relay") nextRelay(); });
 $("vfile").onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
   const v=$("vid"); if(v.src && v.src.startsWith("blob:")) URL.revokeObjectURL(v.src);
@@ -258,7 +268,8 @@ function eff(b,f){
   const L=(b[7]!=null&&S.pieces[String(b[7])])||{};
   const cls = L.role==="referee"?3 : L.role==="gk"?1 : L.role==="player"?2 : b[6];
   const team = (L.team===0||L.team===1) ? L.team : b[5];
-  const name = L.name || (cls!==3 && b[4]>=0 ? nameAt(b[4],f) : null);
+  const seed = S.relay && S.relay.seed[String(b[7])];
+  const name = L.name || seed || (cls!==3 && b[4]>=0 ? nameAt(b[4],f) : null);
   return {x1:b[0],y1:b[1],x2:b[2],y2:b[3],jid:b[4],team,cls,piece:b[7],name};
 }
 // board clock: entries [[frame, seconds shown]] for this segment; the latest one at or before f
@@ -345,7 +356,7 @@ function draw(){
     const {x1,y1,x2,y2,team,cls,piece,name:n}=eff(raw,f);
     if(x2<V.x||x1>V.x+V.w||y2<V.y||y1>V.y+V.h) continue;
     g.strokeStyle = cls===3 ? "#f39c12" : (tc[team]||"#bbb");
-    const sel = S.mode==="players" && S.sel && S.sel.piece===piece;
+    const sel = (S.mode==="players"||S.mode==="relay") && S.sel && S.sel.piece===piece;
     if(sel){ g.save(); g.lineWidth=4*dpr; g.strokeStyle="#fff"; g.strokeRect(X(x1)-3*dpr,Y(y1)-3*dpr,(x2-x1)*k+6*dpr,(y2-y1)*k+6*dpr); g.restore(); }
     g.strokeRect(X(x1),Y(y1),(x2-x1)*k,(y2-y1)*k);
     if(n){ g.fillStyle=g.strokeStyle; g.fillText(n, X(x1), Y(y1)-3*dpr); }
@@ -431,6 +442,7 @@ function tapAt(cx, cy){
                              .sort((a,b)=>(a.x2-a.x1)*(a.y2-a.y1)-(b.x2-b.x1)*(b.y2-b.y1));
   const h=hits2[0];
   if(S.mode==="players"){ if(h){ S.sel={piece:h.piece, jid:h.jid, frame:S.frame}; plmsg(""); } else S.sel=null; render(); S.dirty=true; return; }
+  if(S.mode==="relay"){ if(h){ S.sel={piece:h.piece, jid:h.jid, frame:S.frame}; S.rEv=null; renderRelay(); } S.dirty=true; return; }
   const who = h ? {jid:h.jid, piece:h.piece, team:h.team, frame:S.frame, x:(h.x1+h.x2)/2, y:h.y2} : {jid:null, team:-1, frame:S.frame, x, y, name:null};
   if(h && h.name && /^[AB]/.test(h.name)) who.team = h.name[0]==="A"?0:1;
   tap(who);
@@ -569,7 +581,8 @@ function render(){
   $("bdelete").hidden=!S.reviews[S.cur];
   $("bundo").disabled=!S.stack.length;
   $("m-pass").classList.toggle("on",S.mode==="pass"); $("m-players").classList.toggle("on",S.mode==="players");
-  $("passcard").hidden=S.mode!=="pass"; $("playercard").hidden=S.mode!=="players";
+  $("passcard").hidden=S.mode!=="pass"; $("playercard").hidden=S.mode!=="players"; $("relaycard").hidden=S.mode!=="relay";
+  $("m-relay").classList.toggle("on",S.mode==="relay");
   $("m-cards").classList.toggle("on",S.mode==="cards");
   document.querySelector(".layout").hidden=S.mode==="cards"; $("cardsview").hidden=S.mode!=="cards";
   const nx=S.mode==="pass" && S.next && !waitingReceiver();
@@ -796,6 +809,65 @@ async function saveNumber(letter){
 $("bnumA").onclick=()=>saveNumber("A"); $("bnumB").onclick=()=>saveNumber("B");
 $("cnum").addEventListener("keydown",e=>{ if(e.key==="Enter") saveNumber(S.cname&&S.cname[0]==="B"?"B":"A"); });
 
+
+// ---------- Relay: name a team's players track by track (tools/relay.py builds relay_A.json)
+async function openRelay(){
+  S.mode="relay"; render(); S.dirty=true;
+  if(!S.relay){ try{ S.relay=await fetch("relay_A.json").then(r=>r.json()); }catch(e){ $("rmsg").textContent="Relay data is not published yet."; return; }
+    S.relay.half=(S.idx.segments.find(g=>g.name.includes("2H"))||{seg_start:1e12}).seg_start; }
+  nextRelay();
+}
+// a track's relay name: a roster name you gave it, "—" if you said it is not team A, else the seed (kick-off / AGK)
+const rName=pid=>{ const L=S.pieces[String(pid)], ros=S.relay?S.relay.names:[];
+  if(L&&L.name&&ros.includes(L.name)) return L.name;
+  if(L&&(L.role==="referee"||L.role==="unknown"||L.team===1||(L.name&&/^B/.test(L.name)))) return "—";
+  return S.relay&&S.relay.seed[String(pid)]||null; };
+function relayEvents(){ const g=S.data; return S.relay.events.filter(e=>e[1]>=g.seg_start&&e[1]<g.seg_start+g.frames); }
+function nextRelay(){
+  if(!S.relay||!S.data) return;
+  const ev=relayEvents(), e=ev.find(e=>!rName(e[0])&&!S.rSkip.has(e[0]));
+  S.rEv=e||null;
+  if(e){ const v=$("vid"); if(!v.paused) v.pause(); seek(e[1]+2); S.sel={piece:e[0], frame:e[1]}; }
+  renderRelay(); S.dirty=true;
+}
+function inPlay(n,f){ const s=S.relay.subs, h=S.relay.half;      // subbed off at half time / not on yet
+  if(f>=h && n in s) return false; if(f<h && Object.values(s).includes(n)) return false; return true; }
+function relaySugg(pid, f){
+  const out=[], add=n=>{ if(n&&n!=="—"&&!out.includes(n)&&inPlay(n,f)) out.push(n); };
+  const e=S.rEv&&S.rEv[0]===pid?S.rEv:S.relay.events.find(x=>x[0]===pid);
+  if(e) for(const c of e[3]) add(rName(c[0]));
+  const P=S.relay.pieces, me=P[String(pid)]; if(!me) return out;
+  const alive=new Set(), last={};
+  for(const q in P){ const n=rName(q); if(!n||n==="—") continue; const r=P[q];
+    if(r[0]<=f&&f<=r[1]&&String(q)!==String(pid)) alive.add(n);
+    else if(r[1]<f && (!last[n]||r[1]>last[n][0])) last[n]=[r[1],r[4],r[5]]; }
+  const miss=Object.entries(last).filter(([n])=>!alive.has(n)).map(([n,v])=>[ (me[2]==null||v[1]==null)?999:Math.hypot(me[2]-v[1],me[3]-v[2]), n]).sort((a,b)=>a[0]-b[0]);
+  for(const [,n] of miss) if(!alive.has(n)) add(n);
+  return out.slice(0,4);
+}
+function renderRelay(){
+  if(S.mode!=="relay"||!S.relay) return;
+  const ev=relayEvents(), done=ev.filter(e=>rName(e[0])).length, pid=S.sel&&S.sel.piece, f=S.sel?S.sel.frame:S.frame;
+  $("rinfo").textContent = pid==null ? `This segment is done (${done}/${ev.length} tracks named). Pick the next segment and open its video.`
+    : `${S.rEv?`New track ${ev.indexOf(S.rEv)+1} of ${ev.length}`:"Tapped track"} · ${done} named in this segment${S.rEv&&S.rEv[4]?" · clear hand-over: first suggestion pre-selected":""}`;
+  const sg=$("rsugg"); sg.innerHTML="";
+  if(pid!=null) relaySugg(pid,f).forEach((n,i)=>{ const b=document.createElement("button"); b.textContent=n; b.className="A"+(i===0&&S.rEv&&S.rEv[4]?" on":""); b.onclick=()=>relayAssign(n); sg.appendChild(b); });
+  const al=$("rall"); al.innerHTML="";
+  for(const n of S.relay.names){ if(!inPlay(n,f)) continue; const b=document.createElement("button"); b.textContent=n; b.className="A"; b.onclick=()=>relayAssign(n); al.appendChild(b); }
+}
+async function relayAssign(n){
+  const pid=S.sel&&S.sel.piece; if(pid==null) return;
+  try{ await setPiece(pid, n==="—" ? {role:"unknown", name:null} : {name:n, team:0, role:n==="AGK"?"gk":"player"}); }
+  catch(e){ $("rmsg").textContent="Could not save ("+e.code+")."; return; }
+  $("rmsg").textContent=`Track named ${n}.`; nextRelay();
+}
+$("rskip").onclick=()=>{ if(S.sel) S.rSkip.add(S.sel.piece); nextRelay(); };
+$("rnota").onclick=()=>relayAssign("—");
+$("rundo").onclick=async()=>{ await undo(); nextRelay(); };
+$("rreplay").onclick=()=>{ const f=S.sel?S.sel.frame:S.frame, v=$("vid"); if(S.videoFor!==S.data.name){ $("rmsg").textContent="Open the segment video first."; return; }
+  seek(f-60); v.playbackRate=0.5; v.play().catch(()=>{});
+  const stop=()=>{ if(frameFromVideo()>=f+10){ v.pause(); seek(f+2); v.removeEventListener("timeupdate",stop); } }; v.addEventListener("timeupdate",stop); };
+
 // ---------- controls
 const step=n=>{ const v=$("vid"); if(!v.paused){ v.pause(); S.frame=frameFromVideo(); } seek(S.frame+n); };
 $("bpp").onclick=playPause;
@@ -813,6 +885,7 @@ $("nameinput").addEventListener("keydown",e=>{ if(e.key==="Enter") applyName(e.t
 $("note").addEventListener("change",editSaved);
 $("m-pass").onclick=()=>{ S.mode="pass"; S.sel=null; render(); S.dirty=true; };
 $("m-players").onclick=()=>{ S.mode="players"; render(); S.dirty=true; };
+$("m-relay").onclick=()=>openRelay();
 $("m-cards").onclick=()=>{ const v=$("vid"); if(!v.paused) v.pause(); S.mode="cards"; render(); openCards(); };
 document.querySelectorAll("[data-pteam]").forEach(b=>b.onclick=()=>plFix({team:Number(b.dataset.pteam)}, "Team set."));
 document.querySelectorAll("[data-role2]").forEach(b=>b.onclick=()=>plFix({role:b.dataset.role2}, {player:"Marked as a player.",gk:"Marked as a goalkeeper.",referee:"Marked as a referee."}[b.dataset.role2]));
