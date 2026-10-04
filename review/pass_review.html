@@ -268,8 +268,8 @@ function eff(b,f){
   const L=(b[7]!=null&&S.pieces[String(b[7])])||{};
   const cls = L.role==="referee"?3 : L.role==="gk"?1 : L.role==="player"?2 : b[6];
   const team = (L.team===0||L.team===1) ? L.team : b[5];
-  const seed = S.relay && S.relay.seed[String(b[7])];
-  const name = L.name || seed || (cls!==3 && b[4]>=0 ? nameAt(b[4],f) : null);
+  const seed = S.relay && S.mode==="relay" ? (rName(b[7])? rName(b[7])+(rAuto(b[7])?"·":"") : null) : (S.relay && S.relay.seed[String(b[7])]);
+  const name = (S.mode==="relay" ? seed : null) || L.name || seed || (cls!==3 && b[4]>=0 ? nameAt(b[4],f) : null);
   return {x1:b[0],y1:b[1],x2:b[2],y2:b[3],jid:b[4],team,cls,piece:b[7],name};
 }
 // board clock: entries [[frame, seconds shown]] for this segment; the latest one at or before f
@@ -817,15 +817,40 @@ async function openRelay(){
     S.relay.half=(S.idx.segments.find(g=>g.name.includes("2H"))||{seg_start:1e12}).seg_start; }
   nextRelay();
 }
-// a track's relay name: a roster name you gave it, "—" if you said it is not team A, else the seed (kick-off / AGK)
-const rName=pid=>{ const L=S.pieces[String(pid)], ros=S.relay?S.relay.names:[];
+// a track's own name: a roster name you gave it, "—" if you said it is not team A, else the seed (kick-off / AGK)
+const rOwn=pid=>{ const L=S.pieces[String(pid)], ros=S.relay?S.relay.names:[];
   if(L&&L.name&&ros.includes(L.name)) return L.name;
   if(L&&(L.role==="referee"||L.role==="unknown"||L.team===1||(L.name&&/^B/.test(L.name)))) return "—";
   return S.relay&&S.relay.seed[String(pid)]||null; };
+// Names spread by appearance group (pieces[q][6]): a group whose named tracks agree (>= 70% of their time)
+// lends that name to its other tracks. Recomputed whenever the saved names change.
+let RG=null, RGkey="";
+function relayGroups(){
+  const key=Object.keys(S.pieces).length+":"+(Object.values(S.pieces).reduce((m,d)=>Math.max(m,d.at||0),0));
+  if(RG&&RGkey===key) return RG; RGkey=key;
+  const P=S.relay.pieces, votes={};
+  for(const q in P){ const n=rOwn(q); if(!n||n==="—") continue; const g=P[q][6]; if(g<0) continue;
+    (votes[g]=votes[g]||{})[n]=((votes[g]||{})[n]||0)+(P[q][1]-P[q][0]+1); }
+  const gname={};
+  for(const g in votes){ const e=Object.entries(votes[g]).sort((a,b)=>b[1]-a[1]), tot=e.reduce((s,x)=>s+x[1],0); if(e[0][1]/tot>=0.7) gname[g]=e[0][0]; }
+  // clashes: a group name that puts a name on screen twice at once -> that track needs a person
+  const named=[]; for(const q in P){ const own=rOwn(q), n=own||gname[P[q][6]]; if(n&&n!=="—") named.push([q,n,P[q][0],P[q][1],!own]); }
+  const clash=new Set(), by={}; for(const r of named) (by[r[1]]=by[r[1]]||[]).push(r);
+  for(const n in by){ const v=by[n].sort((a,b)=>a[2]-b[2]);
+    for(let i=0;i<v.length;i++) for(let k=i+1;k<v.length&&v[k][2]<=v[i][3];k++)
+      if(Math.min(v[i][3],v[k][3])-v[k][2]>15){ if(v[i][4]) clash.add(v[i][0]); if(v[k][4]) clash.add(v[k][0]); } }
+  return RG={gname, clash};
+}
+const rName=pid=>{ const own=rOwn(pid); if(own) return own; if(!S.relay) return null;
+  const G=relayGroups(), r=S.relay.pieces[String(pid)]; if(!r||G.clash.has(String(pid))) return null; return G.gname[r[6]]||null; };
+const rAuto=pid=>!rOwn(pid)&&!!rName(pid);
 function relayEvents(){ const g=S.data; return S.relay.events.filter(e=>e[1]>=g.seg_start&&e[1]<g.seg_start+g.frames); }
 function nextRelay(){
   if(!S.relay||!S.data) return;
-  const ev=relayEvents(), e=ev.find(e=>!rName(e[0])&&!S.rSkip.has(e[0]));
+  const ev=relayEvents(), G=relayGroups(), seen=new Set();
+  let e=ev.find(e=>{ if(rName(e[0])||S.rSkip.has(e[0])||G.clash.has(String(e[0]))) return false;
+                     const g=S.relay.pieces[String(e[0])][6]; if(seen.has(g)) return false; seen.add(g); return true; });
+  if(!e) e=ev.find(e=>!rName(e[0])&&!S.rSkip.has(e[0]));
   S.rEv=e||null;
   if(e){ const v=$("vid"); if(!v.paused) v.pause(); seek(e[1]+2); S.sel={piece:e[0], frame:e[1]}; }
   renderRelay(); S.dirty=true;
@@ -849,7 +874,8 @@ function renderRelay(){
   if(S.mode!=="relay"||!S.relay) return;
   const ev=relayEvents(), done=ev.filter(e=>rName(e[0])).length, pid=S.sel&&S.sel.piece, f=S.sel?S.sel.frame:S.frame;
   $("rinfo").textContent = pid==null ? `This segment is done (${done}/${ev.length} tracks named). Pick the next segment and open its video.`
-    : `${S.rEv?`New track ${ev.indexOf(S.rEv)+1} of ${ev.length}`:"Tapped track"} · ${done} named in this segment${S.rEv&&S.rEv[4]?" · clear hand-over: first suggestion pre-selected":""}`;
+    : (()=>{ const G=relayGroups(), clash=G.clash.has(String(pid)), auto=ev.filter(e=>rAuto(e[0])).length;
+        return `${clash?"Clash: another track has this name at the same moment — who is the highlighted one?":(S.rEv?"Track of a group with no name yet — naming it names the whole group":"Tapped track")} · ${done}/${ev.length} tracks named in this segment (${auto} by group)`; })();
   const sg=$("rsugg"); sg.innerHTML="";
   if(pid!=null) relaySugg(pid,f).forEach((n,i)=>{ const b=document.createElement("button"); b.textContent=n; b.className="A"+(i===0&&S.rEv&&S.rEv[4]?" on":""); b.onclick=()=>relayAssign(n); sg.appendChild(b); });
   const al=$("rall"); al.innerHTML="";
