@@ -109,7 +109,7 @@ button:disabled{opacity:.45;cursor:default}
   <h1>Pass Review</h1>
   <span class="tally" id="tally">Loading…</span>
   <div class="right">
-    <div class="teams mode" role="group" aria-label="Mode"><button id="m-pass" class="on">Passes</button><button id="m-players">Players</button><button id="m-cards">Cards</button><button id="m-relay">Relay</button></div>
+    <div class="teams mode" role="group" aria-label="Mode"><button id="m-pass" class="on">Passes</button><button id="m-players">Players</button><button id="m-cards">Cards</button><button id="m-relay">Relay</button><button id="m-cross">Crossings</button></div>
     <select id="segsel" aria-label="Segment"></select>
     <label class="filebtn" for="vfile">Open video</label>
     <input type="file" id="vfile" accept="video/*,.mp4" hidden>
@@ -176,6 +176,7 @@ button:disabled{opacity:.45;cursor:default}
       <div class="roles" role="group" aria-label="Role"><button data-role2="player">Player</button><button data-role2="gk">Goalkeeper</button><button data-role2="referee">Referee</button></div>
       <div class="names" id="plnames"></div>
       <div class="row2"><input id="plinput" placeholder="Number or position, e.g. B10 or ALB" autocomplete="off"><button id="blname">Set</button><button id="blclear">Clear fixes</button></div>
+      <div class="row2"><button id="plswitch">✂ Switched here</button><span class="sub">This box is someone else from this frame on: pause where it changed, tap it, press, then name it.</span></div>
       <div class="msg" id="plmsg"></div>
     </div>
     <div class="card" id="relaycard" hidden>
@@ -185,8 +186,16 @@ button:disabled{opacity:.45;cursor:default}
       <div class="names" id="rsugg"></div>
       <div class="sub">All team A:</div>
       <div class="names" id="rall"></div>
-      <div class="row2"><button id="rreplay">⟲ Replay 2 s</button><button id="rskip">Skip</button><button id="rnota">Not team A</button><button id="rundo">↶ Undo</button></div>
+      <div class="row2"><button id="rreplay">⟲ Replay 2 s</button><button id="rskip">Skip</button><button id="rnota">Not team A</button><button id="rswitch">✂ Switched here</button><button id="rundo">↶ Undo</button></div>
       <div class="msg" id="rmsg"></div>
+    </div>
+    <div class="card" id="crosscard" hidden>
+      <h2 id="xtitle">Crossings</h2>
+      <div class="sub" id="xinfo"></div>
+      <div class="sub">Two players' boxes crossed. Before the crossing, <b>white = 1</b> and <b>yellow = 2</b>. Watch the replay: after they separate, is each outline still on the <b>same</b> player?</div>
+      <div class="row2"><button id="xkept" class="primary">✓ Same players</button><button id="xswap">⇄ They swapped</button></div>
+      <div class="row2"><button id="xreplay">⟲ Replay</button><button id="xskip">Skip</button><button id="xundo">↶ Undo</button><button id="xauto">Show automatic ones</button></div>
+      <div class="msg" id="xmsg"></div>
     </div>
     <div class="list" id="list"></div>
     <div class="card stats"><h2>Passes so far</h2><div id="stats" class="sub">No passes yet.</div></div>
@@ -219,7 +228,8 @@ const A_POS = ["GK","RB","RCB","CB","LCB","LB","DM","CM","RM","LM","AM","RW","LW
 const S = { idx:null, data:null, boxes:null, frame:0, videoFor:null, reviews:{}, names:{}, db:null, dl:null,
             cur:null, draft:null, stack:[], nameRole:null, zoom:1, cx:null, cy:null, focus:null, dirty:true,
             pieces:{}, clock:{}, mode:"pass", sel:null, next:null,
-            props:null, cname:null, csel:new Set(), sheets:{}, nsheets:{}, relay:null, rEv:null, rSkip:new Set() };
+            props:null, cname:null, csel:new Set(), sheets:{}, nsheets:{}, relay:null, rEv:null, rSkip:new Set(),
+            cutsAuto:{}, cuts:{}, swaps:{}, cross:null, xi:0 };
 
 // ---------- data
 async function load(){
@@ -227,6 +237,9 @@ async function load(){
   for(const g of S.idx.segments){ const o=document.createElement("option"); o.value=g.name; o.textContent=g.name.replace(/_/g," "); $("segsel").appendChild(o); }
   let start=S.idx.segments[0].name; try{ start=localStorage.getItem("seg")||start; }catch(e){}
   if(!S.idx.segments.find(g=>g.name===start)) start=S.idx.segments[0].name;
+  try{ S.cutsAuto=await fetch("cuts_auto.json").then(r=>r.ok?r.json():{}); }catch(e){}
+  try{ S.cross=await fetch("crossings.json").then(r=>r.ok?r.json():null); }catch(e){}
+  CV++;
   $("segsel").value=start; connect(); await openSegment(start);
 }
 async function connect(){
@@ -239,6 +252,8 @@ async function connect(){
     db.collection("reviews").onSnapshot(s=>{ S.reviews={}; s.docs.forEach(x=>S.reviews[x.id]=x.data()); render(); }, e=>msg("Lost the connection to saved passes ("+e.code+").", true));
     db.collection("names").onSnapshot(s=>{ S.names={}; s.docs.forEach(x=>S.names[x.id]=x.data().entries||[]); render(); S.dirty=true; });
     db.collection("pieces").onSnapshot(s=>{ S.pieces={}; s.docs.forEach(x=>S.pieces[x.id]=x.data()); render(); S.dirty=true; if(S.mode==="cards") renderCards(false); });
+    db.collection("cuts").onSnapshot(s=>{ S.cuts={}; s.docs.forEach(x=>S.cuts[x.id]=x.data().fs||[]); CV++; render(); S.dirty=true; });
+    db.collection("swaps").onSnapshot(s=>{ S.swaps={}; s.docs.forEach(x=>S.swaps[x.id]=x.data()); CV++; render(); S.dirty=true; if(S.mode==="cross") renderCross(); });
     db.collection("clock").onSnapshot(s=>{ S.clock={}; s.docs.forEach(x=>S.clock[x.id]=x.data().entries||[]); S.dirty=true; });
   }catch(e){ msg("Saving is not available in this view.", true); }
 }
@@ -252,7 +267,7 @@ async function openSegment(name){
   $("novideo").hidden = S.videoFor===name;
   render(); S.dirty=true;
 }
-$("segsel").onchange=e=>openSegment(e.target.value).then(()=>{ if(S.mode==="relay") nextRelay(); });
+$("segsel").onchange=e=>openSegment(e.target.value).then(()=>{ if(S.mode==="relay") nextRelay(); if(S.mode==="cross") openCross(); });
 $("vfile").onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
   const v=$("vid"); if(v.src && v.src.startsWith("blob:")) URL.revokeObjectURL(v.src);
@@ -263,14 +278,39 @@ $("vfile").onchange=e=>{
 const local=f=>f-S.data.seg_start;
 const boxesAt=f=>(S.boxes&&S.boxes.people[local(f)])||[];
 const ballAt=f=>(S.boxes&&S.boxes.ball[local(f)])||null;
+// ---------- switches: a track can be cut at a frame; from there its boxes are a new piece "p_f".
+// Cuts come from colour (cuts_auto.json, the shirt changed team), from "Switched here", and from
+// crossings judged as swaps (automatically or by you): then each tail takes the other track's name.
+let CV=0, SWc=null, SWv=-1;
+const XTHR=0.12;                       // |swap score| above this: decided automatically
+function crossDecision(c){             // c = [p, q, f0, f1, cut, score, basis, p_after, q_after] -> true swap / false kept / null open
+  const d=S.swaps[`${c[0]}_${c[1]}_${c[2]}`]; if(d&&typeof d.swap==="boolean") return d.swap;
+  if(c[5]==null||Math.abs(c[5])<XTHR*(c[6]==="colour"?4:1)) return null; return c[5]>0; }
+function switches(){
+  if(SWc&&SWv===CV) return SWc; SWv=CV;
+  const cuts={}, from={}, team={}, add=(p,f)=>{ (cuts[p]=cuts[p]||new Set()).add(f); };
+  for(const p in S.cutsAuto) for(const [f,t] of S.cutsAuto[p]){ add(p,f); team[`${p}_${f}`]=t; }
+  for(const p in S.cuts) for(const f of S.cuts[p]) add(p,f);
+  if(S.cross) for(const seg in S.cross) for(const c of S.cross[seg]) if(crossDecision(c)){
+    const [p,q,,,f]=c; if(c[7]){ add(p,f); from[`${p}_${f}`]=[q,f]; } if(c[8]){ add(q,f); from[`${q}_${f}`]=[p,f]; } }
+  const sorted={}; for(const p in cuts) sorted[p]=[...cuts[p]].sort((a,b)=>a-b);
+  return SWc={cuts:sorted, from, team};
+}
+function keyOf(p,f){ const c=switches().cuts[String(p)]; if(!c) return String(p); let k=String(p); for(const x of c){ if(x<=f) k=p+"_"+x; else break; } return k; }
+const isKey=(b,k,f)=>k!=null&&keyOf(b[7],f)===String(k);
+function partnerBox(q,f){ for(let g=f-1; g>=Math.max(S.data.seg_start,f-20); g--){ const b=boxesAt(g).find(x=>x[7]===q); if(b) return [b,g]; } return null; }
 // a box with the user's fixes for its piece applied: {x1,y1,x2,y2,jid,team,cls,piece,name}
-function eff(b,f){
-  const L=(b[7]!=null&&S.pieces[String(b[7])])||{};
-  const cls = L.role==="referee"?3 : L.role==="gk"?1 : L.role==="player"?2 : b[6];
-  const team = (L.team===0||L.team===1) ? L.team : b[5];
-  const seed = S.relay && S.mode==="relay" ? (rName(b[7])? rName(b[7])+(rAuto(b[7])?"·":"") : null) : (S.relay && S.relay.seed[String(b[7])]);
-  const name = (S.mode==="relay" ? seed : null) || L.name || seed || (cls!==3 && b[4]>=0 ? nameAt(b[4],f) : null);
-  return {x1:b[0],y1:b[1],x2:b[2],y2:b[3],jid:b[4],team,cls,piece:b[7],name};
+function eff(b,f,depth=0){
+  const W=switches(), key=keyOf(b[7],f), L=S.pieces[key]||{}, cut=key!==String(b[7]);
+  let inh=null; const sf=W.from[key];
+  if(sf&&!L.name&&depth<8){ const pb=partnerBox(sf[0],sf[1]); if(pb) inh=eff(pb[0],pb[1],depth+1); }
+  const cls = L.role==="referee"?3 : L.role==="gk"?1 : L.role==="player"?2 : (inh?inh.cls:b[6]);
+  const team = (L.team===0||L.team===1) ? L.team : inh ? inh.team : (key in W.team ? W.team[key] : b[5]);
+  const jid = inh ? inh.jid : (cut ? -1 : b[4]);
+  const rn = S.relay && S.mode==="relay" ? rName(key) : null;
+  const seed = S.relay && S.mode==="relay" ? (rn ? rn+(rAuto(key)?"·":"") : null) : (S.relay && S.relay.seed[key]);
+  const name = (S.mode==="relay" ? seed : null) || L.name || (inh&&inh.name) || seed || (cls!==3 && jid>=0 ? nameAt(jid,f) : null);
+  return {x1:b[0],y1:b[1],x2:b[2],y2:b[3],jid,team,cls,piece:key,name};
 }
 // board clock: entries [[frame, seconds shown]] for this segment; the latest one at or before f
 function clockAt(f){
@@ -356,11 +396,15 @@ function draw(){
     const {x1,y1,x2,y2,team,cls,piece,name:n}=eff(raw,f);
     if(x2<V.x||x1>V.x+V.w||y2<V.y||y1>V.y+V.h) continue;
     g.strokeStyle = cls===3 ? "#f39c12" : (tc[team]||"#bbb");
-    const sel = (S.mode==="players"||S.mode==="relay") && S.sel && S.sel.piece===piece;
+    const sel = (S.mode==="players"||S.mode==="relay") && S.sel && String(S.sel.piece)===piece;
     if(sel){ g.save(); g.lineWidth=4*dpr; g.strokeStyle="#fff"; g.strokeRect(X(x1)-3*dpr,Y(y1)-3*dpr,(x2-x1)*k+6*dpr,(y2-y1)*k+6*dpr); g.restore(); }
     g.strokeRect(X(x1),Y(y1),(x2-x1)*k,(y2-y1)*k);
     if(n){ g.fillStyle=g.strokeStyle; g.fillText(n, X(x1), Y(y1)-3*dpr); }
   }
+  const xc=S.mode==="cross"&&S.xcur;
+  if(xc&&f>=xc[2]-90&&f<=xc[3]+90) for(const raw of boxesAt(f)){ const w=raw[7]===xc[0]?"#ffffff":raw[7]===xc[1]?"#ffd400":null; if(!w) continue;
+    g.save(); g.lineWidth=4*dpr; g.strokeStyle=w; g.strokeRect(X(raw[0])-3*dpr,Y(raw[1])-3*dpr,(raw[2]-raw[0])*k+6*dpr,(raw[3]-raw[1])*k+6*dpr);
+    g.fillStyle=w; g.font=`700 ${Math.round(16*dpr)}px Saira Condensed, sans-serif`; g.fillText(raw[7]===xc[0]?"1":"2", X(raw[2])+5*dpr, Y(raw[1])+12*dpr); g.restore(); }
   const b=ballAt(f); if(b){ g.strokeStyle="#ffe14d"; g.lineWidth=2*dpr; g.beginPath(); g.arc(X(b[0]),Y(b[1]),6*dpr,0,7); g.stroke(); }
   const d=S.draft; if(d){ mark(g,X,Y,k,dpr,d.passer,C.p,"PASSER"); mark(g,X,Y,k,dpr,d.receiver,C.r,"RECEIVER"); }
   const ck=clockAt(f), tag=(ck!=null ? `${mmss(ck)} board` : `${mmss(f/S.data.fps)} video`)+`  ·  frame ${f}`;
@@ -371,7 +415,7 @@ function draw(){
 }
 function mark(g,X,Y,k,dpr,w,col,label){
   if(!w||w.frame!==S.frame) return;
-  const bx = w.piece!=null ? boxesAt(S.frame).find(b=>b[7]===w.piece) : (w.jid!=null ? boxesAt(S.frame).find(b=>b[4]===w.jid) : null);
+  const bx = w.piece!=null ? boxesAt(S.frame).find(b=>isKey(b,w.piece,S.frame)) : (w.jid!=null ? boxesAt(S.frame).find(b=>b[4]===w.jid) : null);
   const [x1,y1,x2,y2] = bx || [w.x-12,w.y-46,w.x+12,w.y];
   g.strokeStyle=col; g.lineWidth=4*dpr; g.strokeRect(X(x1)-4*dpr,Y(y1)-4*dpr,(x2-x1)*k+8*dpr,(y2-y1)*k+8*dpr);
   g.fillStyle=col; g.font=`700 ${Math.round(14*dpr)}px Saira Condensed, sans-serif`; g.fillText(label,X(x1)-4*dpr,Y(y1)-8*dpr);
@@ -442,6 +486,7 @@ function tapAt(cx, cy){
                              .sort((a,b)=>(a.x2-a.x1)*(a.y2-a.y1)-(b.x2-b.x1)*(b.y2-b.y1));
   const h=hits2[0];
   if(S.mode==="players"){ if(h){ S.sel={piece:h.piece, jid:h.jid, frame:S.frame}; plmsg(""); } else S.sel=null; render(); S.dirty=true; return; }
+  if(S.mode==="cross"){ S.dirty=true; return; }
   if(S.mode==="relay"){ if(h){ S.sel={piece:h.piece, jid:h.jid, frame:S.frame}; S.rEv=null; renderRelay(); } S.dirty=true; return; }
   const who = h ? {jid:h.jid, piece:h.piece, team:h.team, frame:S.frame, x:(h.x1+h.x2)/2, y:h.y2} : {jid:null, team:-1, frame:S.frame, x, y, name:null};
   if(h && h.name && /^[AB]/.test(h.name)) who.team = h.name[0]==="A"?0:1;
@@ -497,6 +542,12 @@ async function undo(){
     try{ for(const [id,b] of a.items){ if(b) await S.db.collection("pieces").doc(id).set(b); else await S.db.collection("pieces").doc(id).delete(); if(b) S.pieces[id]=b; else delete S.pieces[id]; } }
     catch(e){ msg("Could not undo ("+e.code+").", true); return; }
     $("cmsg").textContent=`Undone (${a.items.length} cards).`; if(S.mode==="cards") renderCards(true);
+  } else if(a.type==="swap"||a.type==="cut"){
+    const col=a.type==="swap"?"swaps":"cuts", st=a.type==="swap"?S.swaps:S.cuts;
+    try{ if(a.before!=null) await S.db.collection(col).doc(a.id).set(a.type==="swap"?a.before:{fs:a.before}); else await S.db.collection(col).doc(a.id).delete(); }
+    catch(e){ msg("Could not undo ("+e.code+").", true); return; }
+    if(a.before!=null) st[a.id]=a.before; else delete st[a.id]; CV++;
+    if(a.type==="swap"){ S.xi=Math.max(0,S.xi-1); openCross(a.id); return; }
   } else if(a.type==="deleted"){
     try{ await S.db.collection("reviews").doc(a.id).set(a.doc); }catch(e){ msg("Could not undo ("+e.code+").", true); return; }
     S.reviews[a.id]=a.doc; S.cur=a.id; S.draft=clone(a.doc); msg("Pass restored.");
@@ -582,7 +633,7 @@ function render(){
   $("bundo").disabled=!S.stack.length;
   $("m-pass").classList.toggle("on",S.mode==="pass"); $("m-players").classList.toggle("on",S.mode==="players");
   $("passcard").hidden=S.mode!=="pass"; $("playercard").hidden=S.mode!=="players"; $("relaycard").hidden=S.mode!=="relay";
-  $("m-relay").classList.toggle("on",S.mode==="relay");
+  $("m-relay").classList.toggle("on",S.mode==="relay"); $("m-cross").classList.toggle("on",S.mode==="cross"); $("crosscard").hidden=S.mode!=="cross";
   $("m-cards").classList.toggle("on",S.mode==="cards");
   document.querySelector(".layout").hidden=S.mode==="cards"; $("cardsview").hidden=S.mode!=="cards";
   const nx=S.mode==="pass" && S.next && !waitingReceiver();
@@ -596,7 +647,7 @@ function render(){
 }
 function renderPlayer(){
   if(S.mode!=="players") return;
-  const sel=S.sel, b=sel&&boxesAt(S.frame).find(x=>x[7]===sel.piece), e=b&&eff(b,S.frame), L=sel?(S.pieces[String(sel.piece)]||{}):{};
+  const sel=S.sel, b=sel&&boxesAt(S.frame).find(x=>isKey(x,sel.piece,S.frame)), e=b&&eff(b,S.frame), L=sel?(S.pieces[String(sel.piece)]||{}):{};
   $("pltitle").textContent = sel ? "Fix this player" : "Tap any player";
   $("plname").textContent = e ? (e.name||"no name yet") : (sel?"not in this frame":"–"); $("plname").className="name"+(e&&e.name?"":" empty");
   const range = sel ? pieceRange(sel.piece) : null;
@@ -608,14 +659,14 @@ function renderPlayer(){
   if(sel) for(const n of nameButtons(e&&(e.team===0||e.team===1)?e.team:-1)){ const t=document.createElement("button"); t.textContent=n; t.className=n[0]; t.onclick=()=>plName(n); box.appendChild(t); }
   $("blclear").disabled=!sel||!S.pieces[String(sel&&sel.piece)];
 }
-const PR={}; function pieceRange(pc){ if(PR[S.data.name+pc]) return PR[S.data.name+pc]; let a=null,z=null;
-  S.boxes.people.forEach((row,i)=>{ if(row.some(b=>b[7]===pc)){ if(a==null) a=i; z=i; } });
-  return PR[S.data.name+pc] = a==null?null:[a+S.data.seg_start, z+S.data.seg_start]; }
+const PR={}; function pieceRange(pc){ if(PR[S.data.name+pc+":"+CV]) return PR[S.data.name+pc+":"+CV]; let a=null,z=null;
+  S.boxes.people.forEach((row,i)=>{ if(row.some(b=>isKey(b,pc,i+S.data.seg_start))){ if(a==null) a=i; z=i; } });
+  return PR[S.data.name+pc+":"+CV] = a==null?null:[a+S.data.seg_start, z+S.data.seg_start]; }
 function plmsg(t,err){ $("plmsg").textContent=t; $("plmsg").className="msg"+(err?" err":""); }
 function plFix(fields, note){ if(!S.sel) return; setPiece(S.sel.piece, fields).then(()=>{ plmsg(note); render(); }).catch(e=>plmsg("Could not save ("+e.code+").", true)); render(); }
 function plName(n){
   n=String(n||"").trim().toUpperCase().replace(/\s+/g,""); if(!n||!S.sel) return;
-  const b=boxesAt(S.frame).find(x=>x[7]===S.sel.piece), e=b&&eff(b,S.frame);
+  const b=boxesAt(S.frame).find(x=>isKey(x,S.sel.piece,S.frame)), e=b&&eff(b,S.frame);
   if(/^\d+$/.test(n)){ if(e&&(e.team===0||e.team===1)) n=(e.team===0?"A":"B")+n; else { plmsg("Set the team (A or B) first, or type the letter: A10 / B10.", true); return; } }
   const f={name:n}; if(/^[AB]/.test(n)) f.team=n[0]==="A"?0:1; if(/^[AB]/.test(n) && e && e.cls===3) f.role="player";
   $("plinput").value=""; plFix(f, `Named ${n}.`);
@@ -844,12 +895,18 @@ function relayGroups(){
 const rName=pid=>{ const own=rOwn(pid); if(own) return own; if(!S.relay) return null;
   const G=relayGroups(), r=S.relay.pieces[String(pid)]; if(!r||G.clash.has(String(pid))) return null; return G.gname[r[6]]||null; };
 const rAuto=pid=>!rOwn(pid)&&!!rName(pid);
-function relayEvents(){ const g=S.data; return S.relay.events.filter(e=>e[1]>=g.seg_start&&e[1]<g.seg_start+g.frames); }
+function relayEvents(){ const g=S.data, inSeg=f=>f>=g.seg_start&&f<g.seg_start+g.frames, W=switches();
+  const ev=S.relay.events.filter(e=>inSeg(e[1])).map(e=>[String(e[0]),e[1],e[2],e[3],e[4]]);
+  for(const p in W.cuts) for(const f of W.cuts[p]){ const k=p+"_"+f; if(!inSeg(f)||W.from[k]) continue;
+    if(k in W.team && W.team[k]!==0) continue;                    // colour says the tail is team B
+    if(!S.relay.pieces[p] && !(k in W.team) && !(S.cuts[p]||[]).includes(f)) continue;
+    ev.push([k,f,null,[[Number(p),0,0]],0]); }
+  return ev.sort((a,b)=>a[1]-b[1]); }
 function nextRelay(){
   if(!S.relay||!S.data) return;
   const ev=relayEvents(), G=relayGroups(), seen=new Set();
-  let e=ev.find(e=>{ if(rName(e[0])||S.rSkip.has(e[0])||G.clash.has(String(e[0]))) return false;
-                     const g=S.relay.pieces[String(e[0])][6]; if(seen.has(g)) return false; seen.add(g); return true; });
+  let e=ev.find(e=>{ if(rName(e[0])||S.rSkip.has(e[0])||G.clash.has(e[0])) return false;
+                     const r=S.relay.pieces[e[0]], g=r?r[6]:-1; if(g>=0&&seen.has(g)) return false; seen.add(g); return true; });
   if(!e) e=ev.find(e=>!rName(e[0])&&!S.rSkip.has(e[0]));
   S.rEv=e||null;
   if(e){ const v=$("vid"); if(!v.paused) v.pause(); seek(e[1]+2); S.sel={piece:e[0], frame:e[1]}; }
@@ -859,9 +916,10 @@ function inPlay(n,f){ const s=S.relay.subs, h=S.relay.half;      // subbed off a
   if(f>=h && n in s) return false; if(f<h && Object.values(s).includes(n)) return false; return true; }
 function relaySugg(pid, f){
   const out=[], add=n=>{ if(n&&n!=="—"&&!out.includes(n)&&inPlay(n,f)) out.push(n); };
-  const e=S.rEv&&S.rEv[0]===pid?S.rEv:S.relay.events.find(x=>x[0]===pid);
-  if(e) for(const c of e[3]) add(rName(c[0]));
-  const P=S.relay.pieces, me=P[String(pid)]; if(!me) return out;
+  const e=S.rEv&&S.rEv[0]===String(pid)?S.rEv:S.relay.events.find(x=>String(x[0])===String(pid));
+  const cutOf=String(pid).includes("_")?String(pid).split("_")[0]:null;
+  if(e&&!cutOf) for(const c of e[3]) add(rName(c[0]));
+  const P=S.relay.pieces, me=P[String(pid)]||(cutOf&&P[cutOf]?[f,P[cutOf][1],null,null,null,null,-1]:null); if(!me) return out;
   const alive=new Set(), last={};
   for(const q in P){ const n=rName(q); if(!n||n==="—") continue; const r=P[q];
     if(r[0]<=f&&f<=r[1]&&String(q)!==String(pid)) alive.add(n);
@@ -894,6 +952,55 @@ $("rreplay").onclick=()=>{ const f=S.sel?S.sel.frame:S.frame, v=$("vid"); if(S.v
   seek(f-60); v.playbackRate=0.5; v.play().catch(()=>{});
   const stop=()=>{ if(frameFromVideo()>=f+10){ v.pause(); seek(f+2); v.removeEventListener("timeupdate",stop); } }; v.addEventListener("timeupdate",stop); };
 
+// ---------- crossings: one tap per crossing the computer could not decide
+function crossList(){ return (S.cross&&S.cross[S.data.name])||[]; }
+const xid=c=>`${c[0]}_${c[1]}_${c[2]}`;
+function crossOpen(){ return crossList().filter(c=>!(xid(c) in S.swaps)&&crossDecision(c)==null&&!S.rSkip.has(xid(c))); }
+function openCross(id){
+  S.mode="cross"; S.sel=null; render();
+  if(!S.cross){ $("xinfo").textContent="Crossing data is not published yet."; return; }
+  const L=S.xshowAuto?crossList().filter(c=>crossDecision(c)!=null&&!(xid(c) in S.swaps)):crossOpen();
+  S.xcur = (id&&crossList().find(c=>xid(c)===id)) || L[0] || null;
+  renderCross(); if(S.xcur) xreplay();
+}
+function renderCross(){
+  if(S.mode!=="cross") return;
+  const all=crossList(), auto=all.filter(c=>!(xid(c) in S.swaps)&&crossDecision(c)!=null).length, mine=all.filter(c=>xid(c) in S.swaps).length, open=crossOpen().length;
+  const c=S.xcur, d=c?crossDecision(c):null;
+  $("xtitle").textContent = c ? `Crossing at ${mmss((c[2]-S.data.seg_start)/S.data.fps)}` : "Crossings";
+  $("xinfo").textContent = (c ? (S.xshowAuto?`Decided automatically: ${d?"swapped":"same players"} (${c[6]}). Correct it if it is wrong. · `:(c[7]&&c[8]?"":c[7]?"Track 2 ends here: is 1 still the same player? · ":"Track 1 ends here: is 2 still the same player? · ")) : "Nothing left to check in this segment. ")
+    + `${open} to check · ${auto} decided automatically · ${mine} by you`;
+  $("xkept").disabled=$("xswap").disabled=!c; $("xreplay").disabled=!c;
+  $("xauto").textContent=S.xshowAuto?"Back to the ones to check":"Show automatic ones"; S.dirty=true;
+}
+function xfocus(c){ for(let g=c[2]; g>=c[2]-15; g--){ const b=boxesAt(g).find(x=>x[7]===c[0]); if(b){ S.zoom=Math.max(S.zoom,3); $("zoom").value=String(S.zoom); S.focus={x:(b[0]+b[2])/2, y:(b[1]+b[3])/2}; S.cx=null; return; } } }
+function xreplay(){ const c=S.xcur, v=$("vid"); if(!c) return; xfocus(c); if(S.videoFor!==S.data.name){ $("xmsg").textContent="Open the segment video first."; seek(c[3]+15); return; }
+  const end=c[3]+30; seek(c[2]-45); v.playbackRate=0.5; v.play().catch(()=>{});
+  const stop=()=>{ if(frameFromVideo()>=end||v.paused){ v.pause(); seek(end); v.removeEventListener("timeupdate",stop); } }; v.addEventListener("timeupdate",stop); }
+async function xdecide(swap){
+  const c=S.xcur; if(!c||!S.db) return; const id=xid(c), before=S.swaps[id]?clone(S.swaps[id]):null, doc={swap, p:c[0], q:c[1], f:c[4], at:Date.now()};
+  S.swaps[id]=doc; CV++; S.stack.push({type:"swap", id, before});
+  try{ await S.db.collection("swaps").doc(id).set(doc); }catch(e){ $("xmsg").textContent="Could not save ("+e.code+")."; return; }
+  $("xmsg").textContent=swap?"Saved: swapped. The names after the crossing now follow the right players.":"Saved: same players.";
+  const L=S.xshowAuto?crossList().filter(x=>crossDecision(x)!=null&&!(xid(x) in S.swaps)):crossOpen(); S.xcur=L[0]||null; renderCross(); if(S.xcur) xreplay();
+}
+$("xkept").onclick=()=>xdecide(false); $("xswap").onclick=()=>xdecide(true);
+$("xreplay").onclick=xreplay; $("xundo").onclick=()=>undo();
+$("xskip").onclick=()=>{ if(S.xcur) S.rSkip.add(xid(S.xcur)); openCross(); };
+$("xauto").onclick=()=>{ S.xshowAuto=!S.xshowAuto; openCross(); };
+// "Switched here": the selected track is someone else from the current frame on
+async function switchHere(after){
+  if(!S.sel||!S.db){ return; } const v=$("vid"); if(!v.paused){ v.pause(); S.frame=frameFromVideo(); }
+  const k=String(S.sel.piece), p=k.split("_")[0], f=S.frame;
+  if(!boxesAt(f).some(x=>String(x[7])===p)){ after("That track is not on screen in this frame."); return; }
+  const before=S.cuts[p]?[...S.cuts[p]]:null, fs=[...new Set([...(S.cuts[p]||[]),f])].sort((a,b)=>a-b);
+  S.cuts[p]=fs; CV++; S.stack.push({type:"cut", id:p, before});
+  try{ await S.db.collection("cuts").doc(p).set({fs, at:Date.now()}); }catch(e){ after("Could not save ("+e.code+")."); return; }
+  S.sel={piece:keyOf(p,f), frame:f}; render(); S.dirty=true; after("Cut here. Now name who it is from this frame on.");
+}
+$("plswitch").onclick=()=>switchHere(t=>plmsg(t));
+$("rswitch").onclick=()=>switchHere(t=>{ $("rmsg").textContent=t; S.rEv=null; renderRelay(); });
+
 // ---------- controls
 const step=n=>{ const v=$("vid"); if(!v.paused){ v.pause(); S.frame=frameFromVideo(); } seek(S.frame+n); };
 $("bpp").onclick=playPause;
@@ -909,9 +1016,10 @@ $("rname").onclick=()=>{ if(S.draft&&S.draft.receiver){ S.nameRole="receiver"; r
 $("bname").onclick=()=>applyName($("nameinput").value);
 $("nameinput").addEventListener("keydown",e=>{ if(e.key==="Enter") applyName(e.target.value); });
 $("note").addEventListener("change",editSaved);
-$("m-pass").onclick=()=>{ S.mode="pass"; S.sel=null; render(); S.dirty=true; };
+$("m-pass").onclick=()=>{ S.mode="pass"; S.sel=null; S.focus=null; render(); S.dirty=true; };
 $("m-players").onclick=()=>{ S.mode="players"; render(); S.dirty=true; };
 $("m-relay").onclick=()=>openRelay();
+$("m-cross").onclick=()=>openCross();
 $("m-cards").onclick=()=>{ const v=$("vid"); if(!v.paused) v.pause(); S.mode="cards"; render(); openCards(); };
 document.querySelectorAll("[data-pteam]").forEach(b=>b.onclick=()=>plFix({team:Number(b.dataset.pteam)}, "Team set."));
 document.querySelectorAll("[data-role2]").forEach(b=>b.onclick=()=>plFix({role:b.dataset.role2}, {player:"Marked as a player.",gk:"Marked as a goalkeeper.",referee:"Marked as a referee."}[b.dataset.role2]));
@@ -922,7 +1030,7 @@ $("blclear").onclick=()=>{ if(!S.sel) return; const id=String(S.sel.piece), befo
     .catch(e=>plmsg("Could not clear ("+e.code+").", true)); };
 $("bnext").onclick=()=>{ const v=$("vid"); if(!v.paused){ v.pause(); S.frame=frameFromVideo(); }
   if(!S.next) return; const w=clone(S.next); w.frame=S.frame;
-  const b=boxesAt(S.frame).find(x=>(w.piece!=null&&x[7]===w.piece)) || (w.jid!=null&&boxesAt(S.frame).find(x=>x[4]===w.jid));
+  const b=boxesAt(S.frame).find(x=>isKey(x,w.piece,S.frame)) || (w.jid!=null&&boxesAt(S.frame).find(x=>x[4]===w.jid));
   if(b){ w.x=(b[0]+b[2])/2; w.y=b[3]; }
   S.next=null; tap(w); };
 $("bclock").onclick=()=>{ const v=$("vid"); if(!v.paused){ v.pause(); seek(frameFromVideo()); } $("clockbox").hidden=!$("clockbox").hidden; if(!$("clockbox").hidden) $("clockin").focus(); };
