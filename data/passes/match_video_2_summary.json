@@ -1,0 +1,52 @@
+{
+ "match": "match_video_2",
+ "passes": 810,
+ "outcomes": {
+  "complete": 699,
+  "intercepted": 84,
+  "out": 21,
+  "incomplete": 6
+ },
+ "passer_team": {
+  "B": 470,
+  "A": 340
+ },
+ "completion_rate": {
+  "A": 0.85,
+  "B": 0.87
+ },
+ "per_segment": {
+  "01_1H_00-05": 59,
+  "02_1H_05-10": 44,
+  "03_1H_10-15": 54,
+  "04_1H_15-20": 36,
+  "05_1H_20-25": 38,
+  "06_1H_25-30": 29,
+  "07_1H_30-35": 55,
+  "08_1H_35-40": 47,
+  "09_1H_40-45": 45,
+  "10_1H_45-47": 32,
+  "11_2H_45-50": 61,
+  "12_2H_50-55": 39,
+  "13_2H_55-60": 47,
+  "14_2H_60-65": 21,
+  "15_2H_65-70": 21,
+  "16_2H_70-75": 36,
+  "17_2H_75-80": 52,
+  "18_2H_80-85": 25,
+  "19_2H_85-90": 33,
+  "20_2H_90-94": 36
+ },
+ "tagging_hours": 7.5,
+ "seconds_per_pass_median": {
+  "segment_01": 31.1,
+  "segments_11_20": 16.6
+ },
+ "named_track_ids": 71,
+ "track_ids_given_more_than_one_name": 49,
+ "complete_passes_followed_by_receiver_passing": [
+  591,
+  686
+ ],
+ "kick_frame_from_ball_path_within_5_frames": 0.48
+}
