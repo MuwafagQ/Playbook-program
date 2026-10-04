@@ -87,7 +87,8 @@ button:disabled{opacity:.45;cursor:default}
 .chips button.A{border-color:var(--teamA)}.chips button.B{border-color:var(--teamB)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
 .pc{background:var(--surface);border:2px solid var(--line);border-radius:8px;padding:4px;cursor:pointer;position:relative}
-.pc canvas{width:100%;aspect-ratio:2/1;display:block;border-radius:4px;background:var(--stage)}
+.pc canvas{width:100%;aspect-ratio:9/4;display:block;border-radius:4px;background:var(--stage)}
+.numrow input{max-width:150px;font:700 18px var(--mono)}
 .pc .cap{display:flex;justify-content:space-between;align-items:center;font:500 12px var(--mono);color:var(--muted);padding:3px 2px 0}
 .pc.sel{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--surface))}
 .pc.done{opacity:.55}.pc.done.sel{opacity:1}
@@ -189,6 +190,7 @@ button:disabled{opacity:.45;cursor:default}
   <div class="actbar" id="actbar">
     <div class="row2"><span class="sub" id="selinfo">Tap the cards that are not this player.</span></div>
     <div class="chips" id="movechips"></div>
+    <div class="row2 numrow" id="numrow"><input id="cnum" inputmode="numeric" placeholder="Shirt no." autocomplete="off"><button id="bnumA">Save as team A</button><button id="bnumB">Save as team B</button></div>
     <div class="row2"><button id="bsplit" hidden>Mixed card: some photos are someone else</button></div>
     <div class="splitbox" id="splitbox" hidden>
       <div class="sub" id="splithelp"></div>
@@ -207,7 +209,7 @@ const A_POS = ["GK","RB","RCB","CB","LCB","LB","DM","CM","RM","LM","AM","RW","LW
 const S = { idx:null, data:null, boxes:null, frame:0, videoFor:null, reviews:{}, names:{}, db:null, dl:null,
             cur:null, draft:null, stack:[], nameRole:null, zoom:1, cx:null, cy:null, focus:null, dirty:true,
             pieces:{}, clock:{}, mode:"pass", sel:null, next:null,
-            props:null, cname:null, csel:new Set(), sheets:{} };
+            props:null, cname:null, csel:new Set(), sheets:{}, nsheets:{} };
 
 // ---------- data
 async function load(){
@@ -654,7 +656,10 @@ function pieceNow(id){ const fx=S.pieces[id], p=S.props.pieces[id];
   if(fx&&fx.role==="unknown") return {name:"Unknown", done:true};
   if(!p) return {name:null, done:false};
   return {name: p[5]==="unsure" ? "Unsure" : p[4], done:false}; }
+const CLOSE="A close-ups";
 function cardList(name){
+  if(name===CLOSE){ const out=[]; for(const id in S.props.pieces){ const n=pieceNow(id); if(!n.done && (n.name==="A player"||n.name==="Mixed team")) out.push(id); }
+    return out.sort((a,b)=>(S.props.pieces[b][8]||0)-(S.props.pieces[a][8]||0)).slice(0,400); }
   const out=[]; for(const id in S.props.pieces){ if(pieceNow(id).name===name) out.push(id); } 
   const rank={unsure:0,maybe:1,likely:2};
   return out.sort((a,b)=>{ const A=S.props.pieces[a], B=S.props.pieces[b], da=!!S.pieces[a], db=!!S.pieces[b];
@@ -666,19 +671,21 @@ function clashSet(ids){ // pieces of this list that are on screen together with 
   return c; }
 function renderCards(rebuild){
   if(!S.props) return;
-  const all=[...new Set([...S.props.names, "Unsure", "Unknown", "Referee"])], counts={};
+  const all=[CLOSE, ...new Set([...S.props.names, "Unsure", "Unknown", "Referee"])], counts={};
   for(const id in S.props.pieces){ const n=pieceNow(id); if(!n.name) continue; counts[n.name]=counts[n.name]||{all:0,todo:0}; counts[n.name].all++; if(!n.done) counts[n.name].todo++; }
   const chips=$("namechips"); chips.innerHTML="";
+  counts[CLOSE]={all:0,todo:cardList(CLOSE).length};
   for(const n of all){ if(!counts[n] && !S.props.names.includes(n)) continue; const c=counts[n]||{all:0,todo:0};
     const b=document.createElement("button"); b.className=(n[0]==="A"||n[0]==="B"?n[0]:"")+(n===S.cname?" on":"");
     b.innerHTML=`${n}<span class="n">${c.todo?c.todo+" to check":"✓ "+c.all}</span>`; b.onclick=()=>{ S.cname=n; S.csel.clear(); renderCards(true); }; chips.appendChild(b); }
   const ids=cardList(S.cname), cl=clashSet(ids.filter(id=>S.cname!=="Unsure"&&S.cname!=="Unknown"&&S.cname!=="Referee"));
   const todo=ids.filter(id=>!S.pieces[id]).length;
-  $("cardsinfo").textContent=`${S.cname}: ${ids.length} pieces, ${todo} to check${cl.size?` · ${cl.size} marked “together”: on screen at the same time as another ${S.cname} card, so one of them is wrong`:""}`;
+  if(S.cname===CLOSE){ $("cardsinfo").textContent=`Team A, biggest views first (${ids.length}). If you can read a number, select that player's cards, type the number and tap "Save as team A". Skip the rest.`; }
+  else $("cardsinfo").textContent=`${S.cname}: ${ids.length} pieces, ${todo} to check${cl.size?` · ${cl.size} marked “together”: on screen at the same time as another ${S.cname} card, so one of them is wrong`:""}`;
   const grid=$("cardgrid");
   if(rebuild){ grid.innerHTML=""; const need={};
     for(const id of ids){ const p=S.props.pieces[id], d=document.createElement("div"); d.className="pc"; d.dataset.id=id;
-      const cv=document.createElement("canvas"); cv.width=256; cv.height=128; d.appendChild(cv);
+      const cv=document.createElement("canvas"); cv.width=288; cv.height=128; d.appendChild(cv);
       const t=fmt(p[1]);
       d.insertAdjacentHTML("beforeend",`<div class="cap"><span>${t}–${fmt(p[2])}</span><span class="tier"></span></div>`);
       d.onclick=()=>{ if(S.csel.has(id)) S.csel.delete(id); else S.csel.add(id); renderCards(false); };
@@ -700,6 +707,7 @@ function renderCards(rebuild){
   $("bconfirm").hidden=!real; $("bconfirm").textContent=`Confirm the rest as ${S.cname} (${ids.filter(id=>!S.pieces[id]&&!S.csel.has(id)).length})`;
   $("bconfirm").disabled=!ids.some(id=>!S.pieces[id]&&!S.csel.has(id));
   $("bclearsel").disabled=!S.csel.size;
+  $("bnumA").disabled=$("bnumB").disabled=!S.csel.size;
   $("bsplit").hidden = S.csel.size!==1 || !$("splitbox").hidden;
 }
 // ---------- a card with two people in it: tap the photos that are someone else, pick who
@@ -747,10 +755,16 @@ async function drawCards(need){
     const sg=S.idx.segments[seg]; if(!sg) continue; const name=sg.name;
     try{
       if(!S.sheets[name]) S.sheets[name]=await fetch(`cards_${name}.json`).then(r=>r.json());
-      const ix=S.sheets[name], img=new Image(); img.src=`cards_${name}.jpg`; await img.decode();
-      for(const [id,cv] of need[seg]){ const e=ix.pieces[id]; if(!e) continue;
-        cv.getContext("2d").drawImage(img, e[0], e[1], ix.w*ix.per_piece, ix.h, 0, 0, cv.width, cv.height); }
-      img.src="";
+      if(S.nsheets[name]===undefined) S.nsheets[name]=await fetch(`numbers_${name}.json`).then(r=>r.ok?r.json():null).catch(()=>null);
+      const nx=S.nsheets[name], rest=[];
+      if(nx){ const nimg=new Image(); nimg.src=`numbers_${name}.jpg`; await nimg.decode();     // sharpened close-ups first
+        for(const [id,cv] of need[seg]){ const e=nx.pieces[id]; if(!e){ rest.push([id,cv]); continue; }
+          cv.getContext("2d").drawImage(nimg, e[0], e[1], nx.w*3, nx.h, 0, 0, cv.width, cv.height); }
+        nimg.src=""; } else rest.push(...need[seg]);
+      if(rest.length){ const ix=S.sheets[name], img=new Image(); img.src=`cards_${name}.jpg`; await img.decode();
+        for(const [id,cv] of rest){ const e=ix.pieces[id]; if(!e) continue;
+          cv.getContext("2d").drawImage(img, e[0], e[1], ix.w*ix.per_piece, ix.h, 0, 0, cv.width, cv.height); }
+        img.src=""; }
     }catch(e){ for(const [,cv] of need[seg]){ const g=cv.getContext("2d"); g.fillStyle="#888"; g.font="14px sans-serif"; g.fillText("photos not ready", 10, 64); } }
   }
 }
@@ -774,6 +788,13 @@ $("bconfirm").onclick=async()=>{ const n=S.cname, ids=cardList(n).filter(id=>!S.
   $("cmsg").textContent=`${k} confirmed as ${n}.`; renderCards(false); };
 $("bclearsel").onclick=()=>{ S.csel.clear(); renderCards(false); };
 $("bcundo").onclick=()=>undo();
+async function saveNumber(letter){
+  const n=$("cnum").value.trim().replace(/\D/g,""); if(!n||n.length>2||!S.csel.size){ $("cmsg").textContent="Select the cards of one player and type the number you can read."; return; }
+  const ids=[...S.csel]; S.csel.clear(); $("cnum").value="";
+  const k=await writeFix(ids, fixFor(letter+n)).catch(e=>{ $("cmsg").textContent="Could not save ("+e.code+")."; return 0; });
+  $("cmsg").textContent=`${k} card${k===1?"":"s"} named ${letter}${n}.`; renderCards(true); }
+$("bnumA").onclick=()=>saveNumber("A"); $("bnumB").onclick=()=>saveNumber("B");
+$("cnum").addEventListener("keydown",e=>{ if(e.key==="Enter") saveNumber(S.cname&&S.cname[0]==="B"?"B":"A"); });
 
 // ---------- controls
 const step=n=>{ const v=$("vid"); if(!v.paused){ v.pause(); S.frame=frameFromVideo(); } seek(S.frame+n); };
