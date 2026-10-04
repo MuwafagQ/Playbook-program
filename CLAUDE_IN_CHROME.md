@@ -66,3 +66,14 @@ reconnect and Run all again (finished segments are skipped). Never edit cells or
 copy the last 30 lines of that cell.
 Report: the lines printed by Cell 3 (one per segment) and the last 3 lines of Cell 4.
 ```
+
+## 6. Shirt numbers (GPU, about 1-1.5 hours)
+
+```
+Open https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/jersey_numbers.ipynb
+Runtime -> Change runtime type -> L4 GPU -> Save, then Runtime -> Run all. Accept the Drive connection.
+Keep the tab open; check Cell 3 every 20 minutes ("05_1H_20-25: ... | N segments left"). If disconnected,
+reconnect and Run all again (finished segments are skipped). Never edit cells or enter keys. On an error,
+copy the last 30 lines of that cell.
+Report: the last 3 lines of Cell 3.
+```
