@@ -239,7 +239,7 @@ button:disabled{opacity:.45;cursor:default}
     <div class="splitbox" id="splitbox" hidden>
       <div class="sub" id="splithelp"></div>
       <div class="photos" id="photos"></div>
-      <div class="sub">The other person is:</div>
+      <div class="sub">Pick a person, then tap their photos (repeat for each person):</div>
       <div class="chips" id="otherchips"></div>
       <div class="row2"><button id="bsplitsave" class="primary">Save the split</button><button id="bsplitcancel">Cancel</button></div>
     </div>
@@ -923,10 +923,10 @@ async function drawCtx(list){
   }catch(e){ $("cardsinfo").textContent=`The pitch pictures of ${name.replace(/_/g," ")} are not published yet.`; }
 }
 // ---------- a card with two people in it: tap the photos that are someone else, pick who
-const SP={id:null, other:new Set(), name:null};
+const SP={id:null, names:{}, name:null};      // names: photo index -> who it is (missing = the card's name)
 async function openSplit(){
   const id=[...S.csel][0], p=S.props.pieces[id], sg=S.idx.segments[p[0]]; if(!sg) return;
-  SP.id=id; SP.other=new Set(); SP.name=null;
+  SP.id=id; SP.names={}; SP.name=null;
   let ix, img;
   try{ if(!S.sheets[sg.name]) S.sheets[sg.name]=await fetch(`cards_${sg.name}.json`).then(r=>r.json());
        ix=S.sheets[sg.name]; img=new Image(); img.src=`cards_${sg.name}.jpg`; await img.decode(); }
@@ -936,25 +936,28 @@ async function openSplit(){
   e[2].forEach((f,k)=>{ const d=document.createElement("div"); d.className="photo"; const cv=document.createElement("canvas"); cv.width=ix.w; cv.height=ix.h;
     cv.getContext("2d").drawImage(img, e[0]+k*ix.w, e[1], ix.w, ix.h, 0, 0, ix.w, ix.h);
     const lab=document.createElement("div"); d.append(cv,lab); d.dataset.k=k; d.dataset.f=f;
-    d.onclick=()=>{ if(SP.other.has(k)) SP.other.delete(k); else SP.other.add(k); renderSplit(); }; box.appendChild(d); });
+    d.onclick=()=>{ if(!SP.name){ $("splithelp").textContent="First pick who it is (the names below), then tap the photo."; return; }
+      if(SP.names[k]===SP.name) delete SP.names[k]; else SP.names[k]=SP.name; renderSplit(); }; box.appendChild(d); });
   img.src="";
   const oc=$("otherchips"); oc.innerHTML="";
-  for(const n of [...new Set([...p[6], ...S.props.names, "Referee", "Unknown"])].filter(n=>n!==S.cname)){
+  for(const n of [...new Set([S.cname, ...p[6], ...S.props.names, "Referee", "Unknown"])]){
     const b=document.createElement("button"); b.textContent=n; b.className=(n[0]==="A"||n[0]==="B")?n[0]:""; b.onclick=()=>{ SP.name=n; renderSplit(); }; oc.appendChild(b); }
   $("splitbox").hidden=false; $("selinfo").textContent=""; renderSplit(); renderCards(false);
 }
 function renderSplit(){
-  for(const d of $("photos").children){ const k=Number(d.dataset.k), o=SP.other.has(k);
-    d.classList.toggle("other",o); d.lastChild.textContent = o ? (SP.name||"someone else") : S.cname; }
+  for(const d of $("photos").children){ const k=Number(d.dataset.k), n=SP.names[k]||S.cname;
+    d.classList.toggle("other",n!==S.cname); d.lastChild.textContent = n; }
   for(const b of $("otherchips").children) b.classList.toggle("on", b.textContent===SP.name);
-  $("splithelp").textContent=`Tap the photos that are NOT ${S.cname} (they turn red), then pick who they are.`;
-  $("bsplitsave").disabled = !SP.other.size || SP.other.size===4 || !SP.name;
+  const who=new Set(Object.values(SP.names).filter(n=>n!==S.cname));
+  $("splithelp").textContent = SP.name ? `Tap the photos of ${SP.name}. Each photo can be a different person.` : `Each photo can be someone different. Pick a name below, then tap that person's photos.`;
+  $("bsplitsave").disabled = !who.size;
 }
 $("bsplit").onclick=openSplit;
 $("bsplitcancel").onclick=()=>{ $("splitbox").hidden=true; renderCards(false); };
 $("bsplitsave").onclick=async()=>{
-  const photos=[...$("photos").children].map(d=>[Number(d.dataset.f), SP.other.has(Number(d.dataset.k)) ? SP.name : S.cname]);
-  const mine=photos.filter(x=>x[1]===S.cname).length, main = mine>=photos.length-mine ? S.cname : SP.name;
+  const photos=[...$("photos").children].map(d=>[Number(d.dataset.f), SP.names[Number(d.dataset.k)]||S.cname]);
+  const cnt={}; for(const [,n] of photos) cnt[n]=(cnt[n]||0)+1;
+  const main=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]||(a===S.cname?-1:b===S.cname?1:0))[0];
   const id=SP.id; S.csel.clear(); $("splitbox").hidden=true;
   const k=await writeFix([id], {photos, mixed:true, name: (main==="Referee"||main==="Unknown")?null:main, role: main==="Referee"?"referee":null})
     .catch(e=>{ $("cmsg").textContent="Could not save ("+e.code+")."; return 0; });
