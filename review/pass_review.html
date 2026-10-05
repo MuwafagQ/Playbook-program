@@ -892,7 +892,7 @@ function renderCards(rebuild){
   $("bclearsel").disabled=!S.csel.size;
   $("bnumA").disabled=$("bnumB").disabled=!S.csel.size;
   $("bsplit").hidden = S.ctx || S.csel.size!==1 || !$("splitbox").hidden;
-  $("numrow").hidden=!!S.ctx; $("bctx").hidden=true; $("bctxoff").hidden=!S.ctx;
+  $("numrow").hidden=!!S.ctx; $("bctx").hidden=!!S.ctx; $("bctxoff").hidden=!S.ctx;
 }
 // ---------- team A cards on the pitch: this segment's team A tracks, each drawn from the open video at the
 // moment the player is biggest, with the area around them, so you can tell who it is by where they stand
