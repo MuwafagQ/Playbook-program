@@ -63,6 +63,7 @@ button:disabled{opacity:.45;cursor:default}
 .seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0}
 @media (max-width:520px){.seg{grid-template-columns:1fr 1fr}.seg button,.seg button:first-child,.seg button:last-child{border-radius:0}}
 .list{background:var(--surface);border:1px solid var(--line);border-radius:8px;max-height:320px;overflow:auto}
+.todo{color:var(--warn)}
 .row .go{min-height:32px;padding:3px 9px;font-size:12px}
 .row{display:grid;grid-template-columns:54px 1fr auto auto auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer}
 .row:last-child{border-bottom:0}.row.cur{background:var(--bg)}
@@ -370,7 +371,21 @@ async function setName(jid,frame,name){
   S.names[String(jid)]=e; await S.db.collection("names").doc(String(jid)).set({entries:e});
 }
 const pieceName=w=>{ const L=w&&w.piece!=null&&S.pieces[String(w.piece)]; return L&&L.name||null; };
-const whoName=w=>{ if(!w) return null; const n=w.name || pieceName(w) || (w.jid!=null?nameAt(w.jid,w.frame):null); return w.frame!=null?alias(n,w.frame):n; };
+// the name a pass shows and exports: live, from the player's box at that frame (your Players fixes, tag renames,
+// swaps), so fixing a box later also fixes every pass it is in; the name saved with the pass is only a fallback
+function whoName(w){
+  if(!w) return null;
+  if(w.piece!=null&&w.frame!=null){
+    const base=String(w.piece).startsWith("m-")?String(w.piece):String(w.piece).split("_")[0];
+    if(S.data&&w.frame>=S.data.seg_start&&w.frame<S.data.seg_start+S.data.frames){
+      const b=boxesAt(w.frame).find(x=>String(x[7])===base); if(b){ const e=eff(b,w.frame); if(e.name) return e.name; } }
+    const L=S.pieces[keyOf(base,w.frame)]; if(L&&L.name) return alias(L.name,w.frame);
+  }
+  const n=w.name || (w.jid!=null?nameAt(w.jid,w.frame):null);
+  return w.frame!=null?alias(n,w.frame):n;
+}
+// a name still to check: a position tag, a bare letter or nothing
+const needsName=n=>!n||isTag(n)||!/^[AB]\d+$/.test(n);
 // write a fix for one piece of track (merged into what is there); kept on the undo stack
 async function setPiece(piece, fields){
   if(piece==null||piece<0||!S.db) return;
@@ -682,7 +697,8 @@ function render(){
   let curRow=null;
   for(const [id,r] of mine){
     const row=document.createElement("div"); row.className="row"+(id===S.cur?" cur":"");
-    const pn=(r.passer&&r.passer.name)||"?", rn=r.outcome==="out"?"out":((r.receiver&&r.receiver.name)||"?");
+    const nm=n=>needsName(n)?`<b class="todo">${n||"?"}</b>`:n;
+    const pn=nm(whoName(r.passer)), rn=r.outcome==="out"?"out":nm(whoName(r.receiver));
     row.innerHTML=`<span class="t">${fmt(r.kick)}</span><span>${pn} → ${rn}</span><span class="chip ${r.outcome}">${r.outcome==="out"?"out":r.outcome}</span>`
       + `<button class="go" title="Go to the kick">Kick</button><button class="go" title="Go to the receiving touch"${r.touch==null?" disabled":""}>Touch</button>`;
     row.onclick=()=>selectPass(id);
@@ -697,7 +713,7 @@ function render(){
     const w=d&&d[role], n=whoName(w);
     $(el).textContent = w ? (n||"no name yet") : (role==="receiver"&&d&&d.outcome==="out" ? "out of play" : "–");
     $(el).className="name"+(w&&n?"":" empty");
-    $(sub).textContent = w ? `${w.jid==null?"added by hand · ":""}${fmt(w.frame)} · frame ${w.frame}` : "";
+    $(sub).textContent = w ? `${needsName(n)?"⚠ not a shirt number yet · ":"✓ "}${w.jid==null&&!String(w.piece||"").startsWith("m-")?"added by hand · ":""}${fmt(w.frame)} · frame ${w.frame}` : "";
     for(const b of document.querySelectorAll(`.teams button[data-role="${role}"]`)){ b.classList.toggle("on", !!w && String(w.team)===b.dataset.team); b.disabled=!w; }
   }
   for(const o of ["complete","intercepted","incomplete","out"]){ $("o-"+o).classList.toggle("on", !!d && d.outcome===o); $("o-"+o).disabled=!d||!d.passer; }
@@ -767,7 +783,7 @@ async function setAlias(tag, n){
 function renderStats(all){
   if(!all.length){ $("stats").textContent="No passes yet."; return; }
   const by={}, team={A:{n:0,ok:0},B:{n:0,ok:0}};
-  for(const r of all){ const n=(r.passer&&r.passer.name)||"?", t=sideOf(r.passer)||"?";
+  for(const r of all){ const n=whoName(r.passer)||"?", t=sideOf(r.passer)||"?";
     const k=n+"|"+t; by[k]=by[k]||{n,t,all:0,ok:0,lost:0}; by[k].all++; if(r.outcome==="complete") by[k].ok++; if(r.outcome==="intercepted") by[k].lost++;
     if(team[t]){ team[t].n++; if(r.outcome==="complete") team[t].ok++; } }
   const pct=(a,b)=>b?Math.round(100*a/b)+"%":"–";
@@ -786,7 +802,7 @@ async function exportCsv(){
     let k=e[0]; for(const x of e) if(x[0]<=f) k=x; return mmss(k[1]+(f-k[0])/fps); };
   const lines=[["pass_no","segment","kick_frame","kick_time","kick_board_clock","touch_frame","touch_time","passer","passer_team","receiver","receiver_team","outcome","note","passer_player_id","receiver_player_id"].join(",")];
   Object.values(S.reviews).filter(r=>r.status==="pass").sort((a,b)=>a.kick-b.kick).forEach((r,i)=>{
-    lines.push([i+1,seg(r.kick),r.kick,t(r.kick),board(r.kick),r.touch,t(r.touch),r.passer&&r.passer.name,sideOf(r.passer),r.receiver&&r.receiver.name,sideOf(r.receiver),
+    lines.push([i+1,seg(r.kick),r.kick,t(r.kick),board(r.kick),r.touch,t(r.touch),whoName(r.passer),sideOf(r.passer),whoName(r.receiver),sideOf(r.receiver),
                 r.outcome,r.notes||"",r.passer&&r.passer.jid,r.receiver&&r.receiver.jid].map(esc).join(",")); });
   try{ await S.dl.save({filename:`${S.idx.match}_passes.csv`, data:lines.join("\n")+"\n"}); msg(`Saved ${lines.length-1} passes.`); }
   catch(e){ if(e.code!=="declined") msg("Could not save the file ("+e.code+").", true); }
