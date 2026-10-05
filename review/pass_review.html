@@ -63,7 +63,8 @@ button:disabled{opacity:.45;cursor:default}
 .seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0}
 @media (max-width:520px){.seg{grid-template-columns:1fr 1fr}.seg button,.seg button:first-child,.seg button:last-child{border-radius:0}}
 .list{background:var(--surface);border:1px solid var(--line);border-radius:8px;max-height:320px;overflow:auto}
-.row{display:grid;grid-template-columns:54px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer}
+.row .go{min-height:32px;padding:3px 9px;font-size:12px}
+.row{display:grid;grid-template-columns:54px 1fr auto auto auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer}
 .row:last-child{border-bottom:0}.row.cur{background:var(--bg)}
 .row .t{font:500 12px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
 .chip{font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:10px;border:1px solid var(--line);color:var(--muted)}
@@ -584,6 +585,12 @@ async function undo(){
   }
   render(); S.dirty=true;
 }
+// jump to a pass's kick or receiving touch without leaving the current mode (Players fixes work there too)
+function goPass(id, which){
+  const r=S.reviews[id]; if(!r) return; const v=$("vid"); if(!v.paused) v.pause();
+  if(S.mode==="pass"){ selectPass(id); }
+  seek(which==="touch"&&r.touch!=null ? r.touch : r.kick); S.cur=id; render(); S.dirty=true;
+}
 function selectPass(id){
   const r=S.reviews[id]; if(!r) return;
   S.cur=id; S.draft=clone(r); S.nameRole=null; $("note").value=r.notes||""; msg(""); seek(r.kick); render();
@@ -640,8 +647,12 @@ function render(){
   for(const [id,r] of mine){
     const row=document.createElement("div"); row.className="row"+(id===S.cur?" cur":"");
     const pn=(r.passer&&r.passer.name)||"?", rn=r.outcome==="out"?"out":((r.receiver&&r.receiver.name)||"?");
-    row.innerHTML=`<span class="t">${fmt(r.kick)}</span><span>${pn} → ${rn}</span><span class="chip ${r.outcome}">${r.outcome==="out"?"out":r.outcome}</span>`;
-    row.onclick=()=>selectPass(id); L.appendChild(row); if(id===S.cur) curRow=row;
+    row.innerHTML=`<span class="t">${fmt(r.kick)}</span><span>${pn} → ${rn}</span><span class="chip ${r.outcome}">${r.outcome==="out"?"out":r.outcome}</span>`
+      + `<button class="go" title="Go to the kick">Kick</button><button class="go" title="Go to the receiving touch"${r.touch==null?" disabled":""}>Touch</button>`;
+    row.onclick=()=>selectPass(id);
+    const [gk,gt]=row.querySelectorAll("button.go");
+    gk.onclick=ev=>{ ev.stopPropagation(); goPass(id,"kick"); };
+    gt.onclick=ev=>{ ev.stopPropagation(); goPass(id,"touch"); }; L.appendChild(row); if(id===S.cur) curRow=row;
   }
   if(curRow){ const top=curRow.offsetTop-L.offsetTop; if(top<L.scrollTop||top>L.scrollTop+L.clientHeight-40) L.scrollTop=top-60; }
   const d=S.draft;
