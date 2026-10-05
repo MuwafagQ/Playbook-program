@@ -181,7 +181,7 @@ button:disabled{opacity:.45;cursor:default}
     </div>
     <div class="card" id="playercard" hidden>
       <h2 id="pltitle">Tap any player</h2>
-      <div class="sub">Fixes stick to this piece of track (the box from when it appears until the tracker loses it) and show everywhere.</div>
+      <div class="sub">A name sticks to this track until the tracker loses the player. If the box shows a position tag (ALB, ARB, ADM…), the number you give replaces that tag on every box in this segment.</div>
       <div class="who" style="grid-template-columns:1fr auto">
         <div><div class="name" id="plname">–</div><div class="sub" id="plsub"></div></div>
         <div class="teams" role="group" aria-label="Team"><button class="A" data-pteam="0">A</button><button class="B" data-pteam="1">B</button></div>
@@ -242,7 +242,7 @@ const S = { idx:null, data:null, boxes:null, frame:0, videoFor:null, reviews:{},
             cur:null, draft:null, stack:[], nameRole:null, zoom:1, cx:null, cy:null, focus:null, dirty:true,
             pieces:{}, clock:{}, mode:"pass", sel:null, next:null,
             props:null, cname:null, csel:new Set(), sheets:{}, nsheets:{}, relay:null, rEv:null, rSkip:new Set(),
-            cutsAuto:{}, cuts:{}, swaps:{}, cross:null, xi:0 };
+            cutsAuto:{}, cuts:{}, swaps:{}, aliases:{}, cross:null, xi:0 };
 
 // ---------- data
 async function load(){
@@ -265,6 +265,7 @@ async function connect(){
     db.collection("reviews").onSnapshot(s=>{ S.reviews={}; s.docs.forEach(x=>S.reviews[x.id]=x.data()); render(); }, e=>msg("Lost the connection to saved passes ("+e.code+").", true));
     db.collection("names").onSnapshot(s=>{ S.names={}; s.docs.forEach(x=>S.names[x.id]=x.data().entries||[]); render(); S.dirty=true; });
     db.collection("pieces").onSnapshot(s=>{ S.pieces={}; s.docs.forEach(x=>S.pieces[x.id]=x.data()); render(); S.dirty=true; if(S.mode==="cards") renderCards(false); });
+    db.collection("aliases").onSnapshot(s=>{ S.aliases={}; s.docs.forEach(x=>S.aliases[x.id]=x.data().map||{}); render(); S.dirty=true; });
     db.collection("cuts").onSnapshot(s=>{ S.cuts={}; s.docs.forEach(x=>S.cuts[x.id]=x.data().fs||[]); CV++; render(); S.dirty=true; });
     db.collection("swaps").onSnapshot(s=>{ S.swaps={}; s.docs.forEach(x=>S.swaps[x.id]=x.data()); CV++; render(); S.dirty=true;
       if(S.mode==="cross"){ if(S.guided&&S.xcur&&(xid(S.xcur) in S.swaps)&&!S.xshowAuto) openCross(); else renderCross(); } });
@@ -326,7 +327,7 @@ function eff(b,f,depth=0){
   const rn = S.relay && S.mode==="relay" ? rName(key) : null;
   const seed = S.relay && S.mode==="relay" ? (rn ? rn+(rAuto(key)?"·":"") : null) : (S.relay && S.relay.seed[key]);
   const name = (S.mode==="relay" ? seed : null) || L.name || (inh&&inh.name) || seed || (cls!==3 && jid>=0 ? nameAt(jid,f) : null);
-  return {x1:b[0],y1:b[1],x2:b[2],y2:b[3],jid,team,cls,piece:key,name};
+  return {x1:b[0],y1:b[1],x2:b[2],y2:b[3],jid,team,cls,piece:key,name:alias(name,f),tag:isTag(name)?name:null};
 }
 // board clock: entries [[frame, seconds shown]] for this segment; the latest one at or before f
 function clockAt(f){
@@ -335,14 +336,22 @@ function clockAt(f){
   return k[1]+(f-k[0])/S.data.fps;
 }
 const mmss=s=>`${Math.floor(s/60)}:${String(Math.floor(s)%60).padStart(2,"0")}`;
-function nameAt(jid,frame){ const e=S.names[String(jid)]; if(!e||!e.length) return null; let n=e[0][1]; for(const [f,v] of e) if(f<=frame) n=v; return n; }
+// names given while tagging passes, per tracker group; group numbers restart in every segment, so only the
+// entries of the segment that holds `frame` count
+const segOf=f=>S.idx.segments.find(g=>f>=g.seg_start&&f<g.seg_start+g.frames)||S.data;
+function nameAt(jid,frame){ const e=S.names[String(jid)]; if(!e||!e.length) return null; const g=segOf(frame);
+  const v=e.filter(x=>x[0]>=g.seg_start&&x[0]<g.seg_start+g.frames); if(!v.length) return null;
+  let n=v[0][1]; for(const [f,x] of v) if(f<=frame) n=x; return n; }
+// position tags (ALB, ARB, ADM…) renamed to shirt numbers, per segment: {segment: {ALB: "A65"}}
+const isTag=n=>!!n&&/^A[A-Z]/.test(n)&&n!=="AGK";
+const alias=(n,f)=>{ if(!isTag(n)) return n; const m=S.aliases[segOf(f).name]; return (m&&m[n])||n; };
 async function setName(jid,frame,name){
   if(jid==null||!S.db||nameAt(jid,frame)===name) return;
   const e=(S.names[String(jid)]||[]).filter(x=>x[0]!==frame); e.push([frame,name]); e.sort((a,b)=>a[0]-b[0]);
   S.names[String(jid)]=e; await S.db.collection("names").doc(String(jid)).set({entries:e});
 }
 const pieceName=w=>{ const L=w&&w.piece!=null&&S.pieces[String(w.piece)]; return L&&L.name||null; };
-const whoName=w=>!w?null:(w.name || pieceName(w) || (w.jid!=null?nameAt(w.jid,w.frame):null));
+const whoName=w=>{ if(!w) return null; const n=w.name || pieceName(w) || (w.jid!=null?nameAt(w.jid,w.frame):null); return w.frame!=null?alias(n,w.frame):n; };
 // write a fix for one piece of track (merged into what is there); kept on the undo stack
 async function setPiece(piece, fields){
   if(piece==null||piece<0||!S.db) return;
@@ -558,6 +567,10 @@ async function undo(){
     try{ for(const [id,b] of a.items){ if(b) await S.db.collection("pieces").doc(id).set(b); else await S.db.collection("pieces").doc(id).delete(); if(b) S.pieces[id]=b; else delete S.pieces[id]; } }
     catch(e){ msg("Could not undo ("+e.code+").", true); return; }
     $("cmsg").textContent=`Undone (${a.items.length} cards).`; if(S.mode==="cards") renderCards(true);
+  } else if(a.type==="alias"){
+    try{ if(a.before) await S.db.collection("aliases").doc(a.id).set({map:a.before, at:Date.now()}); else await S.db.collection("aliases").doc(a.id).delete(); }
+    catch(e){ msg("Could not undo ("+e.code+").", true); return; }
+    if(a.before) S.aliases[a.id]=a.before; else delete S.aliases[a.id]; plmsg("Rename undone.");
   } else if(a.type==="swap"||a.type==="cut"){
     const col=a.type==="swap"?"swaps":"cuts", st=a.type==="swap"?S.swaps:S.cuts;
     try{ if(a.before!=null) await S.db.collection(col).doc(a.id).set(a.type==="swap"?a.before:{fs:a.before}); else await S.db.collection(col).doc(a.id).delete(); }
@@ -685,9 +698,20 @@ function plFix(fields, note){ if(!S.sel) return; setPiece(S.sel.piece, fields).t
 function plName(n){
   n=String(n||"").trim().toUpperCase().replace(/\s+/g,""); if(!n||!S.sel) return;
   const b=boxesAt(S.frame).find(x=>isKey(x,S.sel.piece,S.frame)), e=b&&eff(b,S.frame);
+  if(/^\d+$/.test(n)&&e&&e.tag) n="A"+n;
   if(/^\d+$/.test(n)){ if(e&&(e.team===0||e.team===1)) n=(e.team===0?"A":"B")+n; else { plmsg("Set the team (A or B) first, or type the letter: A10 / B10.", true); return; } }
   const f={name:n}; if(/^[AB]/.test(n)) f.team=n[0]==="A"?0:1; if(/^[AB]/.test(n) && e && e.cls===3) f.role="player";
-  $("plinput").value=""; plFix(f, `Named ${n}.`);
+  $("plinput").value="";
+  if(e&&e.tag&&/^A\d+$/.test(n)) setAlias(e.tag, n);
+  else plFix(f, `Named ${n}.`);
+}
+// rename a position tag to a number for the whole segment (and name this track too)
+async function setAlias(tag, n){
+  const seg=S.data.name, before=S.aliases[seg]?{...S.aliases[seg]}:null, map={...(before||{}), [tag]:n};
+  S.aliases[seg]=map; S.dirty=true; S.stack.push({type:"alias", id:seg, before});
+  try{ await S.db.collection("aliases").doc(seg).set({map, at:Date.now()}); await setPiece(S.sel.piece,{name:n, team:0}); }
+  catch(e){ plmsg("Could not save ("+e.code+").", true); return; }
+  plmsg(`Every ${tag} in this segment is now ${n} (Undo twice to take it back).`); render();
 }
 function renderStats(all){
   if(!all.length){ $("stats").textContent="No passes yet."; return; }
