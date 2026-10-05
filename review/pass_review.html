@@ -237,7 +237,8 @@ button:disabled{opacity:.45;cursor:default}
 
 <script>
 const $ = id => document.getElementById(id);
-const A_POS = ["GK","RB","RCB","CB","LCB","LB","DM","CM","RM","LM","AM","RW","LW","ST","CF"];
+const A_SQUAD = ["A97","A16","A19","A89","A62","A55","A17","A65","A10","A94","A24","A70","A27"];
+const A_ON2 = ["A70","A27"], A_OFF2 = ["A94","A65"];      // half-time subs: 94 -> 70, 65 -> 27
 const S = { idx:null, data:null, boxes:null, frame:0, videoFor:null, reviews:{}, names:{}, db:null, dl:null,
             cur:null, draft:null, stack:[], nameRole:null, zoom:1, cx:null, cy:null, focus:null, dirty:true,
             pieces:{}, clock:{}, mode:"pass", sel:null, next:null,
@@ -344,7 +345,7 @@ function nameAt(jid,frame){ const e=S.names[String(jid)]; if(!e||!e.length) retu
   let n=v[0][1]; for(const [f,x] of v) if(f<=frame) n=x; return n; }
 // position tags (ALB, ARB, ADM…) renamed to shirt numbers, per segment: {segment: {ALB: "A65"}}
 const isTag=n=>!!n&&/^A[A-Z]/.test(n)&&n!=="AGK";
-const alias=(n,f)=>{ if(!isTag(n)) return n; const m=S.aliases[segOf(f).name]; return (m&&m[n])||n; };
+const alias=(n,f)=>{ if(n==="AGK") return "A97"; if(!isTag(n)) return n; const m=S.aliases[segOf(f).name]; return (m&&m[n])||n; };
 async function setName(jid,frame,name){
   if(jid==null||!S.db||nameAt(jid,frame)===name) return;
   const e=(S.names[String(jid)]||[]).filter(x=>x[0]!==frame); e.push([frame,name]); e.sort((a,b)=>a[0]-b[0]);
@@ -610,9 +611,11 @@ function nameButtons(team){
   const used={}; for(const e of Object.values(S.names)) for(const [,n] of e) used[n]=(used[n]||0)+1;
   for(const r of Object.values(S.reviews)) for(const w of [r.passer,r.receiver]) if(w&&w.name) used[w.name]=(used[w.name]||0)+1;
   const letter=team===0?"A":team===1?"B":null;
-  const list=Object.keys(used).filter(n=>!letter||n.startsWith(letter)).sort((a,b)=>used[b]-used[a]);
-  if(letter!=="B") for(const p of A_POS) if(!list.includes("A"+p)) list.push("A"+p);
-  return list.slice(0,32);
+  // team A: the shirt numbers of the squad (goalkeeper first, then back to front), only who is on the pitch in this half
+  const half2=S.data&&S.data.name.includes("2H");
+  const A=A_SQUAD.filter(n=>!(half2?A_OFF2:A_ON2).includes(n));
+  const B=Object.keys(used).filter(n=>n.startsWith("B")).sort((a,b)=>used[b]-used[a]);
+  return letter==="A" ? A : letter==="B" ? B.slice(0,32) : [...A, ...B].slice(0,40);
 }
 function applyName(n){
   n=String(n||"").trim().toUpperCase().replace(/\s+/g,"");
