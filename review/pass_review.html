@@ -896,7 +896,6 @@ function renderCards(rebuild){
 // moment the player is biggest, with the area around them, so you can tell who it is by where they stand
 function ctxName(id){ const fx=S.pieces[id]; if(fx&&fx.role==="unknown") return "Unknown"; if(fx&&fx.name) return fx.name; return rName(id)||"No name"; }
 async function openCtx(){
-  if(S.videoFor!==S.data.name){ $("cardsinfo").textContent=`Open the video of ${S.data.name.replace(/_/g," ")} first (Open video), then tap this again.`; return; }
   if(!S.relay){ try{ S.relay=await fetch("relay_A.json").then(r=>r.json()); S.relay.half=(S.idx.segments.find(g=>g.name.includes("2H"))||{seg_start:1e12}).seg_start; }catch(e){ return; } }
   if(!S.propsAll) S.propsAll=S.props;
   const g=S.data, si=S.idx.segments.findIndex(x=>x.name===g.name), half2=g.name.includes("2H"), P={};
@@ -908,25 +907,18 @@ async function openCtx(){
 function closeCtx(){ S.ctx=false; if(S.propsAll){ S.props=S.propsAll; S.propsAll=null; } S.cname=S.props&&S.props.names[0]; S.csel.clear(); renderCards(true); }
 $("bctx").onclick=openCtx; $("bctxoff").onclick=closeCtx;
 let CTXRUN=0;
+// pictures cut once in Colab (notebooks/pitch_cards.ipynb): pitch_<segment>.jpg holds one 16:9 card per track
 async function drawCtx(list){
-  const run=++CTXRUN, v=document.createElement("video"); v.muted=true; v.src=$("vid").src; v.preload="auto";
-  await new Promise(r=>{ v.addEventListener("loadeddata",r,{once:true}); setTimeout(r,4000); });
-  const W=S.data.width, H=S.data.height;
-  for(const [id,cv] of list){
-    if(run!==CTXRUN||!cv) return;
-    const p=S.props.pieces[id]; let best=null;                         // the frame where the box is tallest
-    for(let f=p[1]; f<=p[2]; f+=3){ const b=boxesAt(f).find(x=>String(x[7])===String(id)); if(b&&(!best||b[3]-b[1]>best[1][3]-best[1][1])) best=[f,b]; }
-    if(!best) continue;
-    const [f,b]=best, bw=b[2]-b[0], bh=b[3]-b[1], cx=(b[0]+b[2])/2, cy=(b[1]+b[3])/2;
-    const sw=Math.min(W, Math.max(480, bh*6)), sh=sw*9/16, sx=Math.max(0,Math.min(W-sw,cx-sw/2)), sy=Math.max(0,Math.min(H-sh,cy-sh/2));
-    await new Promise(r=>{ v.addEventListener("seeked",r,{once:true}); v.currentTime=(f-S.data.seg_start+0.5)/S.data.fps; setTimeout(r,3000); });
-    if(run!==CTXRUN) return;
-    const g=cv.getContext("2d"), k=cv.width/sw, vs=(v.videoWidth||W)/W;       // the clip may be stored at another size
-    g.drawImage(v, sx*vs, sy*vs, sw*vs, sh*vs, 0, 0, cv.width, cv.height);
-    g.strokeStyle="#fff"; g.lineWidth=3; g.strokeRect((b[0]-sx)*k-3,(b[1]-sy)*k-3,bw*k+6,bh*k+6);
-    g.fillStyle="rgba(0,0,0,.6)"; g.fillRect(0,0,74,20); g.fillStyle="#fff"; g.font="bold 13px sans-serif"; g.fillText(fmt(f-S.data.seg_start),6,15);
-  }
-  v.removeAttribute("src"); v.load();
+  const run=++CTXRUN, name=S.data.name;
+  try{
+    const ix=await fetch(`pitch_${name}.json`).then(r=>{ if(!r.ok) throw 0; return r.json(); });
+    const img=new Image(); img.src=`pitch_${name}.jpg`; await img.decode();
+    for(const [id,cv] of list){ if(run!==CTXRUN||!cv) return; const e=ix.pieces[id]; const g=cv.getContext("2d");
+      if(!e){ g.fillStyle="#555"; g.fillRect(0,0,cv.width,cv.height); g.fillStyle="#fff"; g.font="16px sans-serif"; g.fillText("no picture for this track",14,40); continue; }
+      g.drawImage(img, e[0], e[1], ix.w, ix.h, 0, 0, cv.width, cv.height);
+      const p=S.props.pieces[id]; g.fillStyle="rgba(0,0,0,.6)"; g.fillRect(0,0,64,20); g.fillStyle="#fff"; g.font="bold 13px sans-serif"; g.fillText(fmt(p[1]-S.data.seg_start),6,15); }
+    img.src="";
+  }catch(e){ $("cardsinfo").textContent=`The pitch pictures of ${name.replace(/_/g," ")} are not published yet.`; }
 }
 // ---------- a card with two people in it: tap the photos that are someone else, pick who
 const SP={id:null, other:new Set(), name:null};
