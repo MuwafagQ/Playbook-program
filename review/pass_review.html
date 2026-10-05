@@ -264,6 +264,7 @@ async function load(){
   let start=S.idx.segments[0].name; try{ start=localStorage.getItem("seg")||start; }catch(e){}
   if(!S.idx.segments.find(g=>g.name===start)) start=S.idx.segments[0].name;
   try{ S.cutsAuto=await fetch("cuts_auto.json").then(r=>r.ok?r.json():{}); }catch(e){}
+  try{ S.passPieces=await fetch("pass_pieces.json").then(r=>r.ok?r.json():{}); }catch(e){ S.passPieces={}; }
   try{ S.tagGuess=await fetch("tag_guess.json").then(r=>r.ok?r.json():{}); }catch(e){ S.tagGuess={}; }
   try{ S.cross=await fetch("crossings.json").then(r=>r.ok?r.json():null); }catch(e){}
   CV++;
@@ -276,7 +277,9 @@ async function connect(){
     const db = await claude.use("db");
     if(!db){ msg("Saving is not available in this view.", true); return; }
     S.db=db;
-    db.collection("reviews").onSnapshot(s=>{ S.reviews={}; s.docs.forEach(x=>S.reviews[x.id]=x.data()); render(); }, e=>msg("Lost the connection to saved passes ("+e.code+").", true));
+    db.collection("reviews").onSnapshot(s=>{ S.reviews={}; s.docs.forEach(x=>{ const r=x.data(), pp=(S.passPieces||{})[x.id];
+        if(pp){ if(r.passer&&r.passer.piece==null&&pp[0]!=null) r.passer.piece=pp[0]; if(r.receiver&&r.receiver.piece==null&&pp[1]!=null) r.receiver.piece=pp[1]; }
+        S.reviews[x.id]=r; }); render(); }, e=>msg("Lost the connection to saved passes ("+e.code+").", true));
     db.collection("names").onSnapshot(s=>{ S.names={}; s.docs.forEach(x=>S.names[x.id]=x.data().entries||[]); render(); S.dirty=true; });
     db.collection("pieces").onSnapshot(s=>{ S.pieces={}; s.docs.forEach(x=>S.pieces[x.id]=x.data()); render(); S.dirty=true; if(S.mode==="cards") renderCards(false); });
     db.collection("manual").onSnapshot(s=>{ S.manual={}; s.docs.forEach(x=>S.manual[x.id]=x.data()); MANC++; render(); S.dirty=true; });
@@ -385,7 +388,8 @@ function whoName(w){
     const base=String(w.piece).startsWith("m-")?String(w.piece):String(w.piece).split("_")[0];
     if(S.data&&w.frame>=S.data.seg_start&&w.frame<S.data.seg_start+S.data.frames){
       const b=boxesAt(w.frame).find(x=>String(x[7])===base); if(b){ const e=eff(b,w.frame); if(e.name) return e.name; } }
-    const L=S.pieces[keyOf(base,w.frame)]; if(L&&L.name) return alias(L.name,w.frame);
+    const k=keyOf(base,w.frame), L=S.pieces[k]; if(L&&L.name) return alias(L.name,w.frame);
+    if(S.relay&&!(L&&L.role)){ const n=rName(k); if(n&&n!=="—") return alias(n,w.frame); }
   }
   const n=w.name || (w.jid!=null?nameAt(w.jid,w.frame):null);
   return w.frame!=null?alias(n,w.frame):n;
