@@ -143,9 +143,14 @@ button:disabled{opacity:.45;cursor:default}
       <button id="b10" aria-label="Forward 10 frames">10 ▶</button>
       <select id="zoom" aria-label="Zoom"><option value="1">Zoom 1×</option><option value="1.5">Zoom 1.5×</option><option value="2">Zoom 2×</option><option value="3">Zoom 3×</option><option value="4">Zoom 4×</option></select>
       <button id="bundo" disabled>↶ Undo</button>
+      <button id="btbox">▭ Add box</button>
+      <button id="btball">⚽ Ball</button>
       <button id="bclock">Set clock</button>
       <button id="bnext" hidden></button>
       <span class="frame" id="flabel"></span>
+    </div>
+    <div class="row2" id="toolbox" hidden style="margin-top:8px;align-items:center">
+      <span class="sub" id="toolmsg"></span><button id="btnoball" hidden>No ball here</button><button id="btclearball" hidden>Remove my ball fix</button><button id="btdone">Done</button>
     </div>
     <div class="row2" id="clockbox" hidden style="margin-top:8px;align-items:center">
       <span class="sub">Pause where the scoreboard shows; type its time:</span>
@@ -175,7 +180,7 @@ button:disabled{opacity:.45;cursor:default}
       <div id="namebox" hidden>
         <div class="sub" id="namefor"></div>
         <div class="names" id="namebtns"></div>
-        <div class="row2" style="margin-top:6px"><input id="nameinput" placeholder="Number or position, e.g. B10 or ALB" autocomplete="off"><button id="bname">Set</button></div>
+        <div class="row2" style="margin-top:6px"><input id="nameinput" placeholder="Shirt number, e.g. A65 or B10" autocomplete="off"><button id="bname">Set</button></div>
       </div>
       <div class="row2"><input id="note" placeholder="Note (optional): corner, header…" autocomplete="off"><button id="bdelete" hidden>Delete pass</button></div>
       <div class="msg" id="msg"></div>
@@ -189,7 +194,7 @@ button:disabled{opacity:.45;cursor:default}
       </div>
       <div class="roles" role="group" aria-label="Role"><button data-role2="player">Player</button><button data-role2="gk">Goalkeeper</button><button data-role2="referee">Referee</button></div>
       <div class="names" id="plnames"></div>
-      <div class="row2"><input id="plinput" placeholder="Number or position, e.g. B10 or ALB" autocomplete="off"><button id="blname">Set</button><button id="blclear">Clear fixes</button></div>
+      <div class="row2"><input id="plinput" placeholder="Shirt number, e.g. A65 or B10" autocomplete="off"><button id="blname">Set</button><button id="blclear">Clear fixes</button><button id="bldelbox" hidden>Delete this box</button></div>
       <div class="row2"><button id="plswitch">✂ Switched here</button><span class="sub">This box is someone else from this frame on: pause where it changed, tap it, press, then name it.</span></div>
       <div class="msg" id="plmsg"></div>
     </div>
@@ -244,7 +249,7 @@ const S = { idx:null, data:null, boxes:null, frame:0, videoFor:null, reviews:{},
             cur:null, draft:null, stack:[], nameRole:null, zoom:1, cx:null, cy:null, focus:null, dirty:true,
             pieces:{}, clock:{}, mode:"pass", sel:null, next:null,
             props:null, cname:null, csel:new Set(), sheets:{}, nsheets:{}, relay:null, rEv:null, rSkip:new Set(),
-            cutsAuto:{}, cuts:{}, swaps:{}, aliases:{}, cross:null, xi:0 };
+            cutsAuto:{}, cuts:{}, swaps:{}, aliases:{}, manual:{}, ballfix:{}, tool:null, drawRect:null, cross:null, xi:0 };
 
 // ---------- data
 async function load(){
@@ -267,6 +272,8 @@ async function connect(){
     db.collection("reviews").onSnapshot(s=>{ S.reviews={}; s.docs.forEach(x=>S.reviews[x.id]=x.data()); render(); }, e=>msg("Lost the connection to saved passes ("+e.code+").", true));
     db.collection("names").onSnapshot(s=>{ S.names={}; s.docs.forEach(x=>S.names[x.id]=x.data().entries||[]); render(); S.dirty=true; });
     db.collection("pieces").onSnapshot(s=>{ S.pieces={}; s.docs.forEach(x=>S.pieces[x.id]=x.data()); render(); S.dirty=true; if(S.mode==="cards") renderCards(false); });
+    db.collection("manual").onSnapshot(s=>{ S.manual={}; s.docs.forEach(x=>S.manual[x.id]=x.data()); MANC++; render(); S.dirty=true; });
+    db.collection("ballfix").onSnapshot(s=>{ S.ballfix={}; s.docs.forEach(x=>S.ballfix[x.id]=x.data()); S.dirty=true; });
     db.collection("aliases").onSnapshot(s=>{ S.aliases={}; s.docs.forEach(x=>S.aliases[x.id]=x.data().map||{}); render(); S.dirty=true; });
     db.collection("cuts").onSnapshot(s=>{ S.cuts={}; s.docs.forEach(x=>S.cuts[x.id]=x.data().fs||[]); CV++; render(); S.dirty=true; });
     db.collection("swaps").onSnapshot(s=>{ S.swaps={}; s.docs.forEach(x=>S.swaps[x.id]=x.data()); CV++; render(); S.dirty=true;
@@ -293,8 +300,18 @@ $("vfile").onchange=e=>{
   v.addEventListener("loadeddata",()=>{ seek(S.frame); if(S.guided) startFix(); },{once:true});
 };
 const local=f=>f-S.data.seg_start;
-const boxesAt=f=>(S.boxes&&S.boxes.people[local(f)])||[];
-const ballAt=f=>(S.boxes&&S.boxes.ball[local(f)])||null;
+// boxes you drew (collection "manual") join the tracker's boxes; they show for MAN_SPAN frames either side
+const MAN_SPAN=5;
+let MANF=null, MANV=-1, MANC=0;
+function manualAt(f){
+  if(MANV!==MANC){ MANV=MANC; MANF={}; for(const id in S.manual){ const m=S.manual[id];
+    for(let g=m.f-MAN_SPAN; g<=m.f+MAN_SPAN; g++) (MANF[g]=MANF[g]||[]).push([m.b[0],m.b[1],m.b[2],m.b[3],-1,(m.team===0||m.team===1)?m.team:-1,2,id]); } }
+  return MANF[f]||[];
+}
+const boxesAt=f=>{ const t=(S.boxes&&S.boxes.people[local(f)])||[], m=manualAt(f); return m.length?t.concat(m):t; };
+// the ball: your placement on this frame (or within 3 frames) wins over the solved path; "none" hides it
+function ballFix(f){ for(const d of [0,-1,1,-2,2,-3,3]){ const b=S.ballfix[String(f+d)]; if(b) return b; } return null; }
+const ballAt=f=>{ const m=ballFix(f); if(m) return m.none?null:[m.x,m.y,"manual"]; return (S.boxes&&S.boxes.ball[local(f)])||null; };
 // ---------- switches: a track can be cut at a frame; from there its boxes are a new piece "p_f".
 // Cuts come from colour (cuts_auto.json, the shirt changed team), from "Switched here", and from
 // crossings judged as swaps (automatically or by you): then each tail takes the other track's name.
@@ -425,14 +442,17 @@ function draw(){
     g.strokeStyle = cls===3 ? "#f39c12" : (tc[team]||"#bbb");
     const sel = (S.mode==="players"||S.mode==="relay") && S.sel && String(S.sel.piece)===piece;
     if(sel){ g.save(); g.lineWidth=4*dpr; g.strokeStyle="#fff"; g.strokeRect(X(x1)-3*dpr,Y(y1)-3*dpr,(x2-x1)*k+6*dpr,(y2-y1)*k+6*dpr); g.restore(); }
-    g.strokeRect(X(x1),Y(y1),(x2-x1)*k,(y2-y1)*k);
+    if(String(piece).startsWith("m-")){ g.save(); g.setLineDash([5*dpr,3*dpr]); g.strokeRect(X(x1),Y(y1),(x2-x1)*k,(y2-y1)*k); g.restore(); }
+    else g.strokeRect(X(x1),Y(y1),(x2-x1)*k,(y2-y1)*k);
     if(n){ g.fillStyle=g.strokeStyle; g.fillText(n, X(x1), Y(y1)-3*dpr); }
   }
   const xc=S.mode==="cross"&&S.xcur;
   if(xc&&f>=xc[2]-90&&f<=xc[3]+90) for(const raw of boxesAt(f)){ const w=raw[7]===xc[0]?"#ffffff":raw[7]===xc[1]?"#ffd400":null; if(!w) continue;
     g.save(); g.lineWidth=4*dpr; g.strokeStyle=w; g.strokeRect(X(raw[0])-3*dpr,Y(raw[1])-3*dpr,(raw[2]-raw[0])*k+6*dpr,(raw[3]-raw[1])*k+6*dpr);
     g.fillStyle=w; g.font=`700 ${Math.round(16*dpr)}px Saira Condensed, sans-serif`; g.fillText(raw[7]===xc[0]?"1":"2", X(raw[2])+5*dpr, Y(raw[1])+12*dpr); g.restore(); }
-  const b=ballAt(f); if(b){ g.strokeStyle="#ffe14d"; g.lineWidth=2*dpr; g.beginPath(); g.arc(X(b[0]),Y(b[1]),6*dpr,0,7); g.stroke(); }
+  const b=ballAt(f); if(b){ g.strokeStyle=b[2]==="manual"?"#ff4d4d":"#ffe14d"; g.lineWidth=(b[2]==="manual"?3:2)*dpr; g.beginPath(); g.arc(X(b[0]),Y(b[1]),(b[2]==="manual"?8:6)*dpr,0,7); g.stroke(); }
+  if(S.drawRect){ const r=S.drawRect; g.save(); g.setLineDash([6*dpr,4*dpr]); g.strokeStyle="#fff"; g.lineWidth=2*dpr;
+    g.strokeRect(X(Math.min(r[0],r[2])),Y(Math.min(r[1],r[3])),Math.abs(r[2]-r[0])*k,Math.abs(r[3]-r[1])*k); g.restore(); }
   const d=S.draft; if(d){ mark(g,X,Y,k,dpr,d.passer,C.p,"PASSER"); mark(g,X,Y,k,dpr,d.receiver,C.r,"RECEIVER"); }
   const ck=clockAt(f), tag=(ck!=null ? `${mmss(ck)} board` : `${mmss(f/S.data.fps)} video`)+`  ·  frame ${f}`;
   g.font=`700 ${Math.round(18*dpr)}px JetBrains Mono, monospace`;
@@ -477,6 +497,7 @@ $("cv").addEventListener("pointermove", ev=>{
     syncZoomMenu(); S.dirty=true; return;
   }
   if(G.start && Math.hypot(ev.clientX-G.start.x, ev.clientY-G.start.y)>12) G.moved=true;
+  if(S.tool==="box" && G.start && !G.multi){ const a=toSrc(G.start.x,G.start.y), c=toSrc(ev.clientX,ev.clientY); S.drawRect=[a[0],a[1],c[0],c[1]]; S.dirty=true; return; }
   if(G.moved && !G.multi && S.zoom>1){            // one-finger drag moves the zoomed view
     const r=$("cv").getBoundingClientRect(), V=S.V, p=G.lastPan||G.start;
     const fx=(S.focus?S.focus.x:S.cx), fy=(S.focus?S.focus.y:S.cy);
@@ -491,6 +512,7 @@ const endPointer=ev=>{
   const quick = G.start && performance.now()-G.start.t < 700;
   const isTap = ev.type==="pointerup" && quick && !G.moved && !G.multi;
   G.pinch=null; G.start=null;
+  if(S.tool==="box"&&S.drawRect){ const r=S.drawRect; S.drawRect=null; S.dirty=true; addManualBox(r); return; }
   if(isTap) safeTap(ev.clientX, ev.clientY);
 };
 $("cv").addEventListener("pointerup", endPointer);
@@ -509,6 +531,8 @@ function syncZoomMenu(){ const z=$("zoom"); let best=z.options[0];
 function tapAt(cx, cy){
   const v=$("vid"); if(!v.paused){ v.pause(); S.frame=frameFromVideo(); }
   const [x,y]=toSrc(cx,cy), m=6/S.zoom+4;
+  if(S.tool==="ball"){ setBall({x:Math.round(x), y:Math.round(y)}); return; }
+  if(S.tool==="box"){ toolMsg("Drag over the player to draw the box (press and move, then lift)."); return; }
   const hits2=boxesAt(S.frame).map(b=>eff(b,S.frame)).filter(b=>(S.mode==="players"||b.cls!==3) && x>=b.x1-m && x<=b.x2+m && y>=b.y1-m && y<=b.y2+m)
                              .sort((a,b)=>(a.x2-a.x1)*(a.y2-a.y1)-(b.x2-b.x1)*(b.y2-b.y1));
   const h=hits2[0];
@@ -569,6 +593,11 @@ async function undo(){
     try{ for(const [id,b] of a.items){ if(b) await S.db.collection("pieces").doc(id).set(b); else await S.db.collection("pieces").doc(id).delete(); if(b) S.pieces[id]=b; else delete S.pieces[id]; } }
     catch(e){ msg("Could not undo ("+e.code+").", true); return; }
     $("cmsg").textContent=`Undone (${a.items.length} cards).`; if(S.mode==="cards") renderCards(true);
+  } else if(a.type==="manual"||a.type==="ballfix"){
+    const col=a.type, st=a.type==="manual"?S.manual:S.ballfix;
+    try{ if(a.before) await S.db.collection(col).doc(a.id).set(a.before); else await S.db.collection(col).doc(a.id).delete(); }
+    catch(e){ msg("Could not undo ("+e.code+").", true); return; }
+    if(a.before) st[a.id]=a.before; else delete st[a.id]; MANC++; toolMsg("Undone.");
   } else if(a.type==="alias"){
     try{ if(a.before) await S.db.collection("aliases").doc(a.id).set({map:a.before, at:Date.now()}); else await S.db.collection("aliases").doc(a.id).delete(); }
     catch(e){ msg("Could not undo ("+e.code+").", true); return; }
@@ -703,6 +732,7 @@ function renderPlayer(){
   const box=$("plnames"); box.innerHTML="";
   if(sel) for(const n of nameButtons(e&&(e.team===0||e.team===1)?e.team:-1)){ const t=document.createElement("button"); t.textContent=n; t.className=n[0]; t.onclick=()=>plName(n); box.appendChild(t); }
   $("blclear").disabled=!sel||!S.pieces[String(sel&&sel.piece)];
+  $("bldelbox").hidden=!(sel&&String(sel.piece).startsWith("m-"));
 }
 const PR={}; function pieceRange(pc){ if(PR[S.data.name+pc+":"+CV]) return PR[S.data.name+pc+":"+CV]; let a=null,z=null;
   S.boxes.people.forEach((row,i)=>{ if(row.some(b=>isKey(b,pc,i+S.data.seg_start))){ if(a==null) a=i; z=i; } });
@@ -1016,6 +1046,41 @@ $("rundo").onclick=async()=>{ await undo(); nextRelay(); };
 $("rreplay").onclick=()=>{ const f=S.sel?S.sel.frame:S.frame, v=$("vid"); if(S.videoFor!==S.data.name){ $("rmsg").textContent="Open the segment video first."; return; }
   seek(f-60); v.playbackRate=0.5; v.play().catch(()=>{});
   const stop=()=>{ if(frameFromVideo()>=f+10){ v.pause(); seek(f+2); v.removeEventListener("timeupdate",stop); } }; v.addEventListener("timeupdate",stop); };
+
+// ---------- tools: draw a box for a player the detector missed; put the ball where it really is
+function toolMsg(t){ $("toolmsg").textContent=t; }
+function setTool(t){
+  S.tool = S.tool===t ? null : t; S.drawRect=null;
+  const v=$("vid"); if(!v.paused){ v.pause(); seek(frameFromVideo()); }
+  $("btbox").classList.toggle("on",S.tool==="box"); $("btball").classList.toggle("on",S.tool==="ball");
+  $("toolbox").hidden=!S.tool; $("btnoball").hidden=$("btclearball").hidden=S.tool!=="ball";
+  toolMsg(S.tool==="box" ? "Drag over the missed player (head to feet). You can zoom first." : S.tool==="ball" ? "Tap where the ball is in this frame. Step frames and tap again to move it." : "");
+  S.dirty=true;
+}
+$("btbox").onclick=()=>setTool("box"); $("btball").onclick=()=>setTool("ball"); $("btdone").onclick=()=>setTool(S.tool);
+async function addManualBox(r){
+  const x1=Math.round(Math.min(r[0],r[2])), x2=Math.round(Math.max(r[0],r[2])), y1=Math.round(Math.min(r[1],r[3])), y2=Math.round(Math.max(r[1],r[3]));
+  if(x2-x1<4||y2-y1<8){ toolMsg("That box is too small. Drag from the head to the feet."); return; }
+  if(!S.db) return;
+  const id="m-"+S.frame+"-"+Date.now().toString(36), doc={f:S.frame, b:[x1,y1,x2,y2], seg:S.data.name, at:Date.now()};
+  S.manual[id]=doc; MANC++; S.stack.push({type:"manual", id, before:null});
+  try{ await S.db.collection("manual").doc(id).set(doc); }catch(e){ toolMsg("Could not save ("+e.code+")."); return; }
+  setTool("box");                       // tool off
+  S.guided=false; S.mode="players"; S.sel={piece:id, frame:S.frame}; render(); S.dirty=true;
+  plmsg("Box added on this frame. Now tap the player's number (and team).");
+}
+async function setBall(doc){
+  if(!S.db) return; const id=String(S.frame), before=S.ballfix[id]?{...S.ballfix[id]}:null;
+  S.ballfix[id]={...doc, at:Date.now()}; S.stack.push({type:"ballfix", id, before}); S.dirty=true;
+  try{ await S.db.collection("ballfix").doc(id).set(S.ballfix[id]); }catch(e){ toolMsg("Could not save ("+e.code+")."); return; }
+  toolMsg(doc.none ? `No ball on frame ${S.frame}.` : `Ball placed on frame ${S.frame}. Step on and tap again, or Done.`);
+}
+$("btnoball").onclick=()=>setBall({none:true});
+$("btclearball").onclick=async()=>{ const id=String(S.frame); if(!S.ballfix[id]||!S.db) return; const before=S.ballfix[id];
+  delete S.ballfix[id]; S.stack.push({type:"ballfix", id, before}); S.dirty=true; await S.db.collection("ballfix").doc(id).delete(); toolMsg("Your ball fix on this frame is removed."); };
+$("bldelbox").onclick=async()=>{ if(!S.sel||!S.db) return; const id=String(S.sel.piece); if(!id.startsWith("m-")) return;
+  const before=S.manual[id]; delete S.manual[id]; MANC++; S.stack.push({type:"manual", id, before}); S.sel=null;
+  await S.db.collection("manual").doc(id).delete(); plmsg("Box deleted (Undo brings it back)."); render(); S.dirty=true; };
 
 // ---------- guided flow: per segment, 1) crossings to check, 2) new team A tracks to name, 3) done
 function relayLeft(){ if(!S.relay||!S.data) return null; return relayEvents().filter(e=>!rName(e[0])&&!S.rSkip.has(e[0])).length; }
