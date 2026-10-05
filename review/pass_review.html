@@ -88,6 +88,8 @@ button:disabled{opacity:.45;cursor:default}
 .chips button.on .n{color:inherit}
 .chips button.A{border-color:var(--teamA)}.chips button.B{border-color:var(--teamB)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+#cardgrid:not(.ctx){grid-template-columns:repeat(auto-fill,minmax(400px,1fr))}
+#cardgrid:not(.ctx) .pc canvas{aspect-ratio:auto}
 .grid.ctx{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
 .grid.ctx .pc canvas{aspect-ratio:16/9}
 .pc{background:var(--surface);border:2px solid var(--line);border-radius:8px;padding:4px;cursor:pointer;position:relative}
@@ -865,7 +867,7 @@ function renderCards(rebuild){
   const grid=$("cardgrid");
   if(rebuild){ grid.innerHTML=""; const need={};
     for(const id of ids){ const p=S.props.pieces[id], d=document.createElement("div"); d.className="pc"; d.dataset.id=id;
-      const cv=document.createElement("canvas"); if(S.ctx){ cv.width=480; cv.height=270; } else { cv.width=288; cv.height=128; } d.appendChild(cv);
+      const cv=document.createElement("canvas"); if(S.ctx){ cv.width=480; cv.height=270; } else { cv.width=288+PW; cv.height=128; } d.appendChild(cv);
       const t=fmt(p[1]);
       d.insertAdjacentHTML("beforeend",`<div class="cap"><span>${t}–${fmt(p[2])}</span><span class="tier"></span></div>`);
       d.onclick=()=>{ if(S.csel.has(id)) S.csel.delete(id); else S.csel.add(id); renderCards(false); };
@@ -890,7 +892,7 @@ function renderCards(rebuild){
   $("bclearsel").disabled=!S.csel.size;
   $("bnumA").disabled=$("bnumB").disabled=!S.csel.size;
   $("bsplit").hidden = S.ctx || S.csel.size!==1 || !$("splitbox").hidden;
-  $("numrow").hidden=!!S.ctx; $("bctx").hidden=!!S.ctx; $("bctxoff").hidden=!S.ctx;
+  $("numrow").hidden=!!S.ctx; $("bctx").hidden=true; $("bctxoff").hidden=!S.ctx;
 }
 // ---------- team A cards on the pitch: this segment's team A tracks, each drawn from the open video at the
 // moment the player is biggest, with the area around them, so you can tell who it is by where they stand
@@ -959,21 +961,38 @@ $("bsplitsave").onclick=async()=>{
   if(k) $("cmsg").textContent=`Split saved: ${photos.map(x=>x[1]).join(" · ")}. Claude cuts the track where it changes person when building the player IDs.`;
   renderCards(true);
 };
+// a small pitch beside the photos: where this player ran while the track lasted (dot = start, arrow = end)
+const PW=136;
+async function drawPitch(cv,id){
+  if(!S.ppos){ try{ S.ppos=await fetch("piece_pos.json").then(r=>r.json()); }catch(e){ S.ppos={}; } }
+  const g=cv.getContext("2d"), x0=292, w=PW-8, h=w*68/105, y0=(cv.height-h)/2;
+  g.fillStyle="#2f6b3c"; g.fillRect(x0,y0,w,h); g.strokeStyle="rgba(255,255,255,.8)"; g.lineWidth=1;
+  g.strokeRect(x0,y0,w,h); g.beginPath(); g.moveTo(x0+w/2,y0); g.lineTo(x0+w/2,y0+h); g.stroke();
+  g.beginPath(); g.arc(x0+w/2,y0+h/2,9.15*w/105,0,7); g.stroke();
+  for(const sx of [0,1]){ const bx=sx?x0+w-16.5*w/105:x0; g.strokeRect(bx, y0+(68-40.3)/2*h/68, 16.5*w/105, 40.3*h/68); }
+  const pts=(S.ppos[id]||[]).map(([x,y])=>[x0+Math.max(0,Math.min(105,x))*w/105, y0+Math.max(0,Math.min(68,y))*h/68]);
+  if(!pts.length){ g.fillStyle="#fff"; g.font="11px sans-serif"; g.fillText("no position",x0+6,y0+h/2); return; }
+  const p=S.props.pieces[id], col=p&&p[3]===1?"#45c6e6":"#ff6fb0";
+  g.strokeStyle=col; g.lineWidth=2.5; g.beginPath(); pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y)); g.stroke();
+  const [a,b]=pts[0], [c,d]=pts[pts.length-1]; g.fillStyle=col; g.beginPath(); g.arc(a,b,3.5,0,7); g.fill();
+  const ang=Math.atan2(d-pts[pts.length-2][1], c-pts[pts.length-2][0]); g.beginPath(); g.moveTo(c,d);
+  g.lineTo(c-8*Math.cos(ang-0.5),d-8*Math.sin(ang-0.5)); g.lineTo(c-8*Math.cos(ang+0.5),d-8*Math.sin(ang+0.5)); g.closePath(); g.fill();
+}
 // draw each card from its segment's sheet; one sheet decoded at a time, then released
 async function drawCards(need){
   for(const seg of Object.keys(need)){
     const sg=S.idx.segments[seg]; if(!sg) continue; const name=sg.name;
     try{
       if(!S.sheets[name]) S.sheets[name]=await fetch(`cards_${name}.json`).then(r=>r.json());
-      if(S.nsheets[name]===undefined) S.nsheets[name]=await fetch(`numbers_${name}.json`).then(r=>r.ok?r.json():null).catch(()=>null);
+      S.nsheets[name]=null;          // the original photos, not the sharpened close-ups
       const nx=S.nsheets[name], rest=[];
       if(nx){ const nimg=new Image(); nimg.src=`numbers_${name}.jpg`; await nimg.decode();     // sharpened close-ups first
         for(const [id,cv] of need[seg]){ const e=nx.pieces[id]; if(!e){ rest.push([id,cv]); continue; }
-          cv.getContext("2d").drawImage(nimg, e[0], e[1], nx.w*3, nx.h, 0, 0, cv.width, cv.height); }
+          cv.getContext("2d").drawImage(nimg, e[0], e[1], nx.w*3, nx.h, 0, 0, 288, cv.height); drawPitch(cv,id); }
         nimg.src=""; } else rest.push(...need[seg]);
       if(rest.length){ const ix=S.sheets[name], img=new Image(); img.src=`cards_${name}.jpg`; await img.decode();
         for(const [id,cv] of rest){ const e=ix.pieces[id]; if(!e) continue;
-          cv.getContext("2d").drawImage(img, e[0], e[1], ix.w*ix.per_piece, ix.h, 0, 0, cv.width, cv.height); }
+          cv.getContext("2d").drawImage(img, e[0], e[1], ix.w*ix.per_piece, ix.h, 0, 0, 288, cv.height); drawPitch(cv,id); }
         img.src=""; }
     }catch(e){ for(const [,cv] of need[seg]){ const g=cv.getContext("2d"); g.fillStyle="#888"; g.font="14px sans-serif"; g.fillText("photos not ready", 10, 64); } }
   }
