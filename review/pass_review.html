@@ -88,6 +88,8 @@ button:disabled{opacity:.45;cursor:default}
 .chips button.on .n{color:inherit}
 .chips button.A{border-color:var(--teamA)}.chips button.B{border-color:var(--teamB)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.grid.ctx{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.grid.ctx .pc canvas{aspect-ratio:16/9}
 .pc{background:var(--surface);border:2px solid var(--line);border-radius:8px;padding:4px;cursor:pointer;position:relative}
 .pc canvas{width:100%;aspect-ratio:9/4;display:block;border-radius:4px;background:var(--stage)}
 .numrow input{max-width:150px;font:700 18px var(--mono)}
@@ -223,6 +225,7 @@ button:disabled{opacity:.45;cursor:default}
 </div>
 <section class="cards" id="cardsview" hidden>
   <div class="sub" id="cardshelp">Each card is one piece of track: 4 photos across the time it was on screen. Pick a name, tap the cards that are <b>not</b> that player, move them to the right name, then confirm the rest.</div>
+  <div class="row2"><button id="bctx">Team A · this segment · on the pitch</button><button id="bctxoff" hidden>Back to all photo cards</button></div>
   <div class="chips" id="namechips"></div>
   <div class="sub" id="cardsinfo"></div>
   <div class="grid" id="cardgrid"></div>
@@ -292,13 +295,13 @@ async function openSegment(name){
   $("novideo").hidden = S.videoFor===name;
   render(); S.dirty=true;
 }
-$("segsel").onchange=e=>openSegment(e.target.value).then(()=>{ if(S.guided) startFix(); else if(S.mode==="relay") nextRelay(); else if(S.mode==="cross") openCross(); });
+$("segsel").onchange=e=>openSegment(e.target.value).then(()=>{ if(S.mode==="cards"&&S.ctx) openCtx(); else if(S.guided) startFix(); else if(S.mode==="relay") nextRelay(); else if(S.mode==="cross") openCross(); });
 $("vfile").onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
   const v=$("vid"); if(v.src && v.src.startsWith("blob:")) URL.revokeObjectURL(v.src);
   v.src=URL.createObjectURL(f); S.videoFor=S.data.name; $("novideo").hidden=true;
   if(!f.name.includes(S.data.name)) msg(`This file is ${f.name}; the segment is ${S.data.name}. Pick the matching clip if the boxes don't sit on the players.`, true);
-  v.addEventListener("loadeddata",()=>{ seek(S.frame); if(S.guided) startFix(); },{once:true});
+  v.addEventListener("loadeddata",()=>{ seek(S.frame); if(S.mode==="cards"&&S.ctx) openCtx(); else if(S.guided) startFix(); },{once:true});
 };
 const local=f=>f-S.data.seg_start;
 // boxes you drew (collection "manual") join the tracker's boxes; they show for MAN_SPAN frames either side
@@ -844,26 +847,28 @@ function clashSet(ids){ // pieces of this list that are on screen together with 
   return c; }
 function renderCards(rebuild){
   if(!S.props) return;
-  const all=[CLOSE, ...new Set([...S.props.names, "Unsure", "Unknown", "Referee"])], counts={};
+  const all=S.ctx ? [...S.props.names, "No name", "Unknown"] : [CLOSE, ...new Set([...S.props.names, "Unsure", "Unknown", "Referee"])], counts={};
   for(const id in S.props.pieces){ const n=pieceNow(id); if(!n.name) continue; counts[n.name]=counts[n.name]||{all:0,todo:0}; counts[n.name].all++; if(!n.done) counts[n.name].todo++; }
   const chips=$("namechips"); chips.innerHTML="";
-  counts[CLOSE]={all:0,todo:cardList(CLOSE).length};
+  if(!S.ctx) counts[CLOSE]={all:0,todo:cardList(CLOSE).length};
   for(const n of all){ if(!counts[n] && !S.props.names.includes(n)) continue; const c=counts[n]||{all:0,todo:0};
     const b=document.createElement("button"); b.className=(n[0]==="A"||n[0]==="B"?n[0]:"")+(n===S.cname?" on":"");
     b.innerHTML=`${n}<span class="n">${c.todo?c.todo+" to check":"✓ "+c.all}</span>`; b.onclick=()=>{ S.cname=n; S.csel.clear(); renderCards(true); }; chips.appendChild(b); }
   const ids=cardList(S.cname), cl=clashSet(ids.filter(id=>S.cname!=="Unsure"&&S.cname!=="Unknown"&&S.cname!=="Referee"));
   const todo=ids.filter(id=>!S.pieces[id]).length;
-  if(S.cname===CLOSE){ $("cardsinfo").textContent=`Team A, biggest views first (${ids.length}). If you can read a number, select that player's cards, type the number and tap "Save as team A". Skip the rest.`; }
+  if(S.ctx){ $("cardsinfo").textContent=`${S.data.name.replace(/_/g," ")} · ${S.cname}: ${ids.length} tracks. Each card is the moment the player is biggest on screen, with the pitch around them (white box). Select the ones that are not ${S.cname} and move them.`; }
+  else if(S.cname===CLOSE){ $("cardsinfo").textContent=`Team A, biggest views first (${ids.length}). If you can read a number, select that player's cards, type the number and tap "Save as team A". Skip the rest.`; }
   else $("cardsinfo").textContent=`${S.cname}: ${ids.length} pieces, ${todo} to check${cl.size?` · ${cl.size} marked “together”: on screen at the same time as another ${S.cname} card, so one of them is wrong`:""}`;
   const grid=$("cardgrid");
   if(rebuild){ grid.innerHTML=""; const need={};
     for(const id of ids){ const p=S.props.pieces[id], d=document.createElement("div"); d.className="pc"; d.dataset.id=id;
-      const cv=document.createElement("canvas"); cv.width=288; cv.height=128; d.appendChild(cv);
+      const cv=document.createElement("canvas"); if(S.ctx){ cv.width=480; cv.height=270; } else { cv.width=288; cv.height=128; } d.appendChild(cv);
       const t=fmt(p[1]);
       d.insertAdjacentHTML("beforeend",`<div class="cap"><span>${t}–${fmt(p[2])}</span><span class="tier"></span></div>`);
       d.onclick=()=>{ if(S.csel.has(id)) S.csel.delete(id); else S.csel.add(id); renderCards(false); };
       grid.appendChild(d); (need[p[0]]=need[p[0]]||[]).push([id,cv]); }
-    drawCards(need);
+    grid.classList.toggle("ctx",!!S.ctx);
+    if(S.ctx) drawCtx(ids.map(id=>[id, grid.querySelector(`[data-id="${id}"] canvas`)])); else drawCards(need);
   }
   for(const d of grid.children){ const id=d.dataset.id, p=S.props.pieces[id], fx=S.pieces[id];
     d.classList.toggle("sel",S.csel.has(id)); d.classList.toggle("done",!!fx);
@@ -881,7 +886,44 @@ function renderCards(rebuild){
   $("bconfirm").disabled=!ids.some(id=>!S.pieces[id]&&!S.csel.has(id));
   $("bclearsel").disabled=!S.csel.size;
   $("bnumA").disabled=$("bnumB").disabled=!S.csel.size;
-  $("bsplit").hidden = S.csel.size!==1 || !$("splitbox").hidden;
+  $("bsplit").hidden = S.ctx || S.csel.size!==1 || !$("splitbox").hidden;
+  $("numrow").hidden=!!S.ctx; $("bctx").hidden=!!S.ctx; $("bctxoff").hidden=!S.ctx;
+}
+// ---------- team A cards on the pitch: this segment's team A tracks, each drawn from the open video at the
+// moment the player is biggest, with the area around them, so you can tell who it is by where they stand
+function ctxName(id){ const fx=S.pieces[id]; if(fx&&fx.role==="unknown") return "Unknown"; if(fx&&fx.name) return fx.name; return rName(id)||"No name"; }
+async function openCtx(){
+  if(S.videoFor!==S.data.name){ $("cardsinfo").textContent=`Open the video of ${S.data.name.replace(/_/g," ")} first (Open video), then tap this again.`; return; }
+  if(!S.relay){ try{ S.relay=await fetch("relay_A.json").then(r=>r.json()); S.relay.half=(S.idx.segments.find(g=>g.name.includes("2H"))||{seg_start:1e12}).seg_start; }catch(e){ return; } }
+  if(!S.propsAll) S.propsAll=S.props;
+  const g=S.data, si=S.idx.segments.findIndex(x=>x.name===g.name), half2=g.name.includes("2H"), P={};
+  for(const q in S.relay.pieces){ const r=S.relay.pieces[q]; if(r[0]<g.seg_start||r[0]>=g.seg_start+g.frames||r[1]-r[0]<30) continue;
+    P[q]=[si, r[0], r[1], 0, ctxName(q), "maybe", [], 0]; }
+  const names=S.relay.names.filter(n=>!(half2?Object.keys(S.relay.subs):Object.values(S.relay.subs)).includes(n));
+  S.props={names, pieces:P, ctx:true}; S.ctx=true; S.cname=names[0]; S.csel.clear(); renderCards(true);
+}
+function closeCtx(){ S.ctx=false; if(S.propsAll){ S.props=S.propsAll; S.propsAll=null; } S.cname=S.props&&S.props.names[0]; S.csel.clear(); renderCards(true); }
+$("bctx").onclick=openCtx; $("bctxoff").onclick=closeCtx;
+let CTXRUN=0;
+async function drawCtx(list){
+  const run=++CTXRUN, v=document.createElement("video"); v.muted=true; v.src=$("vid").src; v.preload="auto";
+  await new Promise(r=>{ v.addEventListener("loadeddata",r,{once:true}); setTimeout(r,4000); });
+  const W=S.data.width, H=S.data.height;
+  for(const [id,cv] of list){
+    if(run!==CTXRUN||!cv) return;
+    const p=S.props.pieces[id]; let best=null;                         // the frame where the box is tallest
+    for(let f=p[1]; f<=p[2]; f+=3){ const b=boxesAt(f).find(x=>String(x[7])===String(id)); if(b&&(!best||b[3]-b[1]>best[1][3]-best[1][1])) best=[f,b]; }
+    if(!best) continue;
+    const [f,b]=best, bw=b[2]-b[0], bh=b[3]-b[1], cx=(b[0]+b[2])/2, cy=(b[1]+b[3])/2;
+    const sw=Math.min(W, Math.max(480, bh*6)), sh=sw*9/16, sx=Math.max(0,Math.min(W-sw,cx-sw/2)), sy=Math.max(0,Math.min(H-sh,cy-sh/2));
+    await new Promise(r=>{ v.addEventListener("seeked",r,{once:true}); v.currentTime=(f-S.data.seg_start+0.5)/S.data.fps; setTimeout(r,3000); });
+    if(run!==CTXRUN) return;
+    const g=cv.getContext("2d"), k=cv.width/sw, vs=(v.videoWidth||W)/W;       // the clip may be stored at another size
+    g.drawImage(v, sx*vs, sy*vs, sw*vs, sh*vs, 0, 0, cv.width, cv.height);
+    g.strokeStyle="#fff"; g.lineWidth=3; g.strokeRect((b[0]-sx)*k-3,(b[1]-sy)*k-3,bw*k+6,bh*k+6);
+    g.fillStyle="rgba(0,0,0,.6)"; g.fillRect(0,0,74,20); g.fillStyle="#fff"; g.font="bold 13px sans-serif"; g.fillText(fmt(f-S.data.seg_start),6,15);
+  }
+  v.removeAttribute("src"); v.load();
 }
 // ---------- a card with two people in it: tap the photos that are someone else, pick who
 const SP={id:null, other:new Set(), name:null};
@@ -1200,7 +1242,7 @@ $("m-pass").onclick=()=>{ S.guided=false; S.mode="pass"; S.sel=null; S.focus=nul
 $("m-players").onclick=()=>{ S.mode="players"; render(); S.dirty=true; };
 $("m-relay").onclick=()=>openRelay();
 $("m-cross").onclick=()=>openCross();
-$("m-cards").onclick=()=>{ const v=$("vid"); if(!v.paused) v.pause(); S.mode="cards"; render(); openCards(); };
+$("m-cards").onclick=()=>{ if(S.ctx) closeCtx(); const v=$("vid"); if(!v.paused) v.pause(); S.mode="cards"; render(); openCards(); };
 document.querySelectorAll("[data-pteam]").forEach(b=>b.onclick=()=>plFix({team:Number(b.dataset.pteam)}, "Team set."));
 document.querySelectorAll("[data-role2]").forEach(b=>b.onclick=()=>plFix({role:b.dataset.role2}, {player:"Marked as a player.",gk:"Marked as a goalkeeper.",referee:"Marked as a referee."}[b.dataset.role2]));
 $("blname").onclick=()=>plName($("plinput").value);
