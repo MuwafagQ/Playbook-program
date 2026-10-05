@@ -262,6 +262,7 @@ async function load(){
   let start=S.idx.segments[0].name; try{ start=localStorage.getItem("seg")||start; }catch(e){}
   if(!S.idx.segments.find(g=>g.name===start)) start=S.idx.segments[0].name;
   try{ S.cutsAuto=await fetch("cuts_auto.json").then(r=>r.ok?r.json():{}); }catch(e){}
+  try{ S.tagGuess=await fetch("tag_guess.json").then(r=>r.ok?r.json():{}); }catch(e){ S.tagGuess={}; }
   try{ S.cross=await fetch("crossings.json").then(r=>r.ok?r.json():null); }catch(e){}
   CV++;
   $("segsel").value=start; connect(); await openSegment(start);
@@ -756,6 +757,8 @@ function renderPlayer(){
   const role = e ? (e.cls===3?"referee":e.cls===1?"gk":"player") : null;
   for(const t of document.querySelectorAll("[data-role2]")){ t.classList.toggle("on", role===t.dataset.role2); t.disabled=!sel; }
   const box=$("plnames"); box.innerHTML="";
+  const guess=e&&e.tag&&S.tagGuess&&(S.tagGuess[S.data.name]||{})[e.tag];
+  if(sel&&guess&&!(S.aliases[S.data.name]||{})[e.tag]){ const t=document.createElement("button"); t.textContent=`${guess}?`; t.className="A on"; t.title=`Guess from where ${e.tag} usually stands`; t.onclick=()=>plName(guess); box.appendChild(t); }
   if(sel) for(const n of nameButtons(e&&(e.team===0||e.team===1)?e.team:-1)){ const t=document.createElement("button"); t.textContent=n; t.className=n[0]; t.onclick=()=>plName(n); box.appendChild(t); }
   $("blclear").disabled=!sel||!S.pieces[String(sel&&sel.piece)];
   $("bldelbox").hidden=!(sel&&String(sel.piece).startsWith("m-"));
