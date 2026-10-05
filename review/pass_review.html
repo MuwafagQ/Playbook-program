@@ -465,7 +465,14 @@ function mark(g,X,Y,k,dpr,w,col,label){
   const bx = w.piece!=null ? boxesAt(S.frame).find(b=>isKey(b,w.piece,S.frame)) : (w.jid!=null ? boxesAt(S.frame).find(b=>b[4]===w.jid) : null);
   const [x1,y1,x2,y2] = bx || [w.x-12,w.y-46,w.x+12,w.y];
   g.strokeStyle=col; g.lineWidth=4*dpr; g.strokeRect(X(x1)-4*dpr,Y(y1)-4*dpr,(x2-x1)*k+8*dpr,(y2-y1)*k+8*dpr);
-  g.fillStyle=col; g.font=`700 ${Math.round(14*dpr)}px Saira Condensed, sans-serif`; g.fillText(label,X(x1)-4*dpr,Y(y1)-8*dpr);
+  // label under the feet, so the player's name above the box stays readable; it repeats the name the pass will use
+  const n=whoName(w), t=n?`${label} · ${n}`:label;
+  if(n){ g.font=`700 ${Math.round(13*dpr)}px Saira Condensed, sans-serif`; const nw=g.measureText(n).width;   // name above, clear of the outline
+    g.fillStyle="rgba(0,0,0,.65)"; g.fillRect(X(x1)-4*dpr, Y(y1)-24*dpr, nw+8*dpr, 16*dpr); g.fillStyle="#fff"; g.fillText(n, X(x1), Y(y1)-11*dpr); }
+  g.font=`700 ${Math.round(14*dpr)}px Saira Condensed, sans-serif`;
+  const tw=g.measureText(t).width, ty=Y(y2)+6*dpr;
+  g.fillStyle="rgba(0,0,0,.65)"; g.fillRect(X(x1)-4*dpr, ty, tw+8*dpr, 17*dpr);
+  g.fillStyle=col; g.fillText(t, X(x1), ty+13*dpr);
 }
 
 // ---------- tagging: tap the passer, tap the receiver; the pass saves itself
