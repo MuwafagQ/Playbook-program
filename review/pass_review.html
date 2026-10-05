@@ -221,6 +221,7 @@ button:disabled{opacity:.45;cursor:default}
       <div class="row2"><button id="xreplay">⟲ Replay</button><button id="xskip">Skip</button><button id="xundo">↶ Undo</button><button id="xauto">Show automatic ones</button></div>
       <div class="msg" id="xmsg"></div>
     </div>
+    <div class="row2" id="todorow"><button id="btodo">Show only passes to fix</button><span class="sub" id="todoinfo"></span></div>
     <div class="list" id="list"></div>
     <div class="card stats" id="statscard"><h2>Passes so far</h2><div id="stats" class="sub">No passes yet.</div></div>
   </div>
@@ -373,7 +374,7 @@ function nameAt(jid,frame){ const e=S.names[String(jid)]; if(!e||!e.length) retu
 // position tags (ALB, ARB, ADM…) renamed to shirt numbers, per segment: {segment: {ALB: "A65"}}
 const isTag=n=>!!n&&/^A[A-Z]/.test(n)&&n!=="AGK";
 // substitutions: who left is renamed to who came on from that moment (A94->A70, A65->A27 at half time, A10->A14 at 75')
-const SUBS=[["11_2H_45-50",{A94:"A70",A65:"A27"}],["17_2H_75-80",{A10:"A14"}]], TYPOS={A66:"A65"};
+const SUBS=[["11_2H_45-50",{A94:"A70",A65:"A27"}],["17_2H_75-80",{A10:"A14"}]], TYPOS={A66:"A65",A52:"A62"};
 function subName(n,f){ for(const [seg,m] of SUBS){ const g=S.idx.segments.find(x=>x.name===seg); if(g&&f>=g.seg_start&&m[n]) n=m[n]; } return n; }
 const alias=(n,f)=>{ if(n==="AGK") return "A97"; if(TYPOS[n]) n=TYPOS[n]; if(/^A\d+$/.test(n||"")) return subName(n,f); if(!isTag(n)) return n; const m=S.aliases[segOf(f).name]; return (m&&m[n])||n; };
 async function setName(jid,frame,name){
@@ -397,7 +398,7 @@ function whoName(w){
   return w.frame!=null?alias(n,w.frame):n;
 }
 // a name still to check: a position tag, a bare letter or nothing
-const needsName=n=>!n||isTag(n)||!/^[AB]\d+$/.test(n);
+const needsName=n=>n!=="BGK"&&(!n||isTag(n)||!/^[AB]\d+$/.test(n));
 // write a fix for one piece of track (merged into what is there); kept on the undo stack
 async function setPiece(piece, fields){
   if(piece==null||piece<0||!S.db) return;
@@ -702,8 +703,12 @@ const fmt=f=>{ const s=f/S.idx.fps; return `${Math.floor(s/60)}:${String(Math.fl
 function segPasses(){ const g=S.data; return Object.entries(S.reviews).filter(([,r])=>r.status==="pass" && r.kick>=g.seg_start && r.kick<g.seg_start+g.frames).sort((a,b)=>a[1].kick-b[1].kick); }
 function render(){
   if(!S.data||!S.boxes) return;
-  const mine=segPasses(), all=Object.values(S.reviews).filter(r=>r.status==="pass");
-  $("tally").textContent=`${mine.length} passes in this segment · ${all.length} in the match`;
+  const todo=r=>needsName(whoName(r.passer))||(r.outcome!=="out"&&needsName(whoName(r.receiver)));
+  const segAll=segPasses(), mine=S.onlyTodo?segAll.filter(([,r])=>todo(r)):segAll, all=Object.values(S.reviews).filter(r=>r.status==="pass");
+  $("tally").textContent=`${segAll.length} passes in this segment · ${all.length} in the match`;
+  const nt=segAll.filter(([,r])=>todo(r)).length;
+  $("btodo").textContent=S.onlyTodo?"Show all passes":`Show only passes to fix (${nt})`; $("btodo").classList.toggle("on",!!S.onlyTodo);
+  $("todoinfo").textContent=nt?"":"✓ every pass in this segment has shirt numbers"; $("todorow").hidden=!!S.guided;
   const L=$("list"); L.innerHTML="";
   if(!mine.length) L.innerHTML='<div class="empty-list">No passes in this segment yet. Play the video, pause at a kick and tap the passer.</div>';
   let curRow=null;
@@ -1190,6 +1195,7 @@ async function startFix(){
   if(S.cross&&crossOpen().length){ S.xshowAuto=false; openCross(); } else openRelay();
 }
 $("m-fix").onclick=startFix;
+$("btodo").onclick=()=>{ S.onlyTodo=!S.onlyTodo; render(); };
 $("gnext").onclick=()=>{ const i=S.idx.segments.findIndex(g=>g.name===S.data.name), n=S.idx.segments[i+1]; if(!n) return;
   $("segsel").value=n.name; openSegment(n.name).then(()=>{ startFix(); }); };
 $("moretools").onchange=e=>{ const id=e.target.value; e.target.value=""; if(!id) return; S.guided=false; $(id).click(); };
