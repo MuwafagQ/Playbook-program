@@ -277,7 +277,7 @@ async function connect(){
     const db = await claude.use("db");
     if(!db){ msg("Saving is not available in this view.", true); return; }
     S.db=db;
-    db.collection("reviews").onSnapshot(s=>{ S.reviews={}; s.docs.forEach(x=>{ const r=x.data(), pp=(S.passPieces||{})[x.id];
+    db.collection("reviews").onSnapshot(s=>{ S.reviews={}; s.docs.forEach(x=>{ const r=clone(x.data()), pp=(S.passPieces||{})[x.id];      // a copy: stored rows can be read-only
         if(pp){ if(r.passer&&r.passer.piece==null&&pp[0]!=null) r.passer.piece=pp[0]; if(r.receiver&&r.receiver.piece==null&&pp[1]!=null) r.receiver.piece=pp[1]; }
         S.reviews[x.id]=r; }); render(); }, e=>msg("Lost the connection to saved passes ("+e.code+").", true));
     db.collection("names").onSnapshot(s=>{ S.names={}; s.docs.forEach(x=>S.names[x.id]=x.data().entries||[]); render(); S.dirty=true; });
