@@ -265,6 +265,7 @@ async function load(){
   if(!S.idx.segments.find(g=>g.name===start)) start=S.idx.segments[0].name;
   try{ S.cutsAuto=await fetch("cuts_auto.json").then(r=>r.ok?r.json():{}); }catch(e){}
   try{ S.passPieces=await fetch("pass_pieces.json").then(r=>r.ok?r.json():{}); }catch(e){ S.passPieces={}; }
+  try{ S.posGuess=await fetch("pos_guess.json").then(r=>r.ok?r.json():{}); }catch(e){ S.posGuess={}; }
   try{ S.tagGuess=await fetch("tag_guess.json").then(r=>r.ok?r.json():{}); }catch(e){ S.tagGuess={}; }
   try{ S.cross=await fetch("crossings.json").then(r=>r.ok?r.json():null); }catch(e){}
   CV++;
@@ -356,7 +357,10 @@ function eff(b,f,depth=0){
   const rn = S.relay && S.mode==="relay" ? rName(key) : null;
   const seed = S.relay && S.mode==="relay" ? (rn ? rn+(rAuto(key)?"·":"") : null) : (S.relay && S.relay.seed[key]);
   const name = (S.mode==="relay" ? seed : null) || L.name || (inh&&inh.name) || seed || (cls!==3 && jid>=0 ? nameAt(jid,f) : null);
-  return {x1:b[0],y1:b[1],x2:b[2],y2:b[3],jid,team,cls,piece:key,name:alias(name,f),tag:isTag(name)?name:null};
+  // a track nobody named yet (or still a position tag): the guess from where it stands in the team shape, shown with "?"
+  let nm=alias(name,f), guess=null;
+  if((!nm||isTag(nm))&&S.posGuess&&S.posGuess[key]&&cls!==3){ guess=subName(S.posGuess[key],f); nm=guess+"?"; }
+  return {x1:b[0],y1:b[1],x2:b[2],y2:b[3],jid,team,cls,piece:key,name:nm,tag:isTag(name)?name:null,guess};
 }
 // board clock: entries [[frame, seconds shown]] for this segment; the latest one at or before f
 function clockAt(f){
@@ -770,8 +774,8 @@ function renderPlayer(){
   const role = e ? (e.cls===3?"referee":e.cls===1?"gk":"player") : null;
   for(const t of document.querySelectorAll("[data-role2]")){ t.classList.toggle("on", role===t.dataset.role2); t.disabled=!sel; }
   const box=$("plnames"); box.innerHTML="";
-  const guess=e&&e.tag&&S.tagGuess&&(S.tagGuess[S.data.name]||{})[e.tag];
-  if(sel&&guess&&!(S.aliases[S.data.name]||{})[e.tag]){ const t=document.createElement("button"); t.textContent=`${guess}?`; t.className="A on"; t.title=`Guess from where ${e.tag} usually stands`; t.onclick=()=>plName(guess); box.appendChild(t); }
+  const guess=e&&(e.guess || (e.tag&&S.tagGuess&&(S.tagGuess[S.data.name]||{})[e.tag]));
+  if(sel&&guess&&!(S.aliases[S.data.name]||{})[e.tag]){ const t=document.createElement("button"); t.textContent=`${guess}?`; t.className="A on"; t.title="Guess from where this player usually stands"; t.onclick=()=>plName(guess); box.appendChild(t); }
   if(sel) for(const n of nameButtons(e&&(e.team===0||e.team===1)?e.team:-1)){ const t=document.createElement("button"); t.textContent=n; t.className=n[0]; t.onclick=()=>plName(n); box.appendChild(t); }
   $("blclear").disabled=!sel||!S.pieces[String(sel&&sel.piece)];
   $("bldelbox").hidden=!(sel&&String(sel.piece).startsWith("m-"));
