@@ -1,0 +1,23 @@
+{
+ "segment": "05_1H_20-25",
+ "passes": 38,
+ "outcomes": {
+  "complete": 32,
+  "intercepted": 5,
+  "out": 1
+ },
+ "passer_team": {
+  "B": 32,
+  "A": 6
+ },
+ "tagging_minutes": 17.7,
+ "median_seconds_per_pass": 25.7,
+ "breaks_over_5min": 0,
+ "all_segments_so_far": {
+  "passes": 231,
+  "completion_rate": {
+   "A": 0.88,
+   "B": 0.86
+  }
+ }
+}

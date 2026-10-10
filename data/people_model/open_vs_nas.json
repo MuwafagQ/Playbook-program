@@ -1,0 +1,147 @@
+{
+ "note": "Full pipeline replays (ROLE_BY_TRACK, ball model, fast search) vs CVAT GT. nas = Roboflow NAS (PML licence); open = our RF-DETR Medium 640 (Apache 2.0). Suffix = people confidence cut-off; \"0.30\" runs actually used the config defaults 0.24 player / 0.24 referee / 0.22 goalkeeper (DET_CONF_PLAYER/GOALKEEPER/REFEREE). Speed T4: open 64-81 ms/frame unoptimized.",
+ "hilal_hazm_day_heldout": {
+  "nas_0.30": {
+   "player_IDF1": 0.8355,
+   "player_switches": 6,
+   "player_recall": 0.933,
+   "people_IDF1": 0.8196,
+   "people_switches": 17,
+   "role_correct": {
+    "gk": 0.902,
+    "player": 0.98,
+    "referee": 1.0
+   },
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028
+  },
+  "nas_0.50": {
+   "player_IDF1": 0.8672,
+   "player_switches": 3,
+   "player_recall": 0.925,
+   "people_IDF1": 0.8603,
+   "people_switches": 6,
+   "role_correct": {
+    "gk": 0.904,
+    "player": 0.981,
+    "referee": 1.0
+   },
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028
+  },
+  "open_0.30": {
+   "player_IDF1": 0.7442,
+   "player_switches": 20,
+   "player_recall": 0.893,
+   "people_IDF1": 0.7226,
+   "people_switches": 41,
+   "role_correct": {
+    "gk": 0.866,
+    "player": 0.946,
+    "referee": 0.794
+   },
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028
+  },
+  "open_0.50": {
+   "player_IDF1": 0.8158,
+   "player_switches": 9,
+   "player_recall": 0.888,
+   "people_IDF1": 0.8061,
+   "people_switches": 30,
+   "role_correct": {
+    "gk": 0.917,
+    "player": 0.96,
+    "referee": 0.803
+   },
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028
+  },
+  "open_0.60": {
+   "player_IDF1": 0.8266,
+   "player_switches": 7,
+   "player_recall": 0.871,
+   "people_IDF1": 0.8237,
+   "people_switches": 19,
+   "role_correct": {
+    "gk": 0.925,
+    "player": 0.969,
+    "referee": 0.84
+   },
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028
+  }
+ },
+ "hilal_ahli_night": {
+  "nas_0.30": {
+   "player_IDF1": 0.8671,
+   "player_switches": 13,
+   "player_recall": 0.989,
+   "people_IDF1": 0.8845,
+   "people_switches": 14,
+   "role_correct": {
+    "gk": 1.0,
+    "player": 0.999,
+    "referee": 1.0
+   },
+   "ball_hit": 0.932,
+   "ball_at_feet": 0.03
+  },
+  "nas_0.50": {
+   "player_IDF1": 0.9386,
+   "player_switches": 13,
+   "player_recall": 0.985,
+   "people_IDF1": 0.9457,
+   "people_switches": 14,
+   "role_correct": {
+    "gk": 1.0,
+    "player": 0.999,
+    "referee": 1.0
+   },
+   "ball_hit": 0.932,
+   "ball_at_feet": 0.03
+  },
+  "open_0.30": {
+   "player_IDF1": 0.7918,
+   "player_switches": 25,
+   "player_recall": 0.993,
+   "people_IDF1": 0.8075,
+   "people_switches": 27,
+   "role_correct": {
+    "gk": 1.0,
+    "player": 0.999,
+    "referee": 1.0
+   },
+   "ball_hit": 0.932,
+   "ball_at_feet": 0.03
+  },
+  "open_0.50": {
+   "player_IDF1": 0.9569,
+   "player_switches": 9,
+   "player_recall": 0.986,
+   "people_IDF1": 0.9614,
+   "people_switches": 10,
+   "role_correct": {
+    "gk": 1.0,
+    "player": 0.999,
+    "referee": 1.0
+   },
+   "ball_hit": 0.932,
+   "ball_at_feet": 0.03
+  },
+  "open_0.60": {
+   "player_IDF1": 0.9554,
+   "player_switches": 9,
+   "player_recall": 0.983,
+   "people_IDF1": 0.96,
+   "people_switches": 10,
+   "role_correct": {
+    "gk": 1.0,
+    "player": 0.999,
+    "referee": 1.0
+   },
+   "ball_hit": 0.932,
+   "ball_at_feet": 0.03
+  }
+ }
+}

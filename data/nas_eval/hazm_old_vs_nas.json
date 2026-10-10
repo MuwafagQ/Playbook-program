@@ -1,0 +1,192 @@
+{
+ "old": {
+  "people": {
+   "goalkeeper": {
+    "gt_boxes": 377,
+    "recall_any_class": 0.9920424403183024,
+    "recall_right_class": 0.5596816976127321,
+    "precision": 0.5084337349397591
+   },
+   "player": {
+    "gt_boxes": 8767,
+    "recall_any_class": 0.9672636021444052,
+    "recall_right_class": 0.9518649481008327,
+    "precision": 0.8858811040339702
+   },
+   "referee": {
+    "gt_boxes": 842,
+    "recall_any_class": 0.9833729216152018,
+    "recall_right_class": 0.4144893111638955,
+    "precision": 0.4901685393258427
+   }
+  },
+  "confusion": {
+   "goalkeeper": {
+    "goalkeeper": 211,
+    "player": 25,
+    "referee": 1,
+    "missed": 3
+   },
+   "player": {
+    "goalkeeper": 162,
+    "player": 8345,
+    "referee": 478,
+    "missed": 287
+   },
+   "referee": {
+    "goalkeeper": 1,
+    "player": 110,
+    "referee": 349,
+    "missed": 14
+   },
+   "false": {
+    "goalkeeper": 178,
+    "player": 435,
+    "referee": 252,
+    "missed": 0
+   }
+  },
+  "ball_candidates": {
+   "0.10": {
+    "ball_found": 0.7867924528301887,
+    "candidates_per_frame": 1.7528301886792452
+   },
+   "0.20": {
+    "ball_found": 0.7358490566037735,
+    "candidates_per_frame": 1.2150943396226415
+   },
+   "0.30": {
+    "ball_found": 0.6924528301886792,
+    "candidates_per_frame": 1.0245283018867926
+   },
+   "0.50": {
+    "ball_found": 0.6169811320754717,
+    "candidates_per_frame": 0.7773584905660378
+   }
+  },
+  "ball_top1_raw": {
+   "frames_ball_visible": 530,
+   "hit_rate": 0.6924528301886792,
+   "hit_rate_real_detection": 0.6924528301886792,
+   "hit_rate_interpolated": 0.0,
+   "miss_rate": 0.020754716981132074,
+   "wrong_at_feet_rate": 0.1811320754716981,
+   "wrong_elsewhere_rate": 0.10566037735849057,
+   "precision": 0.7071290944123314,
+   "false_balls_at_feet": 0,
+   "false_balls_elsewhere": 0,
+   "median_hit_error_px": 1.6895635531106248
+  },
+  "identity_players": {
+   "id_switches": 14
+  },
+  "ball_pipeline": {
+   "frames_ball_visible": 530,
+   "hit_rate": 0.6773584905660377,
+   "hit_rate_real_detection": 0.6339622641509434,
+   "hit_rate_interpolated": 0.04339622641509434,
+   "miss_rate": 0.024528301886792454,
+   "wrong_at_feet_rate": 0.1509433962264151,
+   "wrong_elsewhere_rate": 0.1471698113207547,
+   "precision": 0.6943907156673114,
+   "false_balls_at_feet": 0,
+   "false_balls_elsewhere": 0,
+   "median_hit_error_px": 1.6895635531106248
+  }
+ },
+ "nas": {
+  "people": {
+   "goalkeeper": {
+    "gt_boxes": 377,
+    "recall_any_class": 0.9761273209549072,
+    "recall_right_class": 0.9708222811671088,
+    "precision": 0.756198347107438
+   },
+   "player": {
+    "gt_boxes": 8767,
+    "recall_any_class": 0.9773012432987339,
+    "recall_right_class": 0.9145659860841793,
+    "precision": 0.9370106345681898
+   },
+   "referee": {
+    "gt_boxes": 842,
+    "recall_any_class": 0.9881235154394299,
+    "recall_right_class": 0.9370546318289786,
+    "precision": 0.44078212290502794
+   }
+  },
+  "confusion": {
+   "goalkeeper": {
+    "goalkeeper": 366,
+    "player": 30,
+    "referee": 0,
+    "missed": 9
+   },
+   "player": {
+    "goalkeeper": 1,
+    "player": 8018,
+    "referee": 43,
+    "missed": 199
+   },
+   "referee": {
+    "goalkeeper": 1,
+    "player": 520,
+    "referee": 789,
+    "missed": 10
+   },
+   "false": {
+    "goalkeeper": 88,
+    "player": 495,
+    "referee": 480,
+    "missed": 0
+   }
+  },
+  "ball_candidates": {
+   "0.10": {
+    "ball_found": 0.8150943396226416,
+    "candidates_per_frame": 2.137735849056604
+   },
+   "0.20": {
+    "ball_found": 0.7339622641509433,
+    "candidates_per_frame": 1.0716981132075472
+   },
+   "0.30": {
+    "ball_found": 0.6849056603773584,
+    "candidates_per_frame": 0.8150943396226416
+   },
+   "0.50": {
+    "ball_found": 0.590566037735849,
+    "candidates_per_frame": 0.6056603773584905
+   }
+  },
+  "ball_top1_raw": {
+   "frames_ball_visible": 530,
+   "hit_rate": 0.7320754716981132,
+   "hit_rate_real_detection": 0.7320754716981132,
+   "hit_rate_interpolated": 0.0,
+   "miss_rate": 0.01509433962264151,
+   "wrong_at_feet_rate": 0.11509433962264151,
+   "wrong_elsewhere_rate": 0.13773584905660377,
+   "precision": 0.7432950191570882,
+   "false_balls_at_feet": 0,
+   "false_balls_elsewhere": 0,
+   "median_hit_error_px": 1.9097381667775495
+  },
+  "identity_players": {
+   "id_switches": 29
+  },
+  "ball_pipeline": {
+   "frames_ball_visible": 530,
+   "hit_rate": 0.7245283018867924,
+   "hit_rate_real_detection": 0.6660377358490566,
+   "hit_rate_interpolated": 0.05849056603773585,
+   "miss_rate": 0.005660377358490566,
+   "wrong_at_feet_rate": 0.1018867924528302,
+   "wrong_elsewhere_rate": 0.16792452830188678,
+   "precision": 0.7286527514231499,
+   "false_balls_at_feet": 0,
+   "false_balls_elsewhere": 0,
+   "median_hit_error_px": 2.035808192640376
+  }
+ }
+}

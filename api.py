@@ -5,11 +5,12 @@ import shutil
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from main import main as run_pipeline  
+from main import main as run_pipeline
+from auth import require_auth
 
 
 app = FastAPI(title="Soccer Analytics API")
@@ -59,20 +60,33 @@ def _run_job(job_id: str, video_path: Path, enable_team: bool):
         JOBS[job_id]["error"] = str(e)
 
 
+def _owned_job(job_id: str, user: dict) -> dict:
+    job = JOBS.get(job_id)
+    if not job or job.get("owner_uid") != user["uid"]:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+
 @app.post("/analyze-video", response_model=JobStatus)
 async def analyze_video(
     bg: BackgroundTasks,
     file: UploadFile = File(...),
     enable_team: bool = True,
+    user: dict = Depends(require_auth),
 ):
     # Validate
     if not _is_mp4(file):
         raise HTTPException(status_code=400, detail="Please upload an .mp4 video file.")
 
     job_id = str(uuid.uuid4())
-    JOBS[job_id] = {"job_id": job_id, "status": "queued", "error": None, "artifacts": None}
+    JOBS[job_id] = {
+        "job_id": job_id,
+        "status": "queued",
+        "error": None,
+        "artifacts": None,
+        "owner_uid": user["uid"],
+    }
 
-    
     video_path = UPLOADS_DIR / f"{job_id}.mp4"
     with video_path.open("wb") as f:
         shutil.copyfileobj(file.file, f)
@@ -84,15 +98,14 @@ async def analyze_video(
 
 
 @app.get("/jobs/{job_id}", response_model=JobStatus)
-def get_job(job_id: str):
-    job = JOBS.get(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-    return JobStatus(**job)
+def get_job(job_id: str, user: dict = Depends(require_auth)):
+    job = _owned_job(job_id, user)
+    return JobStatus(**{k: v for k, v in job.items() if k != "owner_uid"})
 
 
 @app.get("/jobs/{job_id}/artifacts/{filename}")
-def get_artifact(job_id: str, filename: str):
+def get_artifact(job_id: str, filename: str, user: dict = Depends(require_auth)):
+    _owned_job(job_id, user)
     out_dir = OUTPUTS_DIR / job_id
     file_path = out_dir / filename
     if not file_path.exists():

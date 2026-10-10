@@ -95,6 +95,15 @@ class IDStabilizer:
         self._last_boxes: np.ndarray | None = None
         self._last_class_ids: np.ndarray | None = None
         self._last_stable_ids: np.ndarray | None = None
+        # Per-pass assignment counters, read by the benchmark (KPI summary).
+        self.stats: dict[str, int] = {
+            "p1_frame_continuity": 0,
+            "p2_raw_continuity": 0,
+            "p3_hungarian": 0,
+            "p4_spatial_rescue": 0,
+            "new_ids": 0,
+            "capped_forced_reuse": 0,
+        }
 
     @staticmethod
     def _centers(xyxy: np.ndarray) -> np.ndarray:
@@ -333,6 +342,7 @@ class IDStabilizer:
                 unmatched_idx.discard(det_i)
                 used_det.add(det_i)
                 used_sid.add(sid)
+                self.stats["p1_frame_continuity"] += 1
 
     def _apply_spatial_rescue(
         self,
@@ -409,6 +419,7 @@ class IDStabilizer:
                 stable_ids[det_i] = int(best_sid)
                 assigned_sid.add(int(best_sid))
                 unmatched_idx.discard(det_i)
+                self.stats["p4_spatial_rescue"] += 1
 
     def _count_stable_for_class(self, class_id: int) -> int:
         return sum(1 for st in self._stable_tracks.values() if int(st.class_id) == int(class_id))
@@ -675,6 +686,7 @@ class IDStabilizer:
             stable_ids[i] = sid
             assigned_sid.add(sid)
             unmatched_idx.discard(i)
+            self.stats["p2_raw_continuity"] += 1
 
         # Pass 3: global one-to-one assignment per class using motion+appearance ReID cost.
         for class_id in np.unique(class_ids):
@@ -760,6 +772,7 @@ class IDStabilizer:
                 stable_ids[det_i] = sid
                 assigned_sid.add(sid)
                 unmatched_idx.discard(det_i)
+                self.stats["p3_hungarian"] += 1
 
         # Pass 4: geometry-only rescue to avoid unnecessary new IDs after occlusions.
         self._apply_spatial_rescue(
@@ -810,6 +823,7 @@ class IDStabilizer:
                     stable_ids[i] = int(reuse_sid)
                     assigned_sid.add(int(reuse_sid))
                     self._raw_to_stable[raw_keys[i]] = int(reuse_sid)
+                    self.stats["capped_forced_reuse"] += 1
                     continue
 
             sid = self._new_stable(
@@ -823,6 +837,7 @@ class IDStabilizer:
             )
             self._raw_to_stable[raw_keys[i]] = sid
             stable_ids[i] = sid
+            self.stats["new_ids"] += 1
 
         # Rebuild raw->stable map from recent stable tracks only.
         rebuilt: dict[tuple[int, int], int] = {}

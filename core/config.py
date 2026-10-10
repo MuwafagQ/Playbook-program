@@ -12,6 +12,23 @@ class Settings(BaseSettings):
 
     PLAYER_MODEL_ID: str = "football-players-detection-3zvbc/11"
     FIELD_MODEL_ID: str = "football-field-detection-f07vi-it2xv/10"
+    # Our open RF-DETR people model (checkpoint path). When set it replaces PLAYER_MODEL_ID.
+    PLAYER_MODEL_PATH: str = ""
+    # Our open RF-DETR pitch keypoint model (checkpoint path). When set it replaces FIELD_MODEL_ID.
+    FIELD_MODEL_PATH: str = ""
+    # Give FIELD_MODEL_PATH plain frames, not PREPROCESS_ENABLED-enhanced ones (it was trained on plain
+    # frames; enhanced: median error 35 px vs 15 px on the test frames).
+    FIELD_MODEL_PLAIN_FRAMES: bool = True
+    # "ours" (trained by notebooks/train_field_keypoints.ipynb) or "roboflow_v10" (weights.pt downloaded from
+    # Roboflow, Apache-2.0: its own point order and contrast stretching, see vision/field_model.py).
+    FIELD_MODEL_KIND: str = "ours"
+    # Robust homography (RANSAC, pitch cm): ignores keypoints that disagree with the rest. 0 = plain fit.
+    H_RANSAC_CM: float = 0.0
+    # Speed-up for our RF-DETR models (people + ball): none | fp16 | tensorrt (vision/fast_rfdetr.py).
+    MODEL_ACCEL: str = "none"
+    # The ball model's own setting ("" = MODEL_ACCEL). TensorRT lost ~5% of ball detections on the
+    # half-1 window (data/speed/settings.json), so the pilot runs the ball model in fp16.
+    BALL_MODEL_ACCEL: str = ""
 
     # Runtime
     DEVICE: str = "cpu"
@@ -41,6 +58,9 @@ class Settings(BaseSettings):
     TRACK_LOST_BUFFER: int = 90
     TRACK_MIN_CONSEC_FRAMES: int = 2
     TRACK_STALE_FRAMES: int = 2
+    # Track all people with one tracker and give each track the role it was labelled with most
+    # often (vision/roles.py), instead of separate player / official trackers.
+    ROLE_BY_TRACK: bool = False
     BOTSORT_GMC_METHOD: str = "sparseOptFlow"
     BOTSORT_WITH_REID: bool = False
     BOTSORT_REID_MODEL: str = "yolo11n-cls.pt"
@@ -73,6 +93,27 @@ class Settings(BaseSettings):
     TEAM_COLOR_INIT_SAMPLES: int = 30
     TEAM_COLOR_LR: float = 0.05
     TEAM_COLOR_MIN_MARGIN: float = 0.08
+    # Re-cluster the two kit colours every N player samples from the last TEAM_COLOR_BUFFER (0 = off:
+    # the first centroids drift with TEAM_COLOR_LR instead).
+    TEAM_COLOR_REFIT_EVERY: int = 200
+    TEAM_COLOR_BUFFER: int = 3000
+    # Judge each track by the mean of all its colour features, re-assigned with the current centroids
+    # (pair with TEAM_VOTE_HISTORY=1, TEAM_VOTE_MIN=1, TEAM_LOCK=false: the assignment itself is stable).
+    TEAM_COLOR_TRACK_MEAN: bool = False
+    # Per-track team = majority of the last TEAM_VOTE_HISTORY votes (needs TEAM_VOTE_MIN votes);
+    # TEAM_LOCK freezes a track's team once 8 votes agree at 70%. A ~1.5 s window follows an ID that
+    # passes to another player; a lock or a whole-life vote keeps the wrong team (data/team/).
+    TEAM_VOTE_HISTORY: int = 45
+    TEAM_VOTE_MIN: int = 8
+    TEAM_LOCK: bool = False
+    # Use each box's single-frame team guess to veto ID re-links across teams. A noisy guess splits
+    # IDs (night clip: 9 -> 175 player ID switches with team on), so off unless proven useful.
+    TEAM_IN_ID_RELINK: bool = False
+    # Goalkeepers (kit matches neither team): team whose players' centre is nearer, majority of the
+    # last TEAM_GK_VOTE_HISTORY frames (~5 s), needing TEAM_GK_VOTE_MIN votes.
+    TEAM_GOALKEEPER: bool = True
+    TEAM_GK_VOTE_HISTORY: int = 150
+    TEAM_GK_VOTE_MIN: int = 45
 
     DET_CONF: float = 0.30
     DET_CONF_PLAYER: float = 0.24
@@ -123,6 +164,23 @@ class Settings(BaseSettings):
     BALL_ROI_UPSCALE: float = 2.0
     BALL_ROI_CONF: float = 0.10
 
+    # Dedicated ball model (vision/ball_model.py, trained by notebooks/train_ball_tiles.ipynb).
+    # Replaces the detector's ball candidates. It searches BALL_MODEL_ROI_TILES^2 tiles
+    # around the predicted ball position, and the whole frame when the ball is lost (for
+    # BALL_MODEL_LOST_FRAMES frames), unknown, or every BALL_MODEL_FULL_EVERY_N frames.
+    # In replay the candidates come from the cache (ballm.csv.gz); no model is loaded.
+    BALL_MODEL_ENABLED: bool = False
+    BALL_MODEL_PATH: str = ""
+    BALL_MODEL_TILE: int = 320
+    BALL_MODEL_CONF: float = 0.10        # model threshold (candidates recorded to the cache)
+    BALL_MODEL_MIN_CONF: float = 0.30    # candidates the pipeline uses (0.30 beat 0.15 on HILAL-HAZM)
+    BALL_MODEL_ROI_TILES: int = 2
+    BALL_MODEL_LOST_FRAMES: int = 3
+    BALL_MODEL_FULL_EVERY_N: int = 30
+    # With the ball model: a clearly more confident ball outside the tracking gate for
+    # this many frames takes over the ball track (vision/ball.py, challenger switch). 0 = off.
+    BALL_SWITCH_FRAMES: int = 3
+
     # Tiny box filtering (ratio relative to frame area)
     MIN_AREA_RATIO_PEOPLE: float = 0.00008
     MIN_AREA_RATIO_BALL: float = 0.00001
@@ -151,6 +209,23 @@ class Settings(BaseSettings):
     # to H_REINIT_FRAMES more frames before blanking.
     H_OPTFLOW_BRIDGE: bool = True
     H_MAX_PROPAGATION_FRAMES: int = 60
+
+    # ---- Firebase Auth ----
+    # Backend: verifies ID tokens via firebase-admin. Point this at a service
+    # account JSON downloaded from Firebase console -> Project settings ->
+    # Service accounts -> Generate new private key.
+    FIREBASE_SERVICE_ACCOUNT_JSON: str | None = Field(
+        default=None, description="Path to Firebase service-account JSON (backend token verification)"
+    )
+    FIREBASE_PROJECT_ID: str | None = None
+
+    # Frontend (Streamlit): the Firebase Web App config object, from Firebase
+    # console -> Project settings -> General -> Your apps -> Web app. These
+    # are not secret (they identify the project to the client SDK; access is
+    # still governed by Firebase Auth + your security rules).
+    FIREBASE_API_KEY: str | None = None
+    FIREBASE_AUTH_DOMAIN: str | None = None
+    FIREBASE_APP_ID: str | None = None
 
 
 def load_settings() -> Settings:

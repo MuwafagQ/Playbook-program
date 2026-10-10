@@ -1,0 +1,24 @@
+{
+  "source_video": "/content/SoccerNetGS/valid/SNGS-021.mp4",
+  "start_frame": 0,
+  "frames": 750,
+  "width": 1920,
+  "height": 1080,
+  "fps": 25.0,
+  "total_frames": 750,
+  "settings": {
+    "PLAYER_MODEL_ID": "footballs-player-detection-zkams-zia6c/2",
+    "FIELD_MODEL_ID": "football-field-detection-f07vi-it2xv/10",
+    "DET_CONF": 0.1,
+    "FIELD_CONF": 0.3,
+    "DETECT_UPSCALE": 1.0,
+    "PREPROCESS_ENABLED": true,
+    "BALL_ROI_RECOVERY": true,
+    "BALL_ROI_PX": 320,
+    "BALL_ROI_UPSCALE": 2.0,
+    "BALL_ROI_CONF": 0.1,
+    "FAST_MODE": false,
+    "DETECT_EVERY_N": 1,
+    "HOMOGRAPHY_EVERY_N": 1
+  }
+}

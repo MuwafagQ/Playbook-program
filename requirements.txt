@@ -15,6 +15,12 @@ fastapi==0.110.3
 uvicorn[standard]==0.30.6
 python-multipart==0.0.9
 
+# Benchmark (tools/benchmark.py)
+pandas>=2.0
+
+# Auth (Firebase ID token verification)
+firebase-admin==6.5.0
+
 # Frontend
 # NOTE:
 # Streamlit can conflict with the newer Roboflow inference stack used by main.py.

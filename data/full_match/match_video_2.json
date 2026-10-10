@@ -1,0 +1,34 @@
+{
+ "match": "match_video_2 (night), 20 playing-time segments, 175,240 frames (~97 min) at 30 fps, L4",
+ "pipeline_hours": 6.9,
+ "fps_per_segment": [
+  7.0,
+  7.9
+ ],
+ "ball_detect_coverage": [
+  0.86,
+  0.93
+ ],
+ "homography_ok_rate": 1.0,
+ "team_alignment": "segment labels flipped in 7/20 segments (incl. most of the 2nd half), all corrected; margins 0.33-0.48",
+ "tracker_pieces": 7866,
+ "joined_ids": {
+  "all": 355,
+  "note": "198 extra ids vs 157 before the no-duplicate fix are scraps from split overlaps; 239 ids have <10 s in total = 0.04% of player time",
+  "ids_for_50_80_90_99pct_of_player_time": [
+   22,
+   45,
+   58,
+   95
+  ],
+  "ids_over_1min": 98,
+  "ids_over_5min": 68,
+  "per_team_ids_for_90pct": {
+   "team0": 27,
+   "team1": 32
+  },
+  "threshold_sweep_0.15_to_0.35": "same coverage at every threshold: the limit is the model / constraints, not the threshold"
+ },
+ "goalkeepers": "one id per goalkeeper for the whole match (22.6 and 12.7 min on screen, all 20 segments, teams consistent)",
+ "reading": "~2 ids per real player for most of the play time; the 40 longest ids each span 16-20 of the 20 segments; correctness of the joins not measured (no hand ids for this match) - the names typed while tagging will measure it"
+}
