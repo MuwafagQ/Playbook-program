@@ -1,5 +1,5 @@
 import json,glob,os,re,collections
-D='/tmp/claude-0/-home-user-Playbook-program/945c82da-81db-5d70-b18b-7bd69bcf608b/scratchpad/'
+D=os.environ.get('PASS_DATA','data/review/pass_data/')   # app database pulls (fa/, fx7/, fx8/) and site files (site/)
 def coll(d):
     return {os.path.basename(f)[:-5]:json.load(open(f)) for f in glob.glob(D+d+'/*.json')}
 pieces=coll('fa/pieces'); names={k:v['entries'] for k,v in coll('fa/names').items()}
