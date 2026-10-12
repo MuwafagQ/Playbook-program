@@ -378,7 +378,7 @@ function nameAt(jid,frame){ const e=S.names[String(jid)]; if(!e||!e.length) retu
 // position tags (ALB, ARB, ADM…) renamed to shirt numbers, per segment: {segment: {ALB: "A65"}}
 const isTag=n=>!!n&&/^A[A-Z]/.test(n)&&n!=="AGK";
 // substitutions: who left is renamed to who came on from that moment (A94->A70, A65->A27 at half time, A10->A14 at 75')
-const SUBS=[["11_2H_45-50",{A94:"A70",A65:"A27"}],["17_2H_75-80",{A10:"A14"}]], TYPOS={A66:"A65",A52:"A62"};
+const SUBS=[["11_2H_45-50",{A94:"A70",A65:"A27"}],["17_2H_75-80",{A10:"A14"}]], TYPOS={A66:"A65",A52:"A62",B8:"B21"};
 function subName(n,f){ for(const [seg,m] of SUBS){ const g=S.idx.segments.find(x=>x.name===seg); if(g&&f>=g.seg_start&&m[n]) n=m[n]; } return n; }
 const alias=(n,f)=>{ if(n==="AGK") return "A97"; if(TYPOS[n]) n=TYPOS[n]; if(/^A\d+$/.test(n||"")) return subName(n,f); if(!isTag(n)) return n; const m=S.aliases[segOf(f).name]; return (m&&m[n])||n; };
 async function setName(jid,frame,name){
