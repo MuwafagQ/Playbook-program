@@ -11,6 +11,18 @@ def board(f):
     if not same: return None
     e=min(same,key=lambda e:abs(e[0]-f))          # the nearest board reading in this half
     return max(e[1]+(f-e[0])/idx['fps'], 0 if h==1 else 45*60)
+# match momentum: a mark {f, team, phase} holds until the next mark in the same half; the other team gets the opposite
+OPP={"Buildup":"Retreat","Transition":"Transition","Finishing":"Retreat","Retreat":"Buildup"}
+try: MARKS=sorted(coll('moments').values(),key=lambda m:m['f'])
+except Exception: MARKS=[]
+H2=min((g['seg_start'] for g in segs if '_2H_' in g['name']),default=10**12)
+def moment(f):
+    cur=None
+    for m in MARKS:
+        if m['f']>f: break
+        if (m['f']>=H2)==(f>=H2): cur=m
+    if not cur: return '',''
+    p=cur['phase']; return (p,OPP[p]) if cur['team']==0 else (OPP[p],p)
 mmss=lambda s:None if s is None else f"{int(s//60)}:{int(s%60):02d}"
 out=[]
 for rid,r in reviews.items():
@@ -19,6 +31,7 @@ for rid,r in reviews.items():
     g=segOf(k); row.update(segment=g['name'],half=half_of(g),kick_frame=k,touch_frame=t,
         kick_clock=mmss(board(k)),touch_clock=mmss(board(t)) if t else None,
         kick_video_s=round(k/idx['fps'],2),outcome=r.get('outcome'),notes=r.get('notes') or '')
+    row['momentum_A'],row['momentum_B']=moment(k)
     for i,side in enumerate(('passer','receiver')):
         w=r.get(side) or {}
         if side=='receiver' and r.get('outcome')=='out': w={}
