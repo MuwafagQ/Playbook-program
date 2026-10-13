@@ -107,7 +107,7 @@ ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;max-wid
 
   <section aria-labelledby="s-ph">
     <h2 id="s-ph">Phases by third</h2>
-    <p>Share of time in play in each phase, worked out automatically. The team on the ball is in Buildup in its own third, Transition in the middle third and Finishing in the final third. The other team is in Retreat, or Transition when the ball is in the middle third.</p>
+    <p>Share of time in play in each phase, worked out automatically. The team on the ball is in Buildup in its own third, Transition in the middle third and Finishing in the final third. The team without the ball is in Retreat.</p>
     <div class="panel">
       <div class="phase"><span class="chipT A">A</span><div class="stack" id="stA"></div></div>
       <div class="phase"><span class="chipT B">B</span><div class="stack" id="stB"></div></div>
@@ -145,14 +145,14 @@ ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;max-wid
       <button data-f="team:all" class="on">Both teams</button><button data-f="team:A">Team A</button><button data-f="team:B">Team B</button>
     </div>
     <div class="tbl"><table id="tblCt"></table></div>
-    <p class="note">The clock is the board clock at the first pass after winning the ball. To watch one: in Pass Review, open its segment and find the pass at that time.</p>
+    <p class="note">The clock is the board clock at the first pass after winning the ball. To watch and confirm them, use Counters in Pass Review: it replays each one from 2 s before the ball is won.</p>
   </section>
 
   <section aria-labelledby="s-how">
     <h2 id="s-how">How it is measured</h2>
     <dl>
       <dt>Who has the ball</dt><dd>Your tagged passes, plus the player nearest the ball on screen to time tackles and loose balls between passes.</dd>
-      <dt>Thirds</dt><dd>Pitch positions from the camera calibration, smoothed over half a second, read at each kick and touch. Each team's attacking direction comes from where its goalkeeper plays, per half.</dd>
+      <dt>Thirds</dt><dd>Pitch positions from the camera calibration, fitted line by line to the real pitch (goal box, penalty box, centre circle, halfway line), smoothed over half a second and read at each kick and touch. Each team's attacking direction comes from where its goalkeeper plays, per half.</dd>
       <dt>Quick first action</dt><dd>Within 5 s of winning the ball: a pass gaining 10 m or more toward goal (within 45° of straight), or the ball carried 10 m forward.</dd>
       <dt>Fast advance</dt><dd>At least 2.5 m/s toward goal over the first 12 s.</dd>
       <dt>Exposed opponent</dt><dd>At the moment the ball is won, 5 or fewer of the opponent's outfield players on screen are between the ball and their goal (only when 6 or more are visible).</dd>
@@ -162,8 +162,8 @@ ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;max-wid
     <ul>
       <li>Only events you tagged as passes are known. Shots, clearances and dribbles are not tagged yet, so some regains and goal attempts are missing.</li>
       <li>The camera shows part of the pitch, so the "exposed" check counts only the players in view.</li>
-      <li>Distances use a 120 × 70 m pitch model. If the real pitch is shorter, distances and speeds read up to about 10% high.</li>
-      <li>Goals are the two marked "Goal" in your pass notes (both team B).</li>
+      <li>Distances are in metres on a <span data-pitch></span> m pitch, the standard size. If this stadium's pitch is a different size, the report can be rebuilt for it.</li>
+      <li>Goals are the ones marked "Goal" in your pass notes.</li>
     </ul>
   </section>
 </main>
@@ -175,6 +175,7 @@ const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).
 const PH = [["Buildup","--ph-buildup"],["Transition","--ph-transition"],["Finishing","--ph-finishing"],["Retreat","--ph-retreat"]];
 const A = D.teams.A, B = D.teams.B;
 
+document.querySelectorAll("[data-pitch]").forEach(el=>el.textContent=D.pitch.replace("x"," × "));
 $("meta").innerHTML = [`${D.n_passes} passes`, `${D.n_regains} balls won in open play`, `20 five-minute segments`,
   `Goals noted: B ${D.goals.map(g=>g.clock).join(", ")}`].map(s=>`<span>${s}</span>`).join("");
 
@@ -202,7 +203,7 @@ for (const [t, el] of [["A","stA"],["B","stB"]]) {
 }
 $("phleg").innerHTML = PH.map(([p,v])=>`<span><i class="sw" style="background:var(${v})"></i>${p}</span>`).join("") +
   `<span>Small shares without a label: ${PH.filter(([p])=>(A.phase_share[p]||0)<7||(B.phase_share[p]||0)<7).map(([p])=>`${p} A ${A.phase_share[p]||0}% · B ${B.phase_share[p]||0}%`).join("; ")}</span>`;
-$("agree").textContent = `Check against your hand marks: in segment 1 the automatic phases match yours ${Math.round(100*D.agreement)}% of the time. Most of the gap is one rule. When B has the ball in the middle third, the automatic rule puts A in Transition, while you mostly marked A as Retreat.`;
+$("agree").textContent = `Check against your hand marks: in segment 1 the automatic phases match yours ${Math.round(100*D.agreement)}% of the time. Most of the rest is timing: the automatic phase changes a second or two before or after your tap.`;
 
 // match clock of a video minute
 const SEG = D.seg_bounds.map(([n,s,f])=>({n, s, f, m0:Number(n.split("_")[2].split("-")[0])}));

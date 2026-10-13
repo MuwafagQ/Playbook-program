@@ -8,19 +8,18 @@ regains, counter-attacks and tempo.
 Inputs
   passes_final.csv   tools/pass_file/final.py output (shirt numbers, frames, outcome, notes)
   reviews            the app's pass documents (pixel position of passer / receiver, track pieces)
-  tracks             notebooks/review_export.ipynb tracks_small.csv.gz per segment (x_m, y_m: pitch cm,
-                     120 x 70 m pitch model)
+  tracks             notebooks/review_export.ipynb tracks_small.csv.gz per segment (x_m, y_m: cm on the 120 x 70 m
+                     pitch template, mapped to the real pitch by to_real)
   moments            the app's Momentum marks (optional): used only to measure how well the automatic
                      phases agree with a person's marks
 
 Positions: raw pitch positions jitter (camera calibration per frame), so tracks are smoothed (rolling
 median then mean over ~0.5 s) and positions are read at pass events (passer at the kick, receiver at the
-touch). Thirds are 40 m bands of the 120 m model, in each team's attacking direction (from where its
+touch). Thirds are thirds of the real pitch length (--pitch, default 105 x 68 m), in each team's attacking direction (from where its
 goalkeeper plays, per half).
 
 Phases (the app's Momentum labels): the team with the ball is in Buildup (own third), Transition
-(middle third) or Finishing (final third); the other team is in Retreat, or Transition when the ball is
-in the middle third. Dead ball: after the ball goes out until the restart.
+(middle third) or Finishing (final third); the other team is in Retreat. Dead ball: after the ball goes out until the restart.
 
 Regain: the ball changes team in open play: an interception, a loose ball (incomplete pass) or a tackle
 / duel (the next pass is by the other team without an interception). Restarts after the ball went out are
@@ -47,7 +46,27 @@ import numpy as np
 import pandas as pd
 
 FPS = 30.0
-PITCH_L, PITCH_W = 120.0, 70.0           # model pitch (m)
+PITCH_L, PITCH_W = 105.0, 68.0           # real pitch (m); --pitch overrides
+# The tracking writes positions on a 120 x 70 m pitch template (roboflow sports SoccerPitchConfiguration) whose
+# markings are not all standard (penalty box 20.15 m deep). to_real() maps them onto the real pitch piecewise,
+# line by line: goal line, goal box (5.5 m), penalty spot (11 m), penalty box (16.5 m), centre circle (9.15 m),
+# halfway line, and across: touchline, penalty box (40.32 m), goal box (18.32 m), centre.
+TPL_L, TPL_W = 120.0, 70.0
+
+
+def to_real(x, y, L=None, W=None):
+    L, W = L or PITCH_L, W or PITCH_W
+    tx = [0, 5.5, 11, 20.15, 60 - 9.15, 60, 60 + 9.15, TPL_L - 20.15, TPL_L - 11, TPL_L - 5.5, TPL_L]
+    rx = [0, 5.5, 11, 16.5, L / 2 - 9.15, L / 2, L / 2 + 9.15, L - 16.5, L - 11, L - 5.5, L]
+    ty = [0, (TPL_W - 41) / 2, (TPL_W - 18.32) / 2, TPL_W / 2, (TPL_W + 18.32) / 2, (TPL_W + 41) / 2, TPL_W]
+    ry = [0, (W - 40.32) / 2, (W - 18.32) / 2, W / 2, (W + 18.32) / 2, (W + 40.32) / 2, W]
+    def interp(v, a, b):
+        v = np.asarray(v, float); out = np.interp(v, a, b)
+        lo, hi = v < a[0], v > a[-1]                       # off the template: keep the edge scale
+        out[lo] = b[0] + (v[lo] - a[0]) * (b[1] - b[0]) / (a[1] - a[0])
+        out[hi] = b[-1] + (v[hi] - a[-1]) * (b[-1] - b[-2]) / (a[-1] - a[-2])
+        return out
+    return interp(x, tx, rx), interp(y, ty, ry)
 FIRST_S, HORIZON_S = 5.0, 12.0           # first forward action / how long a counter is followed
 FWD_M, CARRY_M = 10.0, 10.0
 DIRECT_MPS, EXPOSED_N = 2.5, 5
@@ -63,7 +82,7 @@ def load_tracks(tracks_dir: str) -> pd.DataFrame:
         parts.append(t)
     t = pd.concat(parts, ignore_index=True)
     t = t[t.class_id.isin([1, 2])].copy()
-    t["x"], t["y"] = t.x_m / 100.0, t.y_m / 100.0
+    t["x"], t["y"] = to_real(t.x_m.values / 100.0, t.y_m.values / 100.0)
     t = t.sort_values(["raw_tracker_id", "frame"])
     g = t.groupby("raw_tracker_id")
     for c in ("x", "y"):
@@ -291,7 +310,7 @@ def phases(e, own, D, n_frames, half2):
         h = 2 if f >= half2 else 1
         u = fwd(bx[f], h, team[f], D); th = third(u)
         ph = PHASES[th] if not np.isnan(th) else ""
-        other = "Transition" if ph == "Transition" else ("Retreat" if ph else "")
+        other = "Retreat" if ph else ""
         A[f], B[f] = (ph, other) if team[f] == "A" else (other, ph)
     return pd.DataFrame({"frame": np.arange(n_frames), "possession": team, "A": A, "B": B, "ball_x": bx})
 
@@ -398,7 +417,10 @@ def main():
     ap.add_argument("--passes", required=True); ap.add_argument("--reviews", required=True)
     ap.add_argument("--pass-pieces"); ap.add_argument("--tracks", required=True); ap.add_argument("--index", required=True)
     ap.add_argument("--moments"); ap.add_argument("--out", required=True)
+    ap.add_argument("--pitch", default="105x68", help="real pitch length x width in metres")
     a = ap.parse_args()
+    global PITCH_L, PITCH_W
+    PITCH_L, PITCH_W = (float(v) for v in a.pitch.lower().split("x"))
     idx = json.load(open(a.index))
     segs = idx["segments"]; n_frames = segs[-1]["seg_start"] + segs[-1]["frames"]
     half2 = min(g["seg_start"] for g in segs if "_2H_" in g["name"])
@@ -423,7 +445,7 @@ def main():
     # agreement with a person's momentum marks, where there are any
     if a.moments and os.path.isdir(a.moments):
         M = sorted((json.load(open(f)) for f in glob.glob(os.path.join(a.moments, "*.json"))), key=lambda m: m["f"])
-        OPP = {"Buildup": "Retreat", "Transition": "Transition", "Finishing": "Retreat", "Retreat": "Buildup"}
+        OPP = {"Buildup": "Retreat", "Transition": "Retreat", "Finishing": "Retreat", "Retreat": "Buildup"}
         if M:
             lab = np.full(n_frames, "", dtype=object)
             for i, m in enumerate(M):

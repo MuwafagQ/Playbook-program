@@ -142,13 +142,16 @@ button:disabled{opacity:.45;cursor:default}
 .mrow button{min-height:30px;padding:2px 8px;font-size:12px}
 .mshare td,.mshare th{padding:2px 4px;font-size:13px;text-align:left;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 .mshare{border-collapse:collapse;width:100%}
+.kfacts{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:14px}
+.kfacts span:nth-child(odd){color:var(--muted)}
+.kverdict{font:700 13px var(--body);letter-spacing:.04em;text-transform:uppercase}
 </style>
 
 <div class="top">
   <h1>Pass Review</h1>
   <span class="tally" id="tally">Loading…</span>
   <div class="right">
-    <div class="teams mode" role="group" aria-label="Mode"><button id="m-fix" class="on">Fix IDs</button><button id="m-pass">Passes</button><button id="m-moment">Momentum</button></div>
+    <div class="teams mode" role="group" aria-label="Mode"><button id="m-fix" class="on">Fix IDs</button><button id="m-pass">Passes</button><button id="m-moment">Momentum</button><button id="m-counter">Counters</button></div>
     <select id="moretools" aria-label="More tools"><option value="">More tools…</option><option value="m-players">Players (fix any box)</option><option value="m-cards">Photo cards</option><option value="m-relay">Relay only</option><option value="m-cross">Crossings only</option></select>
     <span hidden><button id="m-players"></button><button id="m-cards"></button><button id="m-relay"></button><button id="m-cross"></button></span>
     <select id="segsel" aria-label="Segment"></select>
@@ -241,6 +244,16 @@ button:disabled{opacity:.45;cursor:default}
       <div class="row2"><button id="rreplay">⟲ Replay 2 s</button><button id="rskip">Skip</button><button id="rnota">Not team A</button><button id="rswitch">✂ Switched here</button><button id="rundo">↶ Undo</button></div>
       <div class="msg" id="rmsg"></div>
     </div>
+    <div class="card" id="countercard" hidden>
+      <h2 id="ktitle">Counter review</h2>
+      <div class="sub" id="kinfo"></div>
+      <div class="kfacts" id="kfacts"></div>
+      <div class="sub">Watch from 2 s before the ball is won. Was it a counter-attack?</div>
+      <div class="row2"><button id="kyes" class="primary">✓ Counter</button><button id="kno">✗ Not a counter</button></div>
+      <div class="row2"><button id="kreplay">⟲ Replay</button><button id="kprev">◀ Previous</button><button id="knext">Next ▶</button><button id="kundo">↶ Undo</button></div>
+      <div class="row2" style="align-items:center"><button id="kall">Show all balls won</button><span class="sub" id="kcount"></span></div>
+      <div class="msg" id="kmsg"></div>
+    </div>
     <div class="card" id="crosscard" hidden>
       <h2 id="xtitle">Crossings</h2>
       <div class="sub" id="xinfo"></div>
@@ -305,7 +318,7 @@ const S = { idx:null, data:null, boxes:null, frame:0, videoFor:null, reviews:{},
             cur:null, draft:null, stack:[], nameRole:null, zoom:1, cx:null, cy:null, focus:null, dirty:true,
             pieces:{}, clock:{}, mode:"pass", sel:null, next:null,
             props:null, cname:null, csel:new Set(), sheets:{}, nsheets:{}, relay:null, rEv:null, rSkip:new Set(),
-            cutsAuto:{}, cuts:{}, swaps:{}, aliases:{}, manual:{}, ballfix:{}, moments:{}, mteam:null, tool:null, drawRect:null, cross:null, xi:0 };
+            cutsAuto:{}, cuts:{}, swaps:{}, aliases:{}, manual:{}, ballfix:{}, moments:{}, mteam:null, counters:[], kreviews:{}, ki:0, kall:false, tool:null, drawRect:null, cross:null, xi:0 };
 
 // ---------- data
 async function load(){
@@ -317,6 +330,7 @@ async function load(){
   try{ S.passPieces=await fetch("pass_pieces.json").then(r=>r.ok?r.json():{}); }catch(e){ S.passPieces={}; }
   try{ S.posGuess=await fetch("pos_guess.json").then(r=>r.ok?r.json():{}); }catch(e){ S.posGuess={}; }
   try{ S.tagGuess=await fetch("tag_guess.json").then(r=>r.ok?r.json():{}); }catch(e){ S.tagGuess={}; }
+  try{ S.counters=await fetch("counters.json").then(r=>r.ok?r.json():[]); }catch(e){ S.counters=[]; }
   try{ S.cross=await fetch("crossings.json").then(r=>r.ok?r.json():null); }catch(e){}
   CV++;
   $("segsel").value=start; connect(); await openSegment(start);
@@ -339,6 +353,7 @@ async function connect(){
     db.collection("cuts").onSnapshot(s=>{ S.cuts={}; s.docs.forEach(x=>S.cuts[x.id]=x.data().fs||[]); CV++; render(); S.dirty=true; });
     db.collection("swaps").onSnapshot(s=>{ S.swaps={}; s.docs.forEach(x=>S.swaps[x.id]=x.data()); CV++; render(); S.dirty=true;
       if(S.mode==="cross"){ if(S.guided&&S.xcur&&(xid(S.xcur) in S.swaps)&&!S.xshowAuto) openCross(); else renderCross(); } });
+    db.collection("counter_reviews").onSnapshot(s=>{ S.kreviews={}; s.docs.forEach(x=>S.kreviews[x.id]=x.data()); renderCounter(); });
     db.collection("moments").onSnapshot(s=>{ S.moments={}; s.docs.forEach(x=>S.moments[x.id]=x.data()); MKc++; renderMoment(); S.dirty=true; });
     db.collection("clock").onSnapshot(s=>{ S.clock={}; s.docs.forEach(x=>S.clock[x.id]=x.data().entries||[]); S.dirty=true; });
   }catch(e){ msg("Saving is not available in this view.", true); }
@@ -620,7 +635,7 @@ function safeTap(x,y){ try{ tapAt(x,y); }catch(e){ console.error(e); msg("Tap fa
 function syncZoomMenu(){ const z=$("zoom"); let best=z.options[0];
   for(const o of z.options) if(Math.abs(Number(o.value)-S.zoom)<Math.abs(Number(best.value)-S.zoom)) best=o; z.value=best.value; }
 function tapAt(cx, cy){
-  if(S.mode==="moment"&&!S.tool){ playPause(); return; }
+  if((S.mode==="moment"||S.mode==="counter")&&!S.tool){ playPause(); return; }
   const v=$("vid"); if(!v.paused){ v.pause(); S.frame=frameFromVideo(); }
   const [x,y]=toSrc(cx,cy), m=6/S.zoom+4;
   if(S.tool==="ball"){ setBall({x:Math.round(x), y:Math.round(y)}); return; }
@@ -690,6 +705,11 @@ async function undo(){
     try{ if(a.before) await S.db.collection(col).doc(a.id).set(a.before); else await S.db.collection(col).doc(a.id).delete(); }
     catch(e){ msg("Could not undo ("+e.code+").", true); return; }
     if(a.before) st[a.id]=a.before; else delete st[a.id]; MANC++; toolMsg("Undone.");
+  } else if(a.type==="kreview"){
+    try{ if(a.before) await S.db.collection("counter_reviews").doc(a.id).set(a.before); else await S.db.collection("counter_reviews").doc(a.id).delete(); }
+    catch(e){ $("kmsg").textContent="Could not undo ("+e.code+")."; return; }
+    if(a.before) S.kreviews[a.id]=a.before; else delete S.kreviews[a.id];
+    const i=kList().findIndex(c=>String(c.regain_frame)===a.id); if(i>=0) S.ki=i; $("kmsg").textContent="Undone."; renderCounter(); kGo();
   } else if(a.type==="moment"){
     try{ if(a.before) await S.db.collection("moments").doc(a.id).set(a.before); else await S.db.collection("moments").doc(a.id).delete(); }
     catch(e){ mmsg("Could not undo ("+e.code+").", true); return; }
@@ -816,6 +836,8 @@ function render(){
   const mo=S.mode==="moment";
   $("list").hidden=!!S.guided||mo; $("statscard").hidden=!!S.guided||mo; if(mo) $("todorow").hidden=true;
   $("momentcard").hidden=!mo; $("mbar").hidden=!mo; $("m-moment").classList.toggle("on",mo); renderMoment();
+  const ko=S.mode==="counter"; $("countercard").hidden=!ko; $("m-counter").classList.toggle("on",ko);
+  if(ko){ $("list").hidden=true; $("statscard").hidden=true; $("todorow").hidden=true; }
   $("hint").hidden=!waitingReceiver(); $("hint").textContent="Passer set · play to the first touch and tap the receiver";
   for(const o of $("segsel").options){ const g=S.idx.segments.find(x=>x.name===o.value);
     const n=Object.values(S.reviews).filter(r=>r.status==="pass"&&r.kick>=g.seg_start&&r.kick<g.seg_start+g.frames).length;
@@ -1316,8 +1338,8 @@ $("plswitch").onclick=()=>switchHere(t=>plmsg(t));
 $("rswitch").onclick=()=>switchHere(t=>{ $("rmsg").textContent=t; S.rEv=null; renderRelay(); });
 
 // ---------- Momentum: a mark [frame, team, phase] holds until the next mark in the same half.
-// The team you did not mark gets the opposite: Buildup/Finishing ↔ Retreat, Transition ↔ Transition, Retreat ↔ Buildup.
-const PHASES=["Buildup","Transition","Finishing","Retreat"], OPP={Buildup:"Retreat",Transition:"Transition",Finishing:"Retreat",Retreat:"Buildup"};
+// The team you did not mark gets the opposite: the team without the ball is in Retreat (Buildup, Transition, Finishing → Retreat), and Retreat → Buildup.
+const PHASES=["Buildup","Transition","Finishing","Retreat"], OPP={Buildup:"Retreat",Transition:"Retreat",Finishing:"Retreat",Retreat:"Buildup"};
 const remember=m=>{ try{ localStorage.setItem("mode",m); }catch(e){} };
 const half2=()=>(S.idx.segments.find(g=>g.name.includes("_2H_"))||{seg_start:Infinity}).seg_start;
 const matchEnd=()=>{ const g=S.idx.segments[S.idx.segments.length-1]; return g.seg_start+g.frames; };
@@ -1420,6 +1442,54 @@ async function exportMoments(){
 }
 $("mexport").onclick=exportMoments;
 
+// ---------- Counter review: every ball won in open play, scored by tools/match_report.py (counters.json);
+// your verdicts go to "counter_reviews" (doc id = frame the ball was won).
+const kList=()=>S.counters.filter(c=>S.kall||c.label!=="none");
+function openCounter(){ remember("counter"); S.guided=false; S.mode="counter"; S.sel=null; S.focus=null; S.tool=null;
+  const L=kList(), i=L.findIndex(c=>!S.kreviews[String(c.regain_frame)]); S.ki=i>=0?i:0; render(); kGo(); }
+function renderCounter(){
+  if(S.mode!=="counter") return; const L=kList(), c=L[S.ki];
+  const done=L.filter(c=>S.kreviews[String(c.regain_frame)]).length;
+  $("kcount").textContent=`${done} of ${L.length} reviewed`; $("kall").textContent=S.kall?"Show counters and possible only":"Show all balls won";
+  $("kall").classList.toggle("on",S.kall);
+  if(!c){ $("kinfo").textContent=S.counters.length?"Nothing to review.":"The counter list is not published yet."; $("kfacts").innerHTML=""; return; }
+  const r=S.kreviews[String(c.regain_frame)], n=v=>v==null?"–":v;
+  const how={"interception":"interception","tackle / duel":"tackle / duel","loose ball":"loose ball"}[c.kind]||c.kind;
+  $("ktitle").textContent=`Counter review ${S.ki+1} / ${L.length}`;
+  $("kinfo").innerHTML=`<b class="t${c.team}">Team ${c.team}</b> won the ball (${how}) in its ${c.won_in} · ${c.clock} · ${c.segment.replace(/_/g," ")}`;
+  $("kfacts").innerHTML=`<span>Suggested</span><span class="kverdict">${c.label}</span>`
+    +`<span>First pass</span><span>${n(c.first_pass_s)} s after, ${n(c.first_pass_gain_m)} m forward</span>`
+    +`<span>Advance in 12 s</span><span>${n(c.progress_m)} m at ${n(c.speed_mps)} m/s · got to the ${c.reached}</span>`
+    +`<span>Opponents goal-side</span><span>${n(c.opp_goal_side)} of ${c.opp_visible} seen</span>`
+    +`<span>Your verdict</span><span class="kverdict">${r?(r.counter?"✓ counter":"✗ not a counter"):"not reviewed"}</span>`;
+  $("kyes").classList.toggle("on",!!r&&r.counter===true); $("kno").classList.toggle("on",!!r&&r.counter===false);
+}
+async function kGo(){
+  const c=kList()[S.ki]; renderCounter(); if(!c) return;
+  if(S.data.name!==c.segment){ $("segsel").value=c.segment; await openSegment(c.segment); render(); }
+  if(S.videoFor!==S.data.name){ $("kmsg").textContent=`Open the video of ${c.segment.replace(/_/g," ")} to watch it.`; seek(c.regain_frame); return; }
+  $("kmsg").textContent=""; kReplay();
+}
+function kReplay(){ const c=kList()[S.ki], v=$("vid"); if(!c) return;
+  if(S.videoFor!==S.data.name){ $("kmsg").textContent="Open the segment video first."; return; }
+  const end=c.regain_frame+Math.round(12*S.data.fps); seek(c.regain_frame-Math.round(2*S.data.fps));
+  v.playbackRate=Number($("speed").value); v.play().catch(()=>{});
+  const stop=()=>{ if(frameFromVideo()>=end||v.paused){ v.pause(); v.removeEventListener("timeupdate",stop); } }; v.addEventListener("timeupdate",stop); }
+async function kDecide(yes){
+  const c=kList()[S.ki]; if(!c||!S.db) return; const id=String(c.regain_frame), before=S.kreviews[id]?clone(S.kreviews[id]):null;
+  const doc={counter:yes, team:c.team, suggested:c.label, segment:c.segment, at:Date.now()};
+  S.kreviews[id]=doc; S.stack.push({type:"kreview", id, before});
+  try{ await S.db.collection("counter_reviews").doc(id).set(doc); }catch(e){ $("kmsg").textContent="Could not save ("+e.code+")."; return; }
+  const L=kList(), nx=L.findIndex((x,i)=>i>S.ki&&!S.kreviews[String(x.regain_frame)]);
+  if(nx>=0){ S.ki=nx; kGo(); } else { renderCounter(); $("kmsg").textContent="All reviewed in this list. ✓"; }
+}
+$("m-counter").onclick=openCounter;
+$("kyes").onclick=()=>kDecide(true); $("kno").onclick=()=>kDecide(false);
+$("kreplay").onclick=kReplay; $("kundo").onclick=()=>undo();
+$("kprev").onclick=()=>{ if(S.ki>0){ S.ki--; kGo(); } };
+$("knext").onclick=()=>{ if(S.ki<kList().length-1){ S.ki++; kGo(); } };
+$("kall").onclick=()=>{ const c=kList()[S.ki]; S.kall=!S.kall; const L=kList(); S.ki=Math.max(0,c?L.indexOf(c):0); kGo(); };
+
 // ---------- controls
 const step=n=>{ const v=$("vid"); if(!v.paused){ v.pause(); S.frame=frameFromVideo(); } seek(S.frame+n); };
 $("bpp").onclick=playPause;
@@ -1469,5 +1539,5 @@ document.addEventListener("keydown",e=>{ if(e.target.tagName==="INPUT") return;
   else if(S.mode==="moment"){ const k=e.key.toLowerCase();
     if(k==="a"||k==="b") setMTeam(k==="a"?0:1); else if("1234".includes(k)&&k.length===1) addMark(PHASES[Number(k)-1]); } });
 window.addEventListener("resize",()=>{ S.dirty=true; });
-load().then(()=>{ requestAnimationFrame(loop); let m=null; try{ m=localStorage.getItem("mode"); }catch(e){} if(m==="moment") openMoment(); else startFix(); }).catch(e=>{ $("tally").textContent="Could not load the match data."; console.error(e); });
+load().then(()=>{ requestAnimationFrame(loop); let m=null; try{ m=localStorage.getItem("mode"); }catch(e){} if(m==="moment") openMoment(); else if(m==="counter") openCounter(); else startFix(); }).catch(e=>{ $("tally").textContent="Could not load the match data."; console.error(e); });
 </script>

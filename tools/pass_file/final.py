@@ -11,8 +11,8 @@ def board(f):
     if not same: return None
     e=min(same,key=lambda e:abs(e[0]-f))          # the nearest board reading in this half
     return max(e[1]+(f-e[0])/idx['fps'], 0 if h==1 else 45*60)
-# match momentum: a mark {f, team, phase} holds until the next mark in the same half; the other team gets the opposite
-OPP={"Buildup":"Retreat","Transition":"Transition","Finishing":"Retreat","Retreat":"Buildup"}
+# match momentum: a mark {f, team, phase} holds until the next mark in the same half; the team without the ball is in Retreat
+OPP={"Buildup":"Retreat","Transition":"Retreat","Finishing":"Retreat","Retreat":"Buildup"}
 try: MARKS=sorted(coll('moments').values(),key=lambda m:m['f'])
 except Exception: MARKS=[]
 H2=min((g['seg_start'] for g in segs if '_2H_' in g['name']),default=10**12)

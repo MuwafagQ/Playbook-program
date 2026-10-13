@@ -26,5 +26,5 @@ For a new match, update the substitutions, typos and dropped clock readings at t
 Momentum: each mark `{f, team, phase}` (from the app's Momentum mode) holds until the next mark in the same half. The other team gets the opposite phase:
 - Buildup → Retreat
 - Finishing → Retreat
-- Transition → Transition
+- Transition → Retreat
 - Retreat → Buildup
