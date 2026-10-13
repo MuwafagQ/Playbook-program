@@ -101,3 +101,6 @@ outputs_test/
 # CVAT ground truth (tracking truth and training frame lists) is versioned
 !data/cvat/**/*.csv
 review/site_*/
+
+# match report outputs (derived match data, rebuilt by tools/match_report.py)
+data/review/report_*/
