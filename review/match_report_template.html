@@ -78,7 +78,7 @@ th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--grid);white
 th{font:600 12px var(--body);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--surface);position:sticky;top:0}
 td.num,th.num{text-align:right}
 .pill{display:inline-block;padding:1px 8px;border-radius:10px;font:600 12px var(--body);border:1px solid currentColor}
-.pill.counter{color:var(--good)}.pill.possible{color:var(--warn)}
+.pill.confirmed{color:var(--good)}.pill.automatic{color:var(--warn)}
 .reach{font-weight:600}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .kpi{border-left:3px solid var(--line);padding-left:10px}
@@ -139,9 +139,9 @@ ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;max-wid
   <section aria-labelledby="s-ct">
     <h2 id="s-ct">Counter-attacks</h2>
     <div class="kpis" id="ctk"></div>
-    <p>Every time a team won the ball in open play (interception, tackle or loose ball) it is scored. A <b>counter</b> needs a quick forward first action and either a fast advance or an exposed opponent. A <b>possible</b> counter has one of the signs. Where it ended shows if the counter died in the middle third or got to the final third.</p>
+    <p>Every time a team won the ball in open play (interception, tackle or loose ball) it is scored, and the likely counter-attacks were replayed and judged by you. The list below is the final one: <b>confirmed</b> by you, or <b>automatic</b> where it was not reviewed (the system's "counter" calls were right in all 8 you checked). Where it ended shows if the counter died in the middle third or got to the final third.</p>
     <div class="filters" role="group" aria-label="Filter counter-attacks">
-      <button data-f="label:all" class="on" id="fAll">All</button><button data-f="label:counter">Counters</button><button data-f="label:possible">Possible</button>
+      <button data-f="label:all" class="on" id="fAll">All</button><button data-f="label:confirmed">Confirmed by you</button><button data-f="label:automatic">Automatic</button>
       <button data-f="team:all" class="on">Both teams</button><button data-f="team:A">Team A</button><button data-f="team:B">Team B</button>
     </div>
     <div class="tbl"><table id="tblCt"></table></div>
@@ -267,15 +267,15 @@ function tipper(box){ const t=document.createElement("div"); t.className="tip"; 
 // counter-attacks
 (function(){
   const C=D.counters, k=(t,l)=>C.filter(c=>c.team===t&&(!l||c.label===l)).length;
-  const fin=t=>C.filter(c=>c.team===t&&c.label==="counter"&&c.reached==="final third").length;
-  $("ctk").innerHTML=["A","B"].map(t=>`<div class="kpi" style="border-color:var(--team${t})"><b>${k(t,"counter")} <span style="font:400 16px var(--body);color:var(--muted)">+ ${k(t,"possible")} possible</span></b><span>Team ${t} counters · ${fin(t)} reached the final third · ${D.teams[t].regains} balls won</span></div>`).join("");
+  const fin=t=>C.filter(c=>c.team===t&&c.reached==="final third").length;
+  $("ctk").innerHTML=["A","B"].map(t=>`<div class="kpi" style="border-color:var(--team${t})"><b>${k(t)}</b><span>Team ${t} counter-attacks · ${fin(t)} reached the final third · ${D.teams[t].regains} balls won</span></div>`).join("");
   $("fAll").textContent=`All ${C.length}`;
   const F={label:"all",team:"all"};
   const kind={"interception":"Interception","tackle / duel":"Tackle / duel","loose ball":"Loose ball"};
   function draw(){
     const rows=C.filter(c=>(F.label==="all"||c.label===F.label)&&(F.team==="all"||c.team===F.team));
     const n=v=>v==null?"–":v;
-    $("tblCt").innerHTML=`<thead><tr><th>Clock</th><th>Team</th><th>Verdict</th><th>Won by</th><th>Won in</th><th class="num">1st pass after</th><th class="num">1st pass gain</th><th class="num">Advance in 12 s</th><th class="num">Speed</th><th class="num">Opp. goal-side / seen</th><th>Got to</th><th>Ended</th></tr></thead><tbody>`+
+    $("tblCt").innerHTML=`<thead><tr><th>Clock</th><th>Team</th><th>Decided</th><th>Won by</th><th>Won in</th><th class="num">1st pass after</th><th class="num">1st pass gain</th><th class="num">Advance in 12 s</th><th class="num">Speed</th><th class="num">Opp. goal-side / seen</th><th>Got to</th><th>Ended</th></tr></thead><tbody>`+
       (rows.length?rows.map(c=>`<tr><td>${c.clock}</td><td><span class="chipT ${c.team}">${c.team}</span></td><td><span class="pill ${c.label}">${c.label}</span></td><td>${kind[c.kind]||c.kind}</td><td>${c.won_in}</td><td class="num">${n(c.first_pass_s)} s</td><td class="num">${n(c.first_pass_gain_m)} m</td><td class="num">${n(c.progress_m)} m</td><td class="num">${n(c.speed_mps)} m/s</td><td class="num">${n(c.opp_goal_side)} / ${c.opp_visible}</td><td class="reach">${c.reached}${c.goal?" · goal":""}</td><td>${c.ended==="intercepted"?"intercepted":c.ended==="lost"?"lost the ball":c.ended}</td></tr>`).join(""):`<tr><td colspan="12">No counter-attacks match this filter.</td></tr>`)+"</tbody>";
   }
   document.querySelectorAll(".filters button").forEach(b=>b.onclick=()=>{ const [key,val]=b.dataset.f.split(":"); F[key]=val;

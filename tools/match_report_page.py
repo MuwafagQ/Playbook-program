@@ -14,9 +14,22 @@ import pandas as pd
 FPS = 30
 
 
-def build(rep: str, passes: str, index: str, pitch: str) -> dict:
+def final_counters(C: pd.DataFrame, verdicts: str | None) -> pd.DataFrame:
+    """The final counter list: your verdicts (Counter Review page, counter_reviews/<regain frame>.json) win;
+    unreviewed regains count when the system called them a counter. Label: confirmed / automatic."""
+    import glob, os
+    V = {os.path.basename(f)[:-5]: json.load(open(f)).get("counter") for f in glob.glob(f"{verdicts}/*.json")} if verdicts else {}
+    C = C.copy(); C["id"] = C.regain_frame.astype(str)
+    yes = C.id.map(V)
+    keep = (yes == True) | (yes.isna() & (C.label == "counter"))
+    out = C[keep].copy(); out["label"] = np.where(out.id.map(V) == True, "confirmed", "automatic")
+    return out.drop(columns="id")
+
+
+def build(rep: str, passes: str, index: str, pitch: str, verdicts: str | None = None) -> dict:
     e = pd.read_csv(f"{rep}/events.csv", keep_default_na=False)
-    C = pd.read_csv(f"{rep}/counters.csv"); T = pd.read_csv(f"{rep}/possessions.csv")
+    C_all = pd.read_csv(f"{rep}/counters.csv"); T = pd.read_csv(f"{rep}/possessions.csv")
+    C = final_counters(C_all, verdicts)
     ph = pd.read_csv(f"{rep}/phases_per_frame.csv.gz", keep_default_na=False)
     S = pd.read_csv(f"{rep}/team_speed_per_second.csv", index_col=0)
     idx = json.load(open(index))["segments"]
@@ -24,13 +37,13 @@ def build(rep: str, passes: str, index: str, pitch: str) -> dict:
     live = ph[(ph.A != "") & (ph.A != "Dead ball")]
     teams = {}
     for t, k in (("A", "0"), ("B", "1")):
-        p = P[P.passer_team == t]; tp = T[T.team == t]; c = C[C.team == t]
+        p = P[P.passer_team == t]; tp = T[T.team == t]; c = C[C.team == t]; c_all = C_all[C_all.team == t]
         teams[t] = {"passes": len(p), "complete_pct": round(100 * (p.outcome == "complete").mean(), 1),
                     "possession_pct": round(100 * (live.possession == t).mean(), 1), "possessions": len(tp),
                     "passes_per_poss": round(tp.passes.mean(), 1), "sec_per_pass": round(tp.sec_per_pass.median(), 2),
-                    "progress_mps": round(tp.progress_mps.median(), 2), "regains": len(c),
-                    "counters": int((c.label == "counter").sum()), "possible": int((c.label == "possible").sum()),
-                    "counters_final_third": int(((c.label == "counter") & (c.reached == "final third")).sum()),
+                    "progress_mps": round(tp.progress_mps.median(), 2), "regains": len(c_all),
+                    "counters": len(c), "confirmed": int((c.label == "confirmed").sum()),
+                    "counters_final_third": int((c.reached == "final third").sum()),
                     "run_speed": round(float(S[k].mean()), 2),
                     "phase_share": {a: round(100 * b, 1) for a, b in live[t].value_counts(normalize=True).items()}}
     segs = []
@@ -46,7 +59,7 @@ def build(rep: str, passes: str, index: str, pitch: str) -> dict:
             row[t] = {"passes": len(pp), "passes_per_poss_min": round(len(pp) / (poss_s / 60), 1) if poss_s > 30 else None,
                       "run_speed": round(float(sp[k].mean()), 2) if len(sp) else None,
                       "progress_mps": round(float(tp.progress_mps.median()), 2) if tp.progress_mps.notna().any() else None,
-                      "counters": int(((C.team == t) & (C.label == "counter") & (C.regain_frame >= a) & (C.regain_frame < b)).sum())}
+                      "counters": int(((C.team == t) & (C.regain_frame >= a) & (C.regain_frame < b)).sum())}
         segs.append(row)
     S["min"] = (S.index // 60).astype(int)
     m = S.groupby("min")[["0", "1"]].mean().round(2)
@@ -56,8 +69,8 @@ def build(rep: str, passes: str, index: str, pitch: str) -> dict:
     agree = json.load(open(f"{rep}/phase_agreement.json"))["agreement_team_A"]
     return {"teams": teams, "segments": segs,
             "speed_minute": [{"min": int(i), "A": None if np.isnan(r["0"]) else r["0"], "B": None if np.isnan(r["1"]) else r["1"]} for i, r in m.iterrows()],
-            "counters": json.loads(C[C.label != "none"][keep].sort_values("regain_frame").to_json(orient="records")),
-            "agreement": agree, "n_passes": len(P), "n_regains": len(C), "pitch": pitch,
+            "counters": json.loads(C[keep].sort_values("regain_frame").to_json(orient="records")),
+            "agreement": agree, "n_passes": len(P), "n_regains": len(C_all), "pitch": pitch,
             "seg_bounds": [[g["name"], g["seg_start"], g["frames"]] for g in idx],
             "goals": [{"team": r.passer_team, "clock": r.kick_clock} for r in goals.itertuples()]}
 
@@ -66,8 +79,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rep", required=True); ap.add_argument("--passes", required=True); ap.add_argument("--index", required=True)
     ap.add_argument("--template", required=True); ap.add_argument("--out", required=True); ap.add_argument("--pitch", default="105x68")
+    ap.add_argument("--verdicts", help="folder of your counter verdicts (counter_reviews/*.json)")
     a = ap.parse_args()
-    d = build(a.rep, a.passes, a.index, a.pitch)
+    d = build(a.rep, a.passes, a.index, a.pitch, a.verdicts)
+    final_counters(pd.read_csv(f"{a.rep}/counters.csv"), a.verdicts).to_csv(f"{a.rep}/counters_final.csv", index=False)
     json.dump(d, open(f"{a.rep}/report_data.json", "w"), separators=(",", ":"))
     html = open(a.template).read().replace("__DATA__", json.dumps(d, separators=(",", ":")))
     open(a.out, "w").write(html)
