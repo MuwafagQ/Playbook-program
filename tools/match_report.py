@@ -326,11 +326,11 @@ def counters(e, P, D, pos: Positions) -> pd.DataFrame:
         g0 = p.gained
         first = ev.iloc[0]
         # where the ball was won: the interception touch (receiver of the lost pass) or the first kick
-        u0 = fwd(first.passer_x, h, T, D)
+        u0 = fwd(first.passer_x, h, T, D); y0 = first.passer_y
         if p.kind == "interception":
             prev = e[(e.touch == g0)]
             if len(prev) and not np.isnan(prev.iloc[0].receiver_x):
-                u0 = fwd(prev.iloc[0].receiver_x, h, T, D)
+                u0 = fwd(prev.iloc[0].receiver_x, h, T, D); y0 = prev.iloc[0].receiver_y
         t_first = (first.kick - g0) / FPS
         u_kick = fwd(first.passer_x, h, T, D); u_recv = fwd(first.receiver_x, h, T, D)
         gain = u_recv - u_kick if first.outcome == "complete" or first.receiver_team == T else u_recv - u_kick
@@ -366,7 +366,11 @@ def counters(e, P, D, pos: Positions) -> pd.DataFrame:
         # outcome: furthest third over the whole possession (capped at the horizon for the counter)
         reach = third(best) if not np.isnan(best) else np.nan
         end_third = ["own third", "middle third", "final third"][int(reach)] if not np.isnan(reach) else "unknown"
+        side = lambda y: None if np.isnan(y) else round(float(y if D.get((h, T), 1) > 0 else PITCH_W - y), 1)
+        rnd = lambda v: None if np.isnan(v) else round(float(v), 1)
         rows.append({"team": T, "half": h, "segment": p.segment, "clock": first.clock, "regain_frame": g0, "kind": p.kind,
+                     "won_u": rnd(u0), "won_y": side(y0), "p0_u": rnd(u_kick), "p0_y": side(first.passer_y),
+                     "p1_u": rnd(u_recv), "p1_y": side(first.receiver_y),
                      "won_at_m": round(u0, 1) if not np.isnan(u0) else None,
                      "won_in": ["own third", "middle third", "final third"][third(u0)] if not np.isnan(u0) else "unknown",
                      "first_pass_s": round(t_first, 1), "first_pass_gain_m": None if np.isnan(gain) else round(gain, 1),
