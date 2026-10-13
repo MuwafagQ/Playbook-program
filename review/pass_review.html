@@ -116,7 +116,9 @@ button:disabled{opacity:.45;cursor:default}
 #gtext{font-size:15px}
 .badge{position:absolute;top:8px;left:8px;background:var(--warn);color:#fff;font:700 10px var(--body);padding:1px 6px;border-radius:9px}
 /* Momentum mode: pick the team, then tap its phase; the other team gets the opposite phase */
-:root{--ph-buildup:#2f9e5b;--ph-transition:#d9922b;--ph-finishing:#d2463a;--ph-retreat:#3d72c4}
+:root{--ph-buildup:#eda100;--ph-transition:#1baf7a;--ph-finishing:#e34948;--ph-retreat:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ph-buildup:#c98500;--ph-transition:#199e70;--ph-finishing:#e66767;--ph-retreat:#3987e5}}
+:root[data-theme="dark"]{--ph-buildup:#c98500;--ph-transition:#199e70;--ph-finishing:#e66767;--ph-retreat:#3987e5}
 .mteam{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .mteam button{min-height:56px;font:700 20px var(--display);letter-spacing:.04em}
 .mteam button.A.on{background:var(--teamA);border-color:var(--teamA);color:#fff}

@@ -1,0 +1,284 @@
+<title>Match Video 2 Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one reading column (max 1040px); summary first (head-to-head), then phases, game speed, counter-attacks, method. */
+:root{
+  --bg:#f3f5f1; --surface:#fcfcfb; --line:#d7ddd4; --grid:#e6eae3; --fg:#17201a; --muted:#56635a;
+  --accent:#1f7a4d;
+  --teamA:#c23f80; --teamB:#1597b8;
+  --ph-buildup:#eda100; --ph-transition:#1baf7a; --ph-finishing:#e34948; --ph-retreat:#2a78d6; --ph-dead:#a3aaa2;
+  --good:#1f7a4d; --warn:#a86a00;
+  --display:"Saira Condensed","Arial Narrow",sans-serif; --body:"Source Sans 3",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101512; --surface:#1a1a19; --line:#2e3a32; --grid:#252d27; --fg:#e9efe9; --muted:#a3b0a6; --accent:#3fbf7f;
+  --teamA:#d55181; --teamB:#2a9fc4;
+  --ph-buildup:#c98500; --ph-transition:#199e70; --ph-finishing:#e66767; --ph-retreat:#3987e5; --ph-dead:#5d655e;
+  --good:#3fbf7f; --warn:#e2a64a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101512; --surface:#1a1a19; --line:#2e3a32; --grid:#252d27; --fg:#e9efe9; --muted:#a3b0a6; --accent:#3fbf7f;
+  --teamA:#d55181; --teamB:#2a9fc4;
+  --ph-buildup:#c98500; --ph-transition:#199e70; --ph-finishing:#e66767; --ph-retreat:#3987e5; --ph-dead:#5d655e;
+  --good:#3fbf7f; --warn:#e2a64a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.5 var(--body);padding-inline:16px;padding-block:20px 48px}
+main{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:40px}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:.02em;text-wrap:balance;margin:0}
+h1{font-size:clamp(30px,5vw,44px);line-height:1.05}
+h2{font-size:24px;text-transform:uppercase;letter-spacing:.05em}
+h3{font-size:17px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+p{margin:0;max-width:68ch}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lede{color:var(--muted);font-size:17px}
+section{display:flex;flex-direction:column;gap:16px}
+.head{display:flex;flex-direction:column;gap:10px;border-bottom:2px solid var(--fg);padding-bottom:18px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;font:500 13px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.tA{color:var(--teamA)}.tB{color:var(--teamB)}
+.chipT{display:inline-block;min-width:26px;text-align:center;padding:1px 7px;border-radius:4px;color:#fff;font:700 14px var(--display);letter-spacing:.04em}
+.chipT.A{background:var(--teamA)}.chipT.B{background:var(--teamB)}
+/* head-to-head */
+.h2h{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 16px}
+.h2h .row{display:grid;grid-template-columns:72px 1fr minmax(120px,190px) 1fr 72px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--grid)}
+.h2h .row:last-child{border-bottom:0}
+.h2h .v{font:500 15px var(--mono);font-variant-numeric:tabular-nums}
+.h2h .v.a{text-align:right}.h2h .lab{text-align:center;font-size:14px;color:var(--muted);line-height:1.2}
+.bar{height:12px;display:flex}.bar.a{justify-content:flex-end}
+.bar i{display:block;height:100%;border-radius:2px}
+.bar.a i{background:var(--teamA)}.bar.b i{background:var(--teamB)}
+.h2h .hdr{font:700 18px var(--display);letter-spacing:.04em;border-bottom:1px solid var(--line)}
+.h2h .bars{display:block;min-width:0}
+@media (max-width:620px){.h2h .row{grid-template-columns:64px 1fr 1fr 64px;grid-template-areas:"lab lab lab lab" "va ba bb vb";row-gap:4px}
+  .h2h .row.hdr{grid-template-areas:"va ba bb vb"}
+  .h2h .lab{grid-area:lab}.h2h .v.a{grid-area:va}.h2h .v.b{grid-area:vb}.h2h .bars.ba{grid-area:ba}.h2h .bars.bb{grid-area:bb}
+  .h2h .row.hdr span:nth-child(2),.h2h .row.hdr span:nth-child(3){display:none}}
+.note{font-size:14px;color:var(--muted)}
+/* phases */
+.phase{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center}
+.stack{display:flex;gap:2px;height:34px}
+.stack div{height:100%;border-radius:2px;display:flex;align-items:center;justify-content:center;font:600 13px var(--body);color:#fff;min-width:0;overflow:hidden;white-space:nowrap}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:2px;display:inline-block}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{fill:var(--muted);font:12px var(--body)}
+.tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);font:13px/1.35 var(--body);padding:6px 9px;border-radius:5px;white-space:nowrap;transform:translate(-50%,-110%);z-index:2}
+.tip b{font-weight:600}
+/* counters */
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters button{font:600 14px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:6px;padding:7px 12px;min-height:40px;cursor:pointer}
+.filters button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.filters button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--grid);white-space:nowrap}
+th{font:600 12px var(--body);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--surface);position:sticky;top:0}
+td.num,th.num{text-align:right}
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font:600 12px var(--body);border:1px solid currentColor}
+.pill.counter{color:var(--good)}.pill.possible{color:var(--warn)}
+.reach{font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{border-left:3px solid var(--line);padding-left:10px}
+.kpi b{display:block;font:700 28px var(--display);line-height:1.1}
+.kpi span{font-size:13px;color:var(--muted)}
+dl{display:grid;grid-template-columns:minmax(120px,190px) 1fr;gap:8px 18px;margin:0}
+dt{font-weight:600}dd{margin:0;color:var(--muted);min-width:0}
+@media (max-width:560px){dl{grid-template-columns:1fr}dd{margin-bottom:6px}}
+ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;max-width:72ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<main>
+  <header class="head">
+    <span class="eyebrow">Match report · match_video_2 · night match · 94 min</span>
+    <h1>Phases, game speed and counter-attacks</h1>
+    <p class="lede">Built from the 813 passes you tagged and the players' pitch positions from tracking. <span class="chipT A">A</span> is your team (squad numbers A97, A16…), <span class="chipT B">B</span> the opponent.</p>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <section aria-labelledby="s-h2h">
+    <h2 id="s-h2h">Head to head</h2>
+    <div class="h2h" id="h2h"></div>
+    <p class="note">Possession counts only time in play with a known team on the ball. "Progress" is how fast a possession moves toward the opponent's goal, start to furthest point. Running speed is the average of each team's players seen on screen.</p>
+  </section>
+
+  <section aria-labelledby="s-ph">
+    <h2 id="s-ph">Phases by third</h2>
+    <p>Share of time in play in each phase, worked out automatically. The team on the ball is in Buildup in its own third, Transition in the middle third and Finishing in the final third. The other team is in Retreat, or Transition when the ball is in the middle third.</p>
+    <div class="panel">
+      <div class="phase"><span class="chipT A">A</span><div class="stack" id="stA"></div></div>
+      <div class="phase"><span class="chipT B">B</span><div class="stack" id="stB"></div></div>
+      <div class="legend" id="phleg"></div>
+    </div>
+    <p class="note" id="agree"></p>
+  </section>
+
+  <section aria-labelledby="s-sp">
+    <h2 id="s-sp">Game speed</h2>
+    <p>Two measures, shown per 5-minute block, so you can see when the game sped up or slowed down.</p>
+    <div class="cards">
+      <div class="panel">
+        <h3>Running speed, m/s</h3>
+        <div class="legend"><span><i class="sw" style="background:var(--teamA)"></i>A</span><span><i class="sw" style="background:var(--teamB)"></i>B</span></div>
+        <div class="chart" id="chSpeed"></div>
+        <p class="note">Average speed of each team's players on screen, minute by minute. Higher means more running: pressing, counters, recovery runs.</p>
+      </div>
+      <div class="panel">
+        <h3>Passes per minute on the ball</h3>
+        <div class="legend"><span><i class="sw" style="background:var(--teamA)"></i>A</span><span><i class="sw" style="background:var(--teamB)"></i>B</span></div>
+        <div class="chart" id="chTempo"></div>
+        <p class="note">Ball circulation: passes divided by the minutes the team had the ball in that block. Higher means quicker passing.</p>
+      </div>
+    </div>
+    <div class="tbl"><table id="tblSeg"></table></div>
+  </section>
+
+  <section aria-labelledby="s-ct">
+    <h2 id="s-ct">Counter-attacks</h2>
+    <div class="kpis" id="ctk"></div>
+    <p>Every time a team won the ball in open play (interception, tackle or loose ball) it is scored. A <b>counter</b> needs a quick forward first action and either a fast advance or an exposed opponent. A <b>possible</b> counter has one of the signs. Where it ended shows if the counter died in the middle third or got to the final third.</p>
+    <div class="filters" role="group" aria-label="Filter counter-attacks">
+      <button data-f="label:all" class="on" id="fAll">All</button><button data-f="label:counter">Counters</button><button data-f="label:possible">Possible</button>
+      <button data-f="team:all" class="on">Both teams</button><button data-f="team:A">Team A</button><button data-f="team:B">Team B</button>
+    </div>
+    <div class="tbl"><table id="tblCt"></table></div>
+    <p class="note">The clock is the board clock at the first pass after winning the ball. To watch one: in Pass Review, open its segment and find the pass at that time.</p>
+  </section>
+
+  <section aria-labelledby="s-how">
+    <h2 id="s-how">How it is measured</h2>
+    <dl>
+      <dt>Who has the ball</dt><dd>Your tagged passes, plus the player nearest the ball on screen to time tackles and loose balls between passes.</dd>
+      <dt>Thirds</dt><dd>Pitch positions from the camera calibration, smoothed over half a second, read at each kick and touch. Each team's attacking direction comes from where its goalkeeper plays, per half.</dd>
+      <dt>Quick first action</dt><dd>Within 5 s of winning the ball: a pass gaining 10 m or more toward goal (within 45° of straight), or the ball carried 10 m forward.</dd>
+      <dt>Fast advance</dt><dd>At least 2.5 m/s toward goal over the first 12 s.</dd>
+      <dt>Exposed opponent</dt><dd>At the moment the ball is won, 5 or fewer of the opponent's outfield players on screen are between the ball and their goal (only when 6 or more are visible).</dd>
+      <dt>Where it ended</dt><dd>The furthest third reached in the first 12 s, before the ball was lost.</dd>
+    </dl>
+    <h3>Limits of this first report</h3>
+    <ul>
+      <li>Only events you tagged as passes are known. Shots, clearances and dribbles are not tagged yet, so some regains and goal attempts are missing.</li>
+      <li>The camera shows part of the pitch, so the "exposed" check counts only the players in view.</li>
+      <li>Distances use a 120 × 70 m pitch model. If the real pitch is shorter, distances and speeds read up to about 10% high.</li>
+      <li>Goals are the two marked "Goal" in your pass notes (both team B).</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+const D = {"teams":{"A":{"passes":343,"complete_pct":84.8,"intercepted":41,"possession_pct":42.6,"possessions":71,"passes_per_poss":4.8,"sec_per_pass":3.63,"progress_mps":1.76,"regains":44,"counters":8,"possible":8,"counters_final_third":3,"run_speed":2.15,"phase_share":{"Transition":43.7,"Retreat":32.1,"Buildup":17.9,"Finishing":6.3},"goals":0},"B":{"passes":470,"complete_pct":87.2,"intercepted":44,"possession_pct":57.4,"possessions":75,"passes_per_poss":6.3,"sec_per_pass":3.95,"progress_mps":1.8,"regains":49,"counters":9,"possible":5,"counters_final_third":3,"run_speed":2.2,"phase_share":{"Transition":43.7,"Retreat":24.2,"Finishing":20.0,"Buildup":12.1},"goals":2}},"segments":[{"segment":"01_1H_00-05","label":"1H 00-05","A":{"passes":29,"poss_min":2.12,"passes_per_poss_min":13.7,"run_speed":2.74,"sec_per_pass":2.69,"progress_mps":1.77,"counters":0},"B":{"passes":30,"poss_min":2.07,"passes_per_poss_min":14.5,"run_speed":2.8,"sec_per_pass":3.77,"progress_mps":1.02,"counters":1}},{"segment":"02_1H_05-10","label":"1H 05-10","A":{"passes":26,"poss_min":2.04,"passes_per_poss_min":12.8,"run_speed":2.15,"sec_per_pass":5.18,"progress_mps":1.56,"counters":1},"B":{"passes":18,"poss_min":1.17,"passes_per_poss_min":15.4,"run_speed":2.19,"sec_per_pass":4.45,"progress_mps":1.83,"counters":0}},{"segment":"03_1H_10-15","label":"1H 10-15","A":{"passes":39,"poss_min":2.13,"passes_per_poss_min":18.3,"run_speed":2.26,"sec_per_pass":2.89,"progress_mps":1.55,"counters":0},"B":{"passes":15,"poss_min":1.39,"passes_per_poss_min":10.8,"run_speed":2.56,"sec_per_pass":4.52,"progress_mps":1.81,"counters":1}},{"segment":"04_1H_15-20","label":"1H 15-20","A":{"passes":16,"poss_min":1.68,"passes_per_poss_min":9.5,"run_speed":2.06,"sec_per_pass":3.4,"progress_mps":3.42,"counters":0},"B":{"passes":20,"poss_min":2.03,"passes_per_poss_min":9.9,"run_speed":1.91,"sec_per_pass":6.71,"progress_mps":1.16,"counters":0}},{"segment":"05_1H_20-25","label":"1H 20-25","A":{"passes":6,"poss_min":1.68,"passes_per_poss_min":3.6,"run_speed":2.48,"sec_per_pass":5.23,"progress_mps":13.88,"counters":0},"B":{"passes":32,"poss_min":2.25,"passes_per_poss_min":14.3,"run_speed":2.33,"sec_per_pass":4.01,"progress_mps":1.29,"counters":0}},{"segment":"06_1H_25-30","label":"1H 25-30","A":{"passes":4,"poss_min":1.86,"passes_per_poss_min":2.1,"run_speed":1.82,"sec_per_pass":4.76,"progress_mps":2.93,"counters":0},"B":{"passes":25,"poss_min":2.97,"passes_per_poss_min":8.4,"run_speed":1.9,"sec_per_pass":4.57,"progress_mps":1.72,"counters":1}},{"segment":"07_1H_30-35","label":"1H 30-35","A":{"passes":19,"poss_min":1.79,"passes_per_poss_min":10.6,"run_speed":2.18,"sec_per_pass":3.79,"progress_mps":1.44,"counters":1},"B":{"passes":36,"poss_min":2.76,"passes_per_poss_min":13.1,"run_speed":2.28,"sec_per_pass":3.62,"progress_mps":1.56,"counters":1}},{"segment":"08_1H_35-40","label":"1H 35-40","A":{"passes":15,"poss_min":1.62,"passes_per_poss_min":9.2,"run_speed":1.97,"sec_per_pass":3.7,"progress_mps":1.77,"counters":1},"B":{"passes":32,"poss_min":2.09,"passes_per_poss_min":15.3,"run_speed":2.17,"sec_per_pass":3.85,"progress_mps":1.67,"counters":0}},{"segment":"09_1H_40-45","label":"1H 40-45","A":{"passes":24,"poss_min":1.6,"passes_per_poss_min":15.0,"run_speed":2.2,"sec_per_pass":3.55,"progress_mps":1.38,"counters":1},"B":{"passes":21,"poss_min":1.98,"passes_per_poss_min":10.6,"run_speed":2.17,"sec_per_pass":4.64,"progress_mps":2.9,"counters":1}},{"segment":"10_1H_45-47","label":"1H 45-47","A":{"passes":17,"poss_min":0.89,"passes_per_poss_min":19.2,"run_speed":2.65,"sec_per_pass":3.04,"progress_mps":2.34,"counters":1},"B":{"passes":16,"poss_min":1.63,"passes_per_poss_min":9.8,"run_speed":2.6,"sec_per_pass":14.34,"progress_mps":0.56,"counters":0}},{"segment":"11_2H_45-50","label":"2H 45-50","A":{"passes":29,"poss_min":1.79,"passes_per_poss_min":16.2,"run_speed":2.47,"sec_per_pass":4.28,"progress_mps":1.51,"counters":0},"B":{"passes":34,"poss_min":2.19,"passes_per_poss_min":15.5,"run_speed":2.53,"sec_per_pass":3.82,"progress_mps":1.47,"counters":0}},{"segment":"12_2H_50-55","label":"2H 50-55","A":{"passes":28,"poss_min":3.18,"passes_per_poss_min":8.8,"run_speed":2.11,"sec_per_pass":5.38,"progress_mps":0.84,"counters":0},"B":{"passes":11,"poss_min":1.02,"passes_per_poss_min":10.7,"run_speed":2.1,"sec_per_pass":3.33,"progress_mps":2.63,"counters":0}},{"segment":"13_2H_55-60","label":"2H 55-60","A":{"passes":19,"poss_min":1.1,"passes_per_poss_min":17.3,"run_speed":2.05,"sec_per_pass":3.5,"progress_mps":2.18,"counters":0},"B":{"passes":28,"poss_min":2.07,"passes_per_poss_min":13.6,"run_speed":2.08,"sec_per_pass":3.99,"progress_mps":1.33,"counters":0}},{"segment":"14_2H_60-65","label":"2H 60-65","A":{"passes":2,"poss_min":0.38,"passes_per_poss_min":null,"run_speed":1.69,"sec_per_pass":null,"progress_mps":null,"counters":0},"B":{"passes":19,"poss_min":1.54,"passes_per_poss_min":12.3,"run_speed":1.88,"sec_per_pass":5.17,"progress_mps":3.23,"counters":0}},{"segment":"15_2H_65-70","label":"2H 65-70","A":{"passes":9,"poss_min":2.1,"passes_per_poss_min":4.3,"run_speed":1.94,"sec_per_pass":14.53,"progress_mps":0.89,"counters":0},"B":{"passes":12,"poss_min":2.9,"passes_per_poss_min":4.1,"run_speed":1.94,"sec_per_pass":4.28,"progress_mps":0.89,"counters":0}},{"segment":"16_2H_70-75","label":"2H 70-75","A":{"passes":14,"poss_min":2.48,"passes_per_poss_min":5.7,"run_speed":1.97,"sec_per_pass":4.97,"progress_mps":4.62,"counters":1},"B":{"passes":22,"poss_min":2.52,"passes_per_poss_min":8.7,"run_speed":2.1,"sec_per_pass":4.49,"progress_mps":3.93,"counters":2}},{"segment":"17_2H_75-80","label":"2H 75-80","A":{"passes":23,"poss_min":1.42,"passes_per_poss_min":16.2,"run_speed":2.36,"sec_per_pass":3.63,"progress_mps":3.7,"counters":1},"B":{"passes":29,"poss_min":2.21,"passes_per_poss_min":13.1,"run_speed":2.28,"sec_per_pass":3.74,"progress_mps":2.0,"counters":1}},{"segment":"18_2H_80-85","label":"2H 80-85","A":{"passes":3,"poss_min":0.19,"passes_per_poss_min":null,"run_speed":1.73,"sec_per_pass":4.2,"progress_mps":0.0,"counters":0},"B":{"passes":22,"poss_min":2.86,"passes_per_poss_min":7.7,"run_speed":1.78,"sec_per_pass":7.63,"progress_mps":0.99,"counters":0}},{"segment":"19_2H_85-90","label":"2H 85-90","A":{"passes":2,"poss_min":0.19,"passes_per_poss_min":null,"run_speed":2.19,"sec_per_pass":null,"progress_mps":null,"counters":1},"B":{"passes":31,"poss_min":4.41,"passes_per_poss_min":7.0,"run_speed":2.17,"sec_per_pass":6.0,"progress_mps":2.16,"counters":0}},{"segment":"20_2H_90-94","label":"2H 90-94","A":{"passes":19,"poss_min":2.22,"passes_per_poss_min":8.6,"run_speed":2.27,"sec_per_pass":3.99,"progress_mps":2.77,"counters":0},"B":{"passes":17,"poss_min":1.7,"passes_per_poss_min":10.0,"run_speed":2.51,"sec_per_pass":3.57,"progress_mps":6.57,"counters":1}}],"speed_minute":[{"min":0,"A":2.24,"B":2.38},{"min":1,"A":2.58,"B":3.1},{"min":2,"A":3.3,"B":3.31},{"min":3,"A":2.75,"B":2.75},{"min":4,"A":2.84,"B":2.44},{"min":5,"A":1.86,"B":2.26},{"min":6,"A":2.39,"B":2.14},{"min":7,"A":1.69,"B":1.85},{"min":8,"A":2.26,"B":2.3},{"min":9,"A":2.52,"B":2.39},{"min":10,"A":2.54,"B":2.59},{"min":11,"A":2.21,"B":2.14},{"min":12,"A":1.89,"B":2.48},{"min":13,"A":1.78,"B":2.65},{"min":14,"A":2.83,"B":2.9},{"min":15,"A":2.39,"B":2.45},{"min":16,"A":1.71,"B":1.53},{"min":17,"A":2.06,"B":1.78},{"min":18,"A":2.33,"B":2.12},{"min":19,"A":1.72,"B":1.8},{"min":21,"A":2.66,"B":2.52},{"min":22,"A":2.22,"B":2.11},{"min":23,"A":2.06,"B":1.72},{"min":24,"A":2.95,"B":2.94},{"min":25,"A":2.56,"B":2.87},{"min":26,"A":1.3,"B":1.38},{"min":27,"A":0.75,"B":0.81},{"min":28,"A":1.62,"B":1.56},{"min":29,"A":2.93,"B":2.91},{"min":30,"A":1.64,"B":1.75},{"min":31,"A":1.75,"B":1.75},{"min":32,"A":2.35,"B":2.64},{"min":33,"A":2.4,"B":2.62},{"min":34,"A":2.61,"B":2.57},{"min":35,"A":2.45,"B":2.58},{"min":36,"A":1.96,"B":2.09},{"min":37,"A":1.3,"B":1.55},{"min":38,"A":2.2,"B":2.42},{"min":39,"A":2.22,"B":2.44},{"min":40,"A":1.99,"B":2.25},{"min":41,"A":2.13,"B":2.17},{"min":42,"A":2.12,"B":1.68},{"min":43,"A":2.53,"B":2.52},{"min":44,"A":2.13,"B":2.16},{"min":45,"A":2.41,"B":2.52},{"min":46,"A":2.88,"B":2.77},{"min":47,"A":2.28,"B":2.33},{"min":48,"A":2.69,"B":2.47},{"min":49,"A":2.56,"B":2.62},{"min":50,"A":2.22,"B":2.2},{"min":51,"A":2.33,"B":2.51},{"min":52,"A":2.56,"B":2.59},{"min":53,"A":2.37,"B":2.42},{"min":54,"A":2.53,"B":2.52},{"min":55,"A":2.14,"B":2.06},{"min":56,"A":2.22,"B":2.22},{"min":57,"A":0.92,"B":0.98},{"min":58,"A":2.53,"B":2.39},{"min":59,"A":2.05,"B":2.15},{"min":60,"A":2.03,"B":2.01},{"min":61,"A":2.11,"B":2.22},{"min":62,"A":1.58,"B":1.69},{"min":63,"A":1.79,"B":2.13},{"min":64,"A":2.58,"B":2.63},{"min":65,"A":1.57,"B":1.92},{"min":66,"A":1.36,"B":1.54},{"min":67,"A":1.24,"B":1.38},{"min":68,"A":1.92,"B":1.74},{"min":69,"A":2.39,"B":2.66},{"min":70,"A":1.44,"B":1.52},{"min":71,"A":2.58,"B":2.44},{"min":72,"A":1.25,"B":1.13},{"min":73,"A":1.11,"B":1.1},{"min":74,"A":1.87,"B":1.98},{"min":75,"A":2.45,"B":2.76},{"min":76,"A":3.02,"B":3.14},{"min":77,"A":1.69,"B":1.74},{"min":78,"A":1.83,"B":1.76},{"min":79,"A":2.55,"B":2.7},{"min":80,"A":2.96,"B":2.84},{"min":81,"A":2.59,"B":2.44},{"min":82,"A":1.64,"B":1.46},{"min":83,"A":1.37,"B":1.62},{"min":84,"A":1.77,"B":1.46},{"min":85,"A":2.02,"B":2.04},{"min":86,"A":2.08,"B":2.13},{"min":87,"A":1.51,"B":1.76},{"min":88,"A":1.97,"B":2.05},{"min":89,"A":2.27,"B":1.96},{"min":90,"A":2.3,"B":2.28},{"min":91,"A":2.73,"B":2.57},{"min":92,"A":1.65,"B":1.92},{"min":93,"A":2.58,"B":2.62},{"min":94,"A":2.48,"B":2.93},{"min":95,"A":2.36,"B":2.59},{"min":96,"A":2.32,"B":2.32},{"min":97,"A":1.41,"B":2.32}],"counters":[{"team":"B","clock":"2:54","segment":"01_1H_00-05","kind":"interception","won_in":"own third","first_pass_s":0.1,"first_pass_gain_m":17.4,"carry_m":-0.1,"progress_m":0.0,"speed_mps":0.0,"opp_visible":8,"opp_goal_side":6.0,"mates_ahead":6.0,"label":"possible","reached":"own third","passes":1,"ended":"intercepted","goal":false,"regain_frame":5307},{"team":"B","clock":"3:17","segment":"01_1H_00-05","kind":"interception","won_in":"own third","first_pass_s":4.5,"first_pass_gain_m":43.4,"carry_m":17.3,"progress_m":60.7,"speed_mps":5.06,"opp_visible":8,"opp_goal_side":7.0,"mates_ahead":7.0,"label":"counter","reached":"final third","passes":2,"ended":"lost","goal":false,"regain_frame":5856},{"team":"A","clock":"5:40","segment":"02_1H_05-10","kind":"interception","won_in":"own third","first_pass_s":3.6,"first_pass_gain_m":35.6,"carry_m":10.5,"progress_m":46.1,"speed_mps":3.84,"opp_visible":7,"opp_goal_side":7.0,"mates_ahead":4.0,"label":"counter","reached":"middle third","passes":5,"ended":"lost","goal":false,"regain_frame":10247},{"team":"B","clock":"6:11","segment":"02_1H_05-10","kind":"tackle / duel","won_in":"middle third","first_pass_s":0.6,"first_pass_gain_m":-1.4,"carry_m":0.0,"progress_m":30.9,"speed_mps":2.58,"opp_visible":7,"opp_goal_side":5.0,"mates_ahead":2.0,"label":"possible","reached":"final third","passes":5,"ended":"intercepted","goal":false,"regain_frame":11261},{"team":"B","clock":"15:01","segment":"04_1H_15-20","kind":"interception","won_in":"own third","first_pass_s":3.0,"first_pass_gain_m":11.2,"carry_m":-1.6,"progress_m":31.0,"speed_mps":2.58,"opp_visible":1,"opp_goal_side":1.0,"mates_ahead":3.0,"label":"counter","reached":"middle third","passes":5,"ended":"intercepted","goal":false,"regain_frame":27083},{"team":"B","clock":"21:06","segment":"05_1H_20-25","kind":"interception","won_in":"own third","first_pass_s":2.5,"first_pass_gain_m":5.2,"carry_m":1.9,"progress_m":39.9,"speed_mps":3.32,"opp_visible":7,"opp_goal_side":7.0,"mates_ahead":6.0,"label":"possible","reached":"middle third","passes":16,"ended":"intercepted","goal":false,"regain_frame":38064},{"team":"A","clock":"23:53","segment":"05_1H_20-25","kind":"interception","won_in":"middle third","first_pass_s":1.5,"first_pass_gain_m":21.3,"carry_m":4.5,"progress_m":25.7,"speed_mps":2.38,"opp_visible":8,"opp_goal_side":6.0,"mates_ahead":1.0,"label":"possible","reached":"middle third","passes":1,"ended":"lost","goal":false,"regain_frame":43296},{"team":"B","clock":"29:04","segment":"06_1H_25-30","kind":"interception","won_in":"own third","first_pass_s":2.6,"first_pass_gain_m":-9.3,"carry_m":11.1,"progress_m":22.8,"speed_mps":1.9,"opp_visible":6,"opp_goal_side":3.0,"mates_ahead":3.0,"label":"counter","reached":"own third","passes":9,"ended":"lost","goal":false,"regain_frame":52598},{"team":"B","clock":"34:35","segment":"07_1H_30-35","kind":"interception","won_in":"middle third","first_pass_s":0.7,"first_pass_gain_m":18.1,"carry_m":0.8,"progress_m":52.0,"speed_mps":4.33,"opp_visible":7,"opp_goal_side":6.0,"mates_ahead":4.0,"label":"counter","reached":"final third","passes":4,"ended":"loose ball","goal":false,"regain_frame":62575},{"team":"A","clock":"34:48","segment":"07_1H_30-35","kind":"loose ball","won_in":"own third","first_pass_s":1.2,"first_pass_gain_m":20.8,"carry_m":0.0,"progress_m":41.5,"speed_mps":3.46,"opp_visible":6,"opp_goal_side":5.0,"mates_ahead":9.0,"label":"counter","reached":"middle third","passes":9,"ended":"intercepted","goal":false,"regain_frame":62948},{"team":"A","clock":"38:42","segment":"08_1H_35-40","kind":"interception","won_in":"own third","first_pass_s":0.0,"first_pass_gain_m":22.4,"carry_m":0.0,"progress_m":27.3,"speed_mps":4.06,"opp_visible":12,"opp_goal_side":11.0,"mates_ahead":3.0,"label":"counter","reached":"own third","passes":2,"ended":"lost","goal":false,"regain_frame":69996},{"team":"B","clock":"38:48","segment":"08_1H_35-40","kind":"tackle / duel","won_in":"middle third","first_pass_s":0.9,"first_pass_gain_m":10.9,"carry_m":0.0,"progress_m":14.6,"speed_mps":1.22,"opp_visible":12,"opp_goal_side":10.0,"mates_ahead":8.0,"label":"possible","reached":"final third","passes":16,"ended":"intercepted","goal":false,"regain_frame":70172},{"team":"A","clock":"40:40","segment":"09_1H_40-45","kind":"tackle / duel","won_in":"own third","first_pass_s":1.0,"first_pass_gain_m":12.9,"carry_m":0.0,"progress_m":16.2,"speed_mps":1.35,"opp_visible":6,"opp_goal_side":4.0,"mates_ahead":7.0,"label":"counter","reached":"own third","passes":15,"ended":"intercepted","goal":false,"regain_frame":73513},{"team":"A","clock":"43:16","segment":"09_1H_40-45","kind":"interception","won_in":"own third","first_pass_s":1.5,"first_pass_gain_m":6.4,"carry_m":0.6,"progress_m":44.2,"speed_mps":3.83,"opp_visible":10,"opp_goal_side":6.0,"mates_ahead":2.0,"label":"possible","reached":"middle third","passes":2,"ended":"lost","goal":false,"regain_frame":78172},{"team":"B","clock":"43:26","segment":"09_1H_40-45","kind":"tackle / duel","won_in":"middle third","first_pass_s":1.1,"first_pass_gain_m":12.5,"carry_m":0.0,"progress_m":31.0,"speed_mps":2.58,"opp_visible":9,"opp_goal_side":9.0,"mates_ahead":7.0,"label":"counter","reached":"final third","passes":5,"ended":"out","goal":false,"regain_frame":78486},{"team":"A","clock":"46:59","segment":"10_1H_45-47","kind":"interception","won_in":"middle third","first_pass_s":0.0,"first_pass_gain_m":10.8,"carry_m":0.1,"progress_m":51.4,"speed_mps":4.28,"opp_visible":10,"opp_goal_side":7.0,"mates_ahead":5.0,"label":"counter","reached":"final third","passes":8,"ended":"intercepted","goal":false,"regain_frame":84918},{"team":"A","clock":"46:31","segment":"11_2H_45-50","kind":"interception","won_in":"own third","first_pass_s":2.8,"first_pass_gain_m":4.3,"carry_m":16.2,"progress_m":20.5,"speed_mps":1.71,"opp_visible":6,"opp_goal_side":6.0,"mates_ahead":6.0,"label":"possible","reached":"own third","passes":3,"ended":"stoppage","goal":false,"regain_frame":88594},{"team":"A","clock":"49:44","segment":"11_2H_45-50","kind":"interception","won_in":"own third","first_pass_s":6.5,"first_pass_gain_m":5.1,"carry_m":11.0,"progress_m":18.1,"speed_mps":1.51,"opp_visible":7,"opp_goal_side":6.0,"mates_ahead":7.0,"label":"possible","reached":"own third","passes":5,"ended":"intercepted","goal":false,"regain_frame":94278},{"team":"B","clock":"51:48","segment":"12_2H_50-55","kind":"interception","won_in":"middle third","first_pass_s":0.9,"first_pass_gain_m":7.6,"carry_m":2.8,"progress_m":31.7,"speed_mps":2.64,"opp_visible":7,"opp_goal_side":6.0,"mates_ahead":4.0,"label":"possible","reached":"middle third","passes":4,"ended":"lost","goal":false,"regain_frame":98151},{"team":"A","clock":"61:04","segment":"14_2H_60-65","kind":"interception","won_in":"own third","first_pass_s":3.8,"first_pass_gain_m":null,"carry_m":14.7,"progress_m":14.7,"speed_mps":1.23,"opp_visible":8,"opp_goal_side":8.0,"mates_ahead":8.0,"label":"possible","reached":"own third","passes":1,"ended":"out","goal":false,"regain_frame":114762},{"team":"A","clock":"62:02","segment":"14_2H_60-65","kind":"interception","won_in":"own third","first_pass_s":0.5,"first_pass_gain_m":11.2,"carry_m":0.6,"progress_m":11.8,"speed_mps":0.98,"opp_visible":9,"opp_goal_side":8.0,"mates_ahead":3.0,"label":"possible","reached":"middle third","passes":1,"ended":"lost","goal":false,"regain_frame":116581},{"team":"A","clock":"66:05","segment":"15_2H_65-70","kind":"interception","won_in":"own third","first_pass_s":4.3,"first_pass_gain_m":34.7,"carry_m":5.6,"progress_m":5.6,"speed_mps":0.85,"opp_visible":4,"opp_goal_side":3.0,"mates_ahead":6.0,"label":"possible","reached":"own third","passes":1,"ended":"intercepted","goal":false,"regain_frame":123752},{"team":"B","clock":"73:28","segment":"16_2H_70-75","kind":"tackle / duel","won_in":"own third","first_pass_s":2.1,"first_pass_gain_m":16.8,"carry_m":0.0,"progress_m":29.0,"speed_mps":2.73,"opp_visible":6,"opp_goal_side":2.0,"mates_ahead":3.0,"label":"counter","reached":"middle third","passes":2,"ended":"intercepted","goal":false,"regain_frame":137100},{"team":"A","clock":"73:36","segment":"16_2H_70-75","kind":"interception","won_in":"middle third","first_pass_s":2.4,"first_pass_gain_m":12.8,"carry_m":7.4,"progress_m":62.7,"speed_mps":5.23,"opp_visible":7,"opp_goal_side":7.0,"mates_ahead":5.0,"label":"counter","reached":"final third","passes":3,"ended":"intercepted","goal":false,"regain_frame":137347},{"team":"B","clock":"73:49","segment":"16_2H_70-75","kind":"interception","won_in":"own third","first_pass_s":3.8,"first_pass_gain_m":20.5,"carry_m":24.4,"progress_m":62.6,"speed_mps":5.25,"opp_visible":5,"opp_goal_side":3.0,"mates_ahead":3.0,"label":"counter","reached":"middle third","passes":2,"ended":"intercepted","goal":false,"regain_frame":137687},{"team":"A","clock":"76:29","segment":"17_2H_75-80","kind":"interception","won_in":"own third","first_pass_s":2.7,"first_pass_gain_m":0.7,"carry_m":7.6,"progress_m":37.9,"speed_mps":3.16,"opp_visible":8,"opp_goal_side":7.0,"mates_ahead":4.0,"label":"possible","reached":"middle third","passes":3,"ended":"intercepted","goal":false,"regain_frame":142519},{"team":"B","clock":"76:41","segment":"17_2H_75-80","kind":"interception","won_in":"own third","first_pass_s":2.2,"first_pass_gain_m":12.2,"carry_m":-0.4,"progress_m":55.9,"speed_mps":4.65,"opp_visible":7,"opp_goal_side":7.0,"mates_ahead":6.0,"label":"counter","reached":"middle third","passes":15,"ended":"intercepted","goal":false,"regain_frame":142913},{"team":"A","clock":"78:35","segment":"17_2H_75-80","kind":"tackle / duel","won_in":"own third","first_pass_s":2.1,"first_pass_gain_m":17.8,"carry_m":0.0,"progress_m":48.9,"speed_mps":4.08,"opp_visible":13,"opp_goal_side":7.0,"mates_ahead":1.0,"label":"counter","reached":"final third","passes":3,"ended":"stoppage","goal":false,"regain_frame":146334},{"team":"A","clock":"87:03","segment":"19_2H_85-90","kind":"interception","won_in":"own third","first_pass_s":2.0,"first_pass_gain_m":51.7,"carry_m":10.9,"progress_m":62.6,"speed_mps":5.22,"opp_visible":9,"opp_goal_side":8.0,"mates_ahead":8.0,"label":"counter","reached":"middle third","passes":1,"ended":"lost","goal":false,"regain_frame":161577},{"team":"B","clock":"93:37","segment":"20_2H_90-94","kind":"tackle / duel","won_in":"own third","first_pass_s":0.7,"first_pass_gain_m":16.8,"carry_m":0.0,"progress_m":35.8,"speed_mps":2.98,"opp_visible":8,"opp_goal_side":4.0,"mates_ahead":4.0,"label":"counter","reached":"middle third","passes":2,"ended":"stoppage","goal":false,"regain_frame":173439}],"regain_kinds":{"A":{"interception":28,"loose ball":2,"tackle / duel":14},"B":{"interception":27,"loose ball":1,"tackle / duel":21}},"agreement":0.7977843032568073,"n_passes":813,"n_regains":93,"seg_bounds":[["01_1H_00-05",0,9032],["02_1H_05-10",9032,9032],["03_1H_10-15",18064,9032],["04_1H_15-20",27096,9032],["05_1H_20-25",36128,9032],["06_1H_25-30",45160,9032],["07_1H_30-35",54192,9032],["08_1H_35-40",63224,9032],["09_1H_40-45",72256,9032],["10_1H_45-47",81288,4532],["11_2H_45-50",85820,9002],["12_2H_50-55",94822,9002],["13_2H_55-60",103824,9002],["14_2H_60-65",112826,9002],["15_2H_65-70",121828,9002],["16_2H_70-75",130830,9002],["17_2H_75-80",139832,9002],["18_2H_80-85",148834,9002],["19_2H_85-90",157836,9002],["20_2H_90-94",166838,8402]],"goals":[{"team":"B","clock":"12:27"},{"team":"B","clock":"94:18"}]};
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const PH = [["Buildup","--ph-buildup"],["Transition","--ph-transition"],["Finishing","--ph-finishing"],["Retreat","--ph-retreat"]];
+const A = D.teams.A, B = D.teams.B;
+
+$("meta").innerHTML = [`${D.n_passes} passes`, `${D.n_regains} balls won in open play`, `20 five-minute segments`,
+  `Goals noted: B ${D.goals.map(g=>g.clock).join(", ")}`].map(s=>`<span>${s}</span>`).join("");
+
+// head to head: mirrored bars, each row scaled to its own max
+const rows = [
+  ["Possession", A.possession_pct, B.possession_pct, v=>v+"%"],
+  ["Passes", A.passes, B.passes, v=>v],
+  ["Passes completed", A.complete_pct, B.complete_pct, v=>v+"%"],
+  ["Passes per possession", A.passes_per_poss, B.passes_per_poss, v=>v],
+  ["Seconds per pass", A.sec_per_pass, B.sec_per_pass, v=>v.toFixed(1)+" s"],
+  ["Progress toward goal", A.progress_mps, B.progress_mps, v=>v.toFixed(1)+" m/s"],
+  ["Running speed", A.run_speed, B.run_speed, v=>v.toFixed(2)+" m/s"],
+  ["Balls won in open play", A.regains, B.regains, v=>v],
+  ["Counter-attacks", A.counters, B.counters, v=>v],
+  ["Counters reaching the final third", A.counters_final_third, B.counters_final_third, v=>v],
+];
+$("h2h").innerHTML = `<div class="row hdr"><span class="tA" style="text-align:right">A</span><span></span><span></span><span></span><span class="tB">B</span></div>` +
+  rows.map(([l,a,b,f])=>{ const m=Math.max(a,b)||1;
+    return `<div class="row"><span class="v a">${f(a)}</span><span class="bars ba"><span class="bar a"><i style="width:${100*a/m}%"></i></span></span><span class="lab">${l}</span><span class="bars bb"><span class="bar b"><i style="width:${100*b/m}%"></i></span></span><span class="v b">${f(b)}</span></div>`; }).join("");
+
+// phases
+for (const [t, el] of [["A","stA"],["B","stB"]]) {
+  const s = D.teams[t].phase_share;
+  $(el).innerHTML = PH.map(([p,v])=>{ const x=s[p]||0; return x?`<div style="width:${x}%;background:var(${v})" title="${p} ${x}%">${x>=7?`${p} ${Math.round(x)}%`:""}</div>`:""; }).join("");
+}
+$("phleg").innerHTML = PH.map(([p,v])=>`<span><i class="sw" style="background:var(${v})"></i>${p}</span>`).join("") +
+  `<span>Small shares without a label: ${PH.filter(([p])=>(A.phase_share[p]||0)<7||(B.phase_share[p]||0)<7).map(([p])=>`${p} A ${A.phase_share[p]||0}% · B ${B.phase_share[p]||0}%`).join("; ")}</span>`;
+$("agree").textContent = `Check against your hand marks: in segment 1 the automatic phases match yours ${Math.round(100*D.agreement)}% of the time. Most of the gap is one rule. When B has the ball in the middle third, the automatic rule puts A in Transition, while you mostly marked A as Retreat.`;
+
+// match clock of a video minute
+const SEG = D.seg_bounds.map(([n,s,f])=>({n, s, f, m0:Number(n.split("_")[2].split("-")[0])}));
+function clockOfFrame(fr){ const g=SEG.find(g=>fr>=g.s&&fr<g.s+g.f)||SEG[SEG.length-1]; const sec=g.m0*60+(fr-g.s)/30; return `${Math.floor(sec/60)}:${String(Math.floor(sec%60)).padStart(2,"0")}`; }
+
+// small SVG line / bar helpers (one y-axis each)
+function axes(svg, W, H, m, ymax, yticks, fmt){
+  let s=""; for(const v of yticks){ const y=H-m.b-(H-m.t-m.b)*v/ymax;
+    s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}" stroke="var(--grid)" stroke-width="1"/><text x="${m.l-6}" y="${y+4}" text-anchor="end">${fmt(v)}</text>`; }
+  return s;
+}
+function tipper(box){ const t=document.createElement("div"); t.className="tip"; t.hidden=true; box.appendChild(t); return t; }
+
+// running speed per minute
+(function(){
+  const box=$("chSpeed"), data=D.speed_minute, W=520, H=220, m={l:34,r:10,t:10,b:28};
+  const n=data.length, x=i=>m.l+(W-m.l-m.r)*i/(n-1), ymax=3.5, y=v=>H-m.b-(H-m.t-m.b)*v/ymax;
+  const half=SEG.find(g=>g.n.includes("_2H_")).s/30/60;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Running speed per minute for team A and team B">`+axes(null,W,H,m,ymax,[0,1,2,3],v=>v);
+  s+=`<line x1="${x(half)}" x2="${x(half)}" y1="${m.t}" y2="${H-m.b}" stroke="var(--muted)" stroke-dasharray="3 3"/><text x="${x(half)+4}" y="${m.t+10}">2nd half</text>`;
+  for(const [t,v] of [["A","--teamA"],["B","--teamB"]]){
+    let d="", pen=false; data.forEach((r,i)=>{ if(r[t]==null){pen=false;return;} d+=(pen?"L":"M")+x(i).toFixed(1)+" "+y(r[t]).toFixed(1); pen=true; });
+    s+=`<path d="${d}" fill="none" stroke="var(${v})" stroke-width="2" stroke-linejoin="round"/>`;
+  }
+  for(const g of SEG.filter((g,i)=>i%2===0)){ const i=g.s/30/60; s+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle">${g.m0}'</text>`; }
+  s+=`<line id="xh" y1="${m.t}" y2="${H-m.b}" stroke="var(--fg)" stroke-width="1" visibility="hidden"/><rect x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}" fill="transparent" id="hit"/></svg>`;
+  box.innerHTML=s; const tip=tipper(box), svg=box.querySelector("svg"), xh=svg.querySelector("#xh");
+  svg.querySelector("#hit").addEventListener("pointermove",ev=>{ const r=svg.getBoundingClientRect(), px=(ev.clientX-r.left)*W/r.width;
+    const i=Math.max(0,Math.min(n-1,Math.round((px-m.l)/(W-m.l-m.r)*(n-1)))), d=data[i];
+    xh.setAttribute("x1",x(i)); xh.setAttribute("x2",x(i)); xh.setAttribute("visibility","visible");
+    tip.hidden=false; tip.style.left=(x(i)/W*r.width)+"px"; tip.style.top=(m.t/H*r.height)+"px";
+    tip.innerHTML=`<b>${clockOfFrame(d.min*60*30)}</b> · A ${d.A??"–"} · B ${d.B??"–"} m/s`; });
+  svg.querySelector("#hit").addEventListener("pointerleave",()=>{ tip.hidden=true; xh.setAttribute("visibility","hidden"); });
+})();
+
+// passes per minute on the ball, per segment (grouped bars)
+(function(){
+  const box=$("chTempo"), S=D.segments, W=520, H=220, m={l:34,r:10,t:10,b:28}, n=S.length;
+  const vals=S.flatMap(s=>[s.A.passes_per_poss_min,s.B.passes_per_poss_min]).filter(v=>v!=null), ymax=Math.ceil(Math.max(...vals)/5)*5;
+  const bw=(W-m.l-m.r)/n, y=v=>H-m.b-(H-m.t-m.b)*v/ymax;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Passes per minute on the ball per 5-minute block">`+axes(null,W,H,m,ymax,[0,ymax/2,ymax].map(v=>Math.round(v)),v=>v);
+  S.forEach((g,i)=>{ const x0=m.l+i*bw+2, w=(bw-6)/2;
+    for(const [k,t,v] of [[0,"A","--teamA"],[1,"B","--teamB"]]){ const val=g[t].passes_per_poss_min; if(val==null) continue;
+      const yy=y(val), h=H-m.b-yy; s+=`<path d="M${x0+k*(w+2)} ${H-m.b}V${yy+3}q0 -3 3 -3h${w-6}q3 0 3 3V${H-m.b}Z" fill="var(${v})"/>`; }
+    s+=`<rect x="${m.l+i*bw}" y="${m.t}" width="${bw}" height="${H-m.t-m.b}" fill="transparent" data-i="${i}"/>`;
+    if(i%2===0) s+=`<text x="${m.l+i*bw+bw/2}" y="${H-8}" text-anchor="middle">${g.segment.split("_")[2].split("-")[0]}'</text>`; });
+  box.innerHTML=s+"</svg>"; const tip=tipper(box), svg=box.querySelector("svg");
+  svg.querySelectorAll("rect[data-i]").forEach(r=>{ r.addEventListener("pointermove",()=>{ const g=S[+r.dataset.i], b=svg.getBoundingClientRect();
+      tip.hidden=false; tip.style.left=((+r.getAttribute("x")+bw/2)/W*b.width)+"px"; tip.style.top=(m.t/H*b.height)+"px";
+      tip.innerHTML=`<b>${g.label}</b> · A ${g.A.passes_per_poss_min??"–"} · B ${g.B.passes_per_poss_min??"–"} passes/min`; });
+    r.addEventListener("pointerleave",()=>tip.hidden=true); });
+})();
+
+// per-segment table (also the table view of both charts)
+(function(){
+  const f=v=>v==null?"–":v;
+  $("tblSeg").innerHTML=`<thead><tr><th>Block</th><th class="num">A passes</th><th class="num">B passes</th><th class="num">A passes/min</th><th class="num">B passes/min</th><th class="num">A run m/s</th><th class="num">B run m/s</th><th class="num">A progress m/s</th><th class="num">B progress m/s</th><th class="num">A counters</th><th class="num">B counters</th></tr></thead><tbody>`+
+    D.segments.map(g=>`<tr><td>${g.label}</td><td class="num">${g.A.passes}</td><td class="num">${g.B.passes}</td><td class="num">${f(g.A.passes_per_poss_min)}</td><td class="num">${f(g.B.passes_per_poss_min)}</td><td class="num">${f(g.A.run_speed)}</td><td class="num">${f(g.B.run_speed)}</td><td class="num">${f(g.A.progress_mps)}</td><td class="num">${f(g.B.progress_mps)}</td><td class="num">${g.A.counters}</td><td class="num">${g.B.counters}</td></tr>`).join("")+"</tbody>";
+})();
+
+// counter-attacks
+(function(){
+  const C=D.counters, k=(t,l)=>C.filter(c=>c.team===t&&(!l||c.label===l)).length;
+  const fin=t=>C.filter(c=>c.team===t&&c.label==="counter"&&c.reached==="final third").length;
+  $("ctk").innerHTML=["A","B"].map(t=>`<div class="kpi" style="border-color:var(--team${t})"><b>${k(t,"counter")} <span style="font:400 16px var(--body);color:var(--muted)">+ ${k(t,"possible")} possible</span></b><span>Team ${t} counters · ${fin(t)} reached the final third · ${D.teams[t].regains} balls won</span></div>`).join("");
+  $("fAll").textContent=`All ${C.length}`;
+  const F={label:"all",team:"all"};
+  const kind={"interception":"Interception","tackle / duel":"Tackle / duel","loose ball":"Loose ball"};
+  function draw(){
+    const rows=C.filter(c=>(F.label==="all"||c.label===F.label)&&(F.team==="all"||c.team===F.team));
+    const n=v=>v==null?"–":v;
+    $("tblCt").innerHTML=`<thead><tr><th>Clock</th><th>Team</th><th>Verdict</th><th>Won by</th><th>Won in</th><th class="num">1st pass after</th><th class="num">1st pass gain</th><th class="num">Advance in 12 s</th><th class="num">Speed</th><th class="num">Opp. goal-side / seen</th><th>Got to</th><th>Ended</th></tr></thead><tbody>`+
+      (rows.length?rows.map(c=>`<tr><td>${c.clock}</td><td><span class="chipT ${c.team}">${c.team}</span></td><td><span class="pill ${c.label}">${c.label}</span></td><td>${kind[c.kind]||c.kind}</td><td>${c.won_in}</td><td class="num">${n(c.first_pass_s)} s</td><td class="num">${n(c.first_pass_gain_m)} m</td><td class="num">${n(c.progress_m)} m</td><td class="num">${n(c.speed_mps)} m/s</td><td class="num">${n(c.opp_goal_side)} / ${c.opp_visible}</td><td class="reach">${c.reached}${c.goal?" · goal":""}</td><td>${c.ended==="intercepted"?"intercepted":c.ended==="lost"?"lost the ball":c.ended}</td></tr>`).join(""):`<tr><td colspan="12">No counter-attacks match this filter.</td></tr>`)+"</tbody>";
+  }
+  document.querySelectorAll(".filters button").forEach(b=>b.onclick=()=>{ const [key,val]=b.dataset.f.split(":"); F[key]=val;
+    document.querySelectorAll(`.filters button[data-f^="${key}:"]`).forEach(x=>x.classList.toggle("on",x===b)); draw(); });
+  draw();
+})();
+</script>
