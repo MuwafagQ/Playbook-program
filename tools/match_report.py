@@ -19,7 +19,8 @@ touch). Thirds are thirds of the real pitch length (--pitch, default 105 x 68 m)
 goalkeeper plays, per half).
 
 Phases (the app's Momentum labels): the team with the ball is in Buildup (own third), Transition
-(middle third) or Finishing (final third); the other team is in Retreat. Dead ball: after the ball goes out until the restart.
+(middle third) or Finishing (settled in attack: SETTLE_S seconds in the final third); the other team is in
+Retreat. With no tagged pass for a while, the last team on the ball keeps it. Dead ball: after the ball goes out until the restart.
 
 Regain: the ball changes team in open play: an interception, a loose ball (incomplete pass) or a tackle
 / duel (the next pass is by the other team without an interception). Restarts after the ball went out are
@@ -70,6 +71,7 @@ def to_real(x, y, L=None, W=None):
 FIRST_S, HORIZON_S = 5.0, 12.0           # first forward action / how long a counter is followed
 FWD_M, CARRY_M = 10.0, 10.0
 DIRECT_MPS, EXPOSED_N = 2.5, 5
+SETTLE_S = 10.0                          # Finishing = settled in attack: 10 s in the final third
 SET_PIECES = ("throw", "free kick", "corner", "goal kick", "kick off", "kick-off", "penalty")
 PHASES = ("Buildup", "Transition", "Finishing")
 
@@ -303,12 +305,17 @@ def phases(e, own, D, n_frames, half2):
     bx = ball_path(e, D, n_frames).x.values
     team, dead, _ = timeline(e, own, n_frames)
     A, B = np.full(n_frames, "", dtype=object), np.full(n_frames, "", dtype=object)
+    run = 0                                   # frames the team on the ball has stayed in its final third
     for f in range(n_frames):
         if dead[f] or not team[f]:
             A[f] = B[f] = "Dead ball" if dead[f] else ""
+            run = 0
             continue
         h = 2 if f >= half2 else 1
         u = fwd(bx[f], h, team[f], D); th = third(u)
+        run = run + 1 if th == 2 and f > 0 and team[f] == team[f - 1] else (1 if th == 2 else 0)
+        if th == 2 and run < SETTLE_S * FPS:  # in the final third but not settled there yet: still Transition
+            th = 1
         ph = PHASES[th] if not np.isnan(th) else ""
         other = "Retreat" if ph else ""
         A[f], B[f] = (ph, other) if team[f] == "A" else (other, ph)

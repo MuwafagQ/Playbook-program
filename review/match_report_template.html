@@ -107,7 +107,7 @@ ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;max-wid
 
   <section aria-labelledby="s-ph">
     <h2 id="s-ph">Phases by third</h2>
-    <p>Share of time in play in each phase, worked out automatically. The team on the ball is in Buildup in its own third, Transition in the middle third and Finishing in the final third. The team without the ball is in Retreat.</p>
+    <p>Share of time in play in each phase, worked out automatically. The team on the ball is in Buildup in its own third, Transition in the middle third and Finishing once it has settled in attack (10 seconds in the final third). The team without the ball is in Retreat.</p>
     <div class="panel">
       <div class="phase"><span class="chipT A">A</span><div class="stack" id="stA"></div></div>
       <div class="phase"><span class="chipT B">B</span><div class="stack" id="stB"></div></div>
@@ -203,7 +203,7 @@ for (const [t, el] of [["A","stA"],["B","stB"]]) {
 }
 $("phleg").innerHTML = PH.map(([p,v])=>`<span><i class="sw" style="background:var(${v})"></i>${p}</span>`).join("") +
   `<span>Small shares without a label: ${PH.filter(([p])=>(A.phase_share[p]||0)<7||(B.phase_share[p]||0)<7).map(([p])=>`${p} A ${A.phase_share[p]||0}% · B ${B.phase_share[p]||0}%`).join("; ")}</span>`;
-$("agree").textContent = `Check against your hand marks: in segment 1 the automatic phases match yours ${Math.round(100*D.agreement)}% of the time. Most of the rest is timing: the automatic phase changes a second or two before or after your tap.`;
+$("agree").textContent = `Check against your hand marks: in the segments you marked (1 and 15) the automatic phases match yours ${Math.round(100*D.agreement)}% of the time. Most of the rest is timing: the automatic phase changes a second or two before or after your tap.`;
 
 // match clock of a video minute
 const SEG = D.seg_bounds.map(([n,s,f])=>({n, s, f, m0:Number(n.split("_")[2].split("-")[0])}));
