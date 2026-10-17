@@ -1,6 +1,6 @@
 # Notebooks: which one to run
 
-## ▶ Run next: a new match (Ittifaq_f_match_video), in this order
+## ▶ Run next: a new match (ittifaq_faysali), in this order
 
 Before each: **Runtime → Disconnect and delete runtime** if it was open before, then **Runtime → Run all**.
 Do not edit cells except the match fields at the top. Tell Claude when each one finishes.
