@@ -136,8 +136,11 @@ def load_rfdetr(checkpoint: str, accel: str = "none", max_batch: int = 32,
     if accel == "tensorrt":
         import torch
 
+        import tensorrt
+
         gpu = torch.cuda.get_device_name(0).replace(" ", "_")
-        engine_dir = Path(checkpoint).with_suffix("").as_posix() + f"_trt_{gpu}"
+        # one engine per GPU model and TensorRT version: an engine built by another TensorRT cannot be loaded
+        engine_dir = Path(checkpoint).with_suffix("").as_posix() + f"_trt_{gpu}_v{tensorrt.__version__}"
         engines = sorted(Path(engine_dir).glob("*.trt")) + sorted(Path(engine_dir).glob("*.engine"))
         engine = str(engines[0]) if engines else build_tensorrt_engine(model, engine_dir, max_batch=max_batch)
         return TensorRTModel(engine, background_class_id=background_class_id, max_batch=max_batch)
