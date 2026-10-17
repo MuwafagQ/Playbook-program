@@ -1,17 +1,20 @@
 # Notebooks: which one to run
 
-## ▶ Run next (needs a T4 GPU), in this order
+## ▶ Run next: a new match (Ittifaq_f_match_video), in this order
 
-Overall plan: `NEXT_STEPS.md` in the repo root.
+Before each: **Runtime → Disconnect and delete runtime** if it was open before, then **Runtime → Run all**.
+Do not edit cells except the match fields at the top. Tell Claude when each one finishes.
 
-Before each: if the notebook is already open from an earlier run, **Runtime → Disconnect and delete
-runtime**. Then Runtime → Change runtime type → **T4 GPU** → Save, and **Runtime → Run all**. Do not
-edit cells. Colab Secret `ROBOFLOW_API_KEY` must be on (key icon). Tell Claude when each one finishes.
+1. **Match clip cutter** (in Drive, `video_downloads/Match clip cutter.ipynb`, CPU, ~15 min): fill in the
+   video link and where each half starts and ends in the video. Clips go to `video_downloads/<match>_clips/`.
+2. **`full_match.ipynb`** (L4 GPU, ~6-7 hours): tracking on every clip, players joined.
+   https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/full_match.ipynb
+3. **`after_tracking.ipynb`** (L4 GPU, ~1-2 hours): cuts tracker swaps between the two teams, re-joins the
+   players, reads shirt numbers, refreshes the Pass Review data.
+   https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/after_tracking.ipynb
 
-1. **`train_field_keypoints.ipynb`** (about 2-5 hours): trains our own pitch keypoint model on dataset
-   version 11 (the old labelled frames, the same data as the current Roboflow model). Ready to run now.
-   If it disconnects, Run all again: it resumes. Results: `MyDrive/Playbook/field_model/v11/`.
-   https://colab.research.google.com/github/MuwafagQ/Playbook-program/blob/claude/setup-gpu-video-testing-JhgUH/notebooks/train_field_keypoints.ipynb
+Then Claude builds the Pass Review app with pass suggestions and pre-filled names (tools/pass_detect.py,
+tools/name_propagate.py).
 
 Other Google account: share `MyDrive/Playbook` with it and add a shortcut to `Playbook` in its My Drive.
 
