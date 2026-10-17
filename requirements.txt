@@ -28,7 +28,7 @@ firebase-admin==6.5.0
 # streamlit==1.38.0
 
 # CV tooling
-supervision==0.27.0.post2
+supervision>=0.29,<0.31   # rfdetr needs >=0.29; 0.31 dropped ByteTrack
 inference==1.2.2
 ultralytics>=8.4.37,<8.5.0
 lap>=0.5.13,<0.6
