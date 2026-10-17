@@ -1,0 +1,36 @@
+{
+ "segment": "01_1H_00-05",
+ "passes": 59,
+ "by_team": {
+  "A": {
+   "passes": 29,
+   "complete": 0.86,
+   "intercepted": 4
+  },
+  "B": {
+   "passes": 30,
+   "complete": 0.87,
+   "intercepted": 4
+  }
+ },
+ "outcomes": {
+  "complete": 51,
+  "intercepted": 8
+ },
+ "median_length_m": 16.5,
+ "median_duration_s": 1.37,
+ "tagging": {
+  "minutes_first_to_last_save": 97.5,
+  "median_seconds_between_passes": 31.1,
+  "breaks_over_5_min": 2,
+  "players_added_by_hand": 3,
+  "named_passers": 0.64
+ },
+ "hidden_suggestions_vs_tagged": {
+  "tagged_found_among_suggestions": 30,
+  "recall": 0.51,
+  "suggestions_in_span": 116,
+  "precision": 0.26
+ },
+ "previous_colab_tool": "about 4 minutes per pass (15 passes in an hour)"
+}

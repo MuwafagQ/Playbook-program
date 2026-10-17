@@ -1,0 +1,63 @@
+{
+ "cvat_day": {
+  "people_per_frame": 17.3,
+  "ids_total": 32.0,
+  "max_people_in_a_frame": 23.0,
+  "new_ids_after_1s_per_min": 20.4,
+  "image_jumps_per_min": 0.0,
+  "ball_real_share": 0.928,
+  "ball_any_share": 1.0,
+  "ball_jumps_per_min": 0.0
+ },
+ "cvat_night": {
+  "people_per_frame": 13.3,
+  "ids_total": 26.0,
+  "max_people_in_a_frame": 19.0,
+  "new_ids_after_1s_per_min": 32.4,
+  "image_jumps_per_min": 0.0,
+  "ball_real_share": 0.901,
+  "ball_any_share": 1.0,
+  "ball_jumps_per_min": 5.4
+ },
+ "ittifaq_a": {
+  "people_per_frame": 16.7,
+  "ids_total": 29.0,
+  "max_people_in_a_frame": 22.0,
+  "new_ids_after_1s_per_min": 30.0,
+  "image_jumps_per_min": 0.0,
+  "ball_real_share": 0.785,
+  "ball_any_share": 0.988,
+  "ball_jumps_per_min": 27.0
+ },
+ "ittifaq_c": {
+  "people_per_frame": 15.0,
+  "ids_total": 30.0,
+  "max_people_in_a_frame": 19.0,
+  "new_ids_after_1s_per_min": 36.0,
+  "image_jumps_per_min": 9.0,
+  "ball_real_share": 0.88,
+  "ball_any_share": 0.995,
+  "ball_jumps_per_min": 12.0
+ },
+ "match2_a": {
+  "people_per_frame": 11.1,
+  "ids_total": 21.0,
+  "max_people_in_a_frame": 15.0,
+  "new_ids_after_1s_per_min": 15.0,
+  "image_jumps_per_min": 0.0,
+  "ball_real_share": 0.958,
+  "ball_any_share": 1.0,
+  "ball_jumps_per_min": 0.0
+ },
+ "match2_b": {
+  "people_per_frame": 22.1,
+  "ids_total": 28.0,
+  "max_people_in_a_frame": 25.0,
+  "new_ids_after_1s_per_min": 9.0,
+  "image_jumps_per_min": 0.0,
+  "ball_real_share": 0.95,
+  "ball_any_share": 0.995,
+  "ball_jumps_per_min": 0.0
+ },
+ "_note": "No ground truth for the new clips. cvat_day/cvat_night are the calibration runs (true player IDF1 0.82/0.96, ball right 95.8/93.2%). Setup: baseline.env (open people model, cut-off 0.50, ball model)."
+}

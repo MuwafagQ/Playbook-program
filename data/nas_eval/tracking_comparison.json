@@ -1,0 +1,119 @@
+{
+ "note": "Pipeline replays from hosted-API recordings (tools/record_models.py --hosted), BALL_ROI_RECOVERY=false, scored against CVAT ground truth. one_tracker = ROLE_BY_TRACK=true. HILAL-HAZM is held out; 18 HILAL-AHLI frames were in the NAS training set.",
+ "hilal_hazm_day_heldout": {
+  "old": {
+   "player_IDF1": 0.821,
+   "player_switches": 14,
+   "player_recall": 0.919,
+   "people_IDF1": 0.7965,
+   "people_switches": 123,
+   "role_correct": {
+    "gk": 0.858,
+    "player": 0.971,
+    "referee": 0.867
+   },
+   "ball_hit": 0.677,
+   "ball_at_feet": 0.151
+  },
+  "nas": {
+   "player_IDF1": 0.769,
+   "player_switches": 29,
+   "player_recall": 0.843,
+   "people_IDF1": 0.7463,
+   "people_switches": 155,
+   "role_correct": {
+    "gk": 0.899,
+    "player": 0.936,
+    "referee": 0.985
+   },
+   "ball_hit": 0.725,
+   "ball_at_feet": 0.102
+  },
+  "old+one_tracker": {
+   "player_IDF1": 0.8039,
+   "player_switches": 2,
+   "player_recall": 0.93,
+   "people_IDF1": 0.7873,
+   "people_switches": 52,
+   "role_correct": {
+    "gk": 0.877,
+    "player": 0.979,
+    "referee": 0.646
+   },
+   "ball_hit": 0.677,
+   "ball_at_feet": 0.151
+  },
+  "nas+one_tracker": {
+   "player_IDF1": 0.8355,
+   "player_switches": 6,
+   "player_recall": 0.933,
+   "people_IDF1": 0.8196,
+   "people_switches": 17,
+   "role_correct": {
+    "gk": 0.902,
+    "player": 0.98,
+    "referee": 1.0
+   },
+   "ball_hit": 0.725,
+   "ball_at_feet": 0.102
+  }
+ },
+ "hilal_ahli_night": {
+  "old": {
+   "player_IDF1": 0.8657,
+   "player_switches": 14,
+   "player_recall": 0.96,
+   "people_IDF1": 0.894,
+   "people_switches": 38,
+   "role_correct": {
+    "gk": 0.164,
+    "player": 0.999,
+    "referee": 0.986
+   },
+   "ball_hit": 0.832,
+   "ball_at_feet": 0.054
+  },
+  "nas": {
+   "player_IDF1": 0.8583,
+   "player_switches": 14,
+   "player_recall": 0.989,
+   "people_IDF1": 0.877,
+   "people_switches": 15,
+   "role_correct": {
+    "gk": 1.0,
+    "player": 0.999,
+    "referee": 1.0
+   },
+   "ball_hit": 0.751,
+   "ball_at_feet": 0.197
+  },
+  "old+one_tracker": {
+   "player_IDF1": 0.8594,
+   "player_switches": 15,
+   "player_recall": 0.961,
+   "people_IDF1": 0.9031,
+   "people_switches": 15,
+   "role_correct": {
+    "gk": 0.0,
+    "player": 1.0,
+    "referee": 1.0
+   },
+   "ball_hit": 0.832,
+   "ball_at_feet": 0.054
+  },
+  "nas+one_tracker": {
+   "player_IDF1": 0.8671,
+   "player_switches": 13,
+   "player_recall": 0.989,
+   "people_IDF1": 0.8845,
+   "people_switches": 14,
+   "role_correct": {
+    "gk": 1.0,
+    "player": 0.999,
+    "referee": 1.0
+   },
+   "ball_hit": 0.751,
+   "ball_at_feet": 0.197
+  }
+ }
+}

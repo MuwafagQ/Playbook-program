@@ -1,0 +1,92 @@
+{
+ "_note": "Full pipeline (baseline.env, cut-off 0.50) on the CVAT clips; Large = RF-DETR Large 704 px (val mAP50-95 0.600 vs Medium 0.559); speed T4 plain: Large ~70 ms/frame, Medium ~36 ms.",
+ "day": {
+  "medium": {
+   "player_IDF1": 0.8158,
+   "player_switches": 9,
+   "player_recall": 0.888,
+   "people_IDF1": 0.8061,
+   "people_switches": 30,
+   "role_correct": {
+    "gk": 0.917,
+    "player": 0.96,
+    "referee": 0.803
+   },
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028
+  },
+  "large": {
+   "player_IDF1": 0.8032,
+   "player_switches": 7,
+   "player_recall": 0.843,
+   "people_IDF1": 0.7742,
+   "people_switches": 41,
+   "role_correct": {
+    "gk": 0.91,
+    "player": 0.948,
+    "referee": 0.993
+   },
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028
+  },
+  "large_t40": {
+   "player_IDF1": 0.8013,
+   "player_switches": 9,
+   "player_recall": 0.872,
+   "people_IDF1": 0.7899,
+   "people_switches": 28,
+   "role_correct": {
+    "gk": 0.899,
+    "player": 0.949,
+    "referee": 0.992
+   },
+   "ball_hit": 0.958,
+   "ball_at_feet": 0.028
+  }
+ },
+ "night": {
+  "medium": {
+   "player_IDF1": 0.9569,
+   "player_switches": 9,
+   "player_recall": 0.986,
+   "people_IDF1": 0.9614,
+   "people_switches": 10,
+   "role_correct": {
+    "gk": 1.0,
+    "player": 0.999,
+    "referee": 1.0
+   },
+   "ball_hit": 0.932,
+   "ball_at_feet": 0.03
+  },
+  "large": {
+   "player_IDF1": 0.9557,
+   "player_switches": 11,
+   "player_recall": 0.988,
+   "people_IDF1": 0.9603,
+   "people_switches": 12,
+   "role_correct": {
+    "gk": 1.0,
+    "player": 1.0,
+    "referee": 1.0
+   },
+   "ball_hit": 0.932,
+   "ball_at_feet": 0.03
+  },
+  "large_t40": {
+   "player_IDF1": 0.9556,
+   "player_switches": 12,
+   "player_recall": 0.99,
+   "people_IDF1": 0.9603,
+   "people_switches": 13,
+   "role_correct": {
+    "gk": 1.0,
+    "player": 1.0,
+    "referee": 1.0
+   },
+   "ball_hit": 0.932,
+   "ball_at_feet": 0.03
+  }
+ },
+ "decision": "Keep Medium (0.50): Large only fixes day referees (80->99%); player IDs no better at 0.50 or 0.40, night equal or slightly worse (switches 9 -> 11-12), and it is 2x slower. Large kept in Drive (people_model_large) for day matches / later."
+}

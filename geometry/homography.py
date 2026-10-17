@@ -40,7 +40,11 @@ class HomographyEstimator:
         kp_conf: float,
         min_kp_spread_px: float = 12.0,
         max_hold_frames: int = 15,
+        ransac_cm: float = 0.0,
     ):
+        """ransac_cm > 0: robust fit (RANSAC, threshold in pitch cm) that ignores keypoints disagreeing with
+        the rest, e.g. a model firing a second, wrong label at a point it sees; 0 = plain least squares."""
+        self.ransac_cm = float(ransac_cm)
         self.config = config
         self.kp_conf = float(kp_conf)
         self.min_kp_spread_px = float(min_kp_spread_px)
@@ -169,7 +173,14 @@ class HomographyEstimator:
             if spread < self.min_kp_spread_px:
                 return self._hold_or_none(n)
 
-        H, _ = cv2.findHomography(frame_pts, pitch_pts)
+        inlier_ratio = 1.0
+        if self.ransac_cm > 0:
+            H, mask = cv2.findHomography(frame_pts, pitch_pts, cv2.RANSAC, self.ransac_cm)
+            if H is None or mask is None or int(mask.sum()) < 4:
+                return self._hold_or_none(n)
+            inlier_ratio = float(mask.mean())
+        else:
+            H, _ = cv2.findHomography(frame_pts, pitch_pts)
         if H is None:
             return HomographyResult(H=None, ok=False, n_points=n, inlier_ratio=0.0, reproj_err=1e9)
 
@@ -182,7 +193,7 @@ class HomographyEstimator:
         H = normalize_h(H)
         self._H_prev = H
         self._hold_remaining = self.max_hold_frames  # reset budget for next degeneracy window
-        return HomographyResult(H=H, ok=True, n_points=n, inlier_ratio=1.0, reproj_err=0.0)
+        return HomographyResult(H=H, ok=True, n_points=n, inlier_ratio=inlier_ratio, reproj_err=0.0)
 
     @staticmethod
     def transform_points(H: np.ndarray, points_xy: np.ndarray) -> np.ndarray:

@@ -1,0 +1,9 @@
+{
+ "model": "RF-DETR Small (Apache 2.0), trained on 320 px ball tiles of players-detection-my09y v3 at 512 px; best checkpoint after early stopping at epoch 12",
+ "clip": "HILAL-HAZM CVAT clip, 530 frames, held out from training; full-frame search with 32 overlapping tiles",
+ "candidate_recall": {"0.05": [0.955, 19.5], "0.10": [0.938, 5.9], "0.20": [0.926, 2.46], "0.30": [0.917, 1.65], "0.50": [0.908, 1.15]},
+ "candidate_recall_columns": ["share of frames with the true ball among candidates", "candidates per frame"],
+ "top1": {"hit_rate": 0.911, "wrong_at_feet_rate": 0.028, "wrong_elsewhere_rate": 0.060, "miss_rate": 0.0, "median_hit_error_px": 1.45},
+ "ms_per_frame_full_search_T4_unoptimized": 748,
+ "comparison_same_clip": {"old_detector_top1_hit": 0.692, "old_detector_at_feet": 0.181, "nas_top1_hit": 0.732, "nas_at_feet": 0.115}
+}

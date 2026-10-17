@@ -13,6 +13,7 @@ class BallTrackState:
     area_ema: float = 0.0                  # running ball-area estimate (px^2)
     missing: int = 0                       # consecutive frames without an accept
     vel_measured: bool = False             # True once velocity from a real displacement exists
+    conf: float = 0.0                      # confidence of the last accepted detection
 
 
 class BallSmoother:
@@ -55,6 +56,10 @@ class BallSmoother:
         size_max_ratio: float = 5.0,
         vel_alpha: float = 0.5,
         hold_decay: float = 0.85,
+        switch_frames: int = 0,
+        switch_margin: float = 0.15,
+        switch_min_conf: float = 0.6,
+        switch_max_step_px: float = 80.0,
     ):
         self.ball_id = int(ball_id)
         self.max_missing = int(max_missing)
@@ -79,6 +84,18 @@ class BallSmoother:
         self.vel_alpha = float(vel_alpha)
         # Per-frame velocity decay while extrapolating through a gap.
         self.hold_decay = float(hold_decay)
+        # Challenger switch (0 frames = off): a candidate OUTSIDE the gate that is clearly more
+        # confident than the followed one (by switch_margin, and at least switch_min_conf) in
+        # switch_frames consecutive frames, at a consistent position, takes over the track.
+        # Releases a lock on a false object (e.g. a round logo) while the real ball is seen
+        # elsewhere. Only sensible when confidences are reliable (the dedicated ball model).
+        self.switch_frames = int(switch_frames)
+        self.switch_margin = float(switch_margin)
+        self.switch_min_conf = float(switch_min_conf)
+        self.switch_max_step_px = float(switch_max_step_px)
+        self._chal_center: np.ndarray | None = None
+        self._chal_count = 0
+        self.switches = 0
         self.state = BallTrackState()
 
     @staticmethod
@@ -106,7 +123,7 @@ class BallSmoother:
             class_id=np.zeros((0,), dtype=np.int32),
         )
 
-    def _accept(self, center: np.ndarray, wh: np.ndarray) -> None:
+    def _accept(self, center: np.ndarray, wh: np.ndarray, conf: float = 1.0) -> None:
         """Commit an accepted detection: update velocity, size and clear misses."""
         center = center.astype(np.float32)
         wh = np.maximum(wh.astype(np.float32), 2.0)
@@ -130,6 +147,7 @@ class BallSmoother:
         self.state.center = center
         self.state.box_wh = wh
         self.state.missing = 0
+        self.state.conf = float(conf)
 
     def _predicted_center(self) -> np.ndarray:
         if self.state.center is None:
@@ -175,6 +193,28 @@ class BallSmoother:
             return self._make_detection(self.state.center, self.state.box_wh), True
         return self._empty(), False
 
+    def _challenge(self, centers, conf, valid_idx, gate_mask, followed_conf) -> int | None:
+        """Index of a challenger that has earned the track this frame, else None."""
+        if self.switch_frames <= 0:
+            return None
+        out = valid_idx[~gate_mask]
+        if len(out) == 0:
+            self._chal_center, self._chal_count = None, 0
+            return None
+        j = int(out[np.argmax(conf[out])])
+        if conf[j] < max(self.switch_min_conf, followed_conf + self.switch_margin):
+            self._chal_center, self._chal_count = None, 0
+            return None
+        if self._chal_center is not None and np.linalg.norm(centers[j] - self._chal_center) <= self.switch_max_step_px:
+            self._chal_count += 1
+        else:
+            self._chal_count = 1
+        self._chal_center = centers[j].copy()
+        if self._chal_count >= self.switch_frames:
+            self._chal_center, self._chal_count = None, 0
+            return j
+        return None
+
     def update(self, ball_det: sv.Detections) -> tuple[sv.Detections, bool]:
         # No detections at all -> bridge the gap from state.
         if len(ball_det) == 0:
@@ -203,17 +243,25 @@ class BallSmoother:
         # First acquisition: no prior trajectory -> trust the most confident box.
         if self.state.center is None:
             idx = int(valid_idx[np.argmax(conf[valid_idx])])
-            self._accept(centers[idx], wh[idx])
+            self._accept(centers[idx], wh[idx], conf[idx])
             return ball_det[idx:idx + 1], False
 
         # Established trajectory: match against the PREDICTED position and accept
         # only inside the velocity-aware gate. No fallback to most-confident.
         pred = self._predicted_center()
         d = np.linalg.norm(centers[valid_idx] - pred.reshape(1, 2), axis=1)
+        gate = self._gate_radius()
         best = int(np.argmin(d))
-        if d[best] <= self._gate_radius():
+        followed = float(conf[valid_idx[best]]) if d[best] <= gate else self.state.conf
+        j = self._challenge(centers, conf, valid_idx, d <= gate, followed)
+        if j is not None:  # a clearly more confident ball elsewhere: restart the track there
+            self.switches += 1
+            self.state = BallTrackState()
+            self._accept(centers[j], wh[j], conf[j])
+            return ball_det[j:j + 1], False
+        if d[best] <= gate:
             idx = int(valid_idx[best])
-            self._accept(centers[idx], wh[idx])
+            self._accept(centers[idx], wh[idx], conf[idx])
             return ball_det[idx:idx + 1], False
 
         # Nothing plausible near the prediction -> treat as a miss and bridge.

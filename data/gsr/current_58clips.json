@@ -1,0 +1,129 @@
+{
+ "note": "notebooks/gsr_rescore.ipynb: current pipeline (baseline.env fast settings, people TensorRT, ball fp16, local v10 keypoints, team on) on all 58 SoccerNet GSR validation clips, L4, 2026-10-01. tracker_ids = pipeline track ids; joined_players = pieces joined by the appearance model.",
+ "ladder": {
+  "tracker_ids": {
+   "image_hota": {
+    "HOTA": 47.74,
+    "DetA": 60.09,
+    "AssA": 38.09,
+    "LocA": 80.28,
+    "IDF1": 60.33
+   },
+   "pitch": {
+    "HOTA": 17.9,
+    "DetA": 19.44,
+    "AssA": 16.76,
+    "LocA": 74.25,
+    "IDF1": 20.1
+   },
+   "+role": {
+    "HOTA": 17.61,
+    "DetA": 18.29,
+    "AssA": 17.23,
+    "LocA": 74.22,
+    "IDF1": 19.64
+   },
+   "+team": {
+    "HOTA": 16.05,
+    "DetA": 13.61,
+    "AssA": 19.29,
+    "LocA": 73.79,
+    "IDF1": 16.74
+   },
+   "gs_hota": {
+    "HOTA": 7.92,
+    "DetA": 2.49,
+    "AssA": 25.37,
+    "LocA": 74.15,
+    "IDF1": 3.93
+   }
+  },
+  "joined_players": {
+   "image_hota": {
+    "HOTA": 52.29,
+    "DetA": 60.31,
+    "AssA": 45.47,
+    "LocA": 80.31,
+    "IDF1": 67.3
+   },
+   "pitch": {
+    "HOTA": 18.86,
+    "DetA": 19.38,
+    "AssA": 18.64,
+    "LocA": 74.13,
+    "IDF1": 21.08
+   },
+   "+role": {
+    "HOTA": 18.58,
+    "DetA": 18.23,
+    "AssA": 19.22,
+    "LocA": 74.12,
+    "IDF1": 20.63
+   },
+   "+team": {
+    "HOTA": 17.15,
+    "DetA": 14.27,
+    "AssA": 20.97,
+    "LocA": 73.56,
+    "IDF1": 18.14
+   },
+   "gs_hota": {
+    "HOTA": 8.27,
+    "DetA": 2.55,
+    "AssA": 26.98,
+    "LocA": 73.97,
+    "IDF1": 4.17
+   }
+  }
+ },
+ "baseline_2024": {
+  "image_hota": {
+   "HOTA": 52.81,
+   "DetA": 62.86,
+   "AssA": 44.49,
+   "LocA": 83.54,
+   "IDF1": 61.7
+  },
+  "pitch": {
+   "HOTA": 43.47,
+   "DetA": 47.3,
+   "AssA": 40.06,
+   "LocA": 90.11,
+   "IDF1": 47.97
+  },
+  "+role": {
+   "HOTA": 36.68,
+   "DetA": 33.82,
+   "AssA": 39.89,
+   "LocA": 89.6,
+   "IDF1": 38.69
+  },
+  "+team": {
+   "HOTA": 30.07,
+   "DetA": 23.28,
+   "AssA": 39.01,
+   "LocA": 88.02,
+   "IDF1": 29.14
+  },
+  "gs_hota": {
+   "HOTA": 18.85,
+   "DetA": 7.95,
+   "AssA": 44.73,
+   "LocA": 88.98,
+   "IDF1": 12.96
+  }
+ },
+ "pitch_position_check_SNGS-029": {
+  "median_err_m": 5.34,
+  "p75_err_m": 14.05,
+  "within_2m": 0.11,
+  "within_5m": 0.47,
+  "mean_offset_xy_m": [
+   -3.75,
+   -6.51
+  ],
+  "broken_homographies": "some predictions thousands of metres off the pitch",
+  "september_median_err_m": 4.24
+ },
+ "reading": "Image space: with joining we match the baseline (HOTA 52.3 vs 52.8) and beat it on identity (IDF1 67.3 vs 61.7, AssA 45.5 vs 44.5). Pitch space is unchanged (18.9 vs 43.5): the local v10 keypoint model, 0.78 m on our own night footage, does not carry over to SoccerNet broadcast cameras (5.3 m median on SNGS-029, systematic offset). Out-of-domain for the keypoint model, not a pilot blocker."
+}

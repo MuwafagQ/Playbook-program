@@ -1,0 +1,37 @@
+{
+ "note": "team per CVAT track_id, labelled by eye from crop sheets (kit colour). GKs: team by side, not kit.",
+ "kits": {
+  "0": "blue",
+  "1": "green"
+ },
+ "team0": [
+  2,
+  4,
+  5,
+  7,
+  8,
+  15,
+  17,
+  21,
+  23,
+  24
+ ],
+ "team1": [
+  0,
+  1,
+  3,
+  9,
+  10,
+  12,
+  16,
+  18,
+  20,
+  22,
+  25,
+  26
+ ],
+ "goalkeepers": [
+  6
+ ],
+ "unknown": []
+}

@@ -1,0 +1,16 @@
+{
+ "note": "tools/pass_proposals.py on match_video_2 segment 01 (reid_windows run of the clip), first 2,850 frames, against the 17 passes tagged by hand (tag_passes_v2, 2026-10-03). A proposal counts when its kick is within 10 frames and its touch 35 frames before to 10 after the tagged ones.",
+ "tracked_ball": {
+  "found": 7,
+  "of": 17
+ },
+ "hand_placed_ball": {
+  "found": 10,
+  "of": 17,
+  "proposals": 30
+ },
+ "kick_offset_frames": "+2 to +7",
+ "touch_offset_frames": "-3 to -32 (proposal at the ball reaching the receiver's feet in the image; tagged at first contact)",
+ "misses": "frames 2540-2800: the tracked ball is never at any player's feet (the tagger moved it 30 times); others: receiver without a box, goalkeeper passes",
+ "unconfirmed": "8 proposals in frames 1009-1969, where nothing was tagged"
+}

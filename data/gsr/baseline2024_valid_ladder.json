@@ -1,0 +1,57 @@
+{
+  "note": "SoccerNet GSR baseline, published tracker state (Zenodo 11065177, April 2024: PRTReid + StrongSORT, TVCalib-era calibration), scored with tools/gsr_eval.py on all 58 validation clips, labels v1.3. Percentages.",
+  "reproduce": "python -m tools.gsr_fetch labels --split valid && python -m tools.gsr_fetch baseline --split valid && python -m tools.gsr_eval --gt data/SoccerNetGS/valid --from-state baseline_2024=data/SoccerNetGS/baseline-valid.pklz",
+  "crosscheck_vs_tracklab": {
+    "SNGS-021": {
+      "tracklab": 24.168,
+      "ours": 24.168
+    },
+    "SNGS-021..028 (8 clips)": {
+      "tracklab": 22.609,
+      "ours": 22.609
+    }
+  },
+  "clips": 58,
+  "ladder": {
+    "image_hota": {
+      "HOTA": 52.81,
+      "DetA": 62.86,
+      "AssA": 44.49,
+      "LocA": 83.54,
+      "MOTA": 75.61,
+      "IDF1": 61.7
+    },
+    "pitch": {
+      "HOTA": 43.47,
+      "DetA": 47.3,
+      "AssA": 40.06,
+      "LocA": 90.11,
+      "MOTA": 37.79,
+      "IDF1": 47.97
+    },
+    "+role": {
+      "HOTA": 36.68,
+      "DetA": 33.82,
+      "AssA": 39.89,
+      "LocA": 89.6,
+      "MOTA": 11.51,
+      "IDF1": 38.69
+    },
+    "+team": {
+      "HOTA": 30.07,
+      "DetA": 23.28,
+      "AssA": 39.01,
+      "LocA": 88.02,
+      "MOTA": -13.67,
+      "IDF1": 29.14
+    },
+    "gs_hota": {
+      "HOTA": 18.85,
+      "DetA": 7.95,
+      "AssA": 44.73,
+      "LocA": 88.98,
+      "MOTA": -58.01,
+      "IDF1": 12.96
+    }
+  }
+}

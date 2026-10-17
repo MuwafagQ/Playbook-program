@@ -1,0 +1,23 @@
+{
+ "segment": "02_1H_05-10",
+ "passes": 44,
+ "outcomes": {
+  "complete": 36,
+  "intercepted": 7,
+  "out": 1
+ },
+ "by_team": {
+  "A": 26,
+  "B": 18
+ },
+ "tagging": {
+  "minutes_first_to_last_save": 26.4,
+  "median_seconds_between_passes": 24.4
+ },
+ "suggestions": {
+  "old_proposals_recall": 0.55,
+  "old_proposals_precision": 0.28,
+  "first_trained_filter": "trained on segment 1 (59 passes), tested on segment 2: no better (precision 0.26-0.33, recall 0.11-0.14)",
+  "why": "the candidates come from who is nearest the ball; they contain only 52% of the real passes, so a filter on top cannot exceed that. The ball track is the bottleneck."
+ }
+}

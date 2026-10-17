@@ -10,7 +10,11 @@ class TeamMemory:
         min_votes: int = 4,
         lock_min_votes: int = 8,
         lock_ratio: float = 0.70,
+        lock: bool = True,
     ):
+        """lock=False: never freeze a track's team; it is always the majority of its last
+        history_size votes (use a long history to vote over the track's whole life)."""
+        self.lock = bool(lock)
         self.history_size = int(history_size)
         self.min_votes = int(min_votes)
         self.lock_min_votes = int(lock_min_votes)
@@ -25,7 +29,7 @@ class TeamMemory:
             self._votes[track_id] = deque(maxlen=self.history_size)
         self._votes[track_id].append(int(team_id))
 
-        if track_id not in self._locked:
+        if self.lock and track_id not in self._locked:
             votes = self._votes[track_id]
             if len(votes) >= self.lock_min_votes:
                 top_team, top_count = Counter(votes).most_common(1)[0]

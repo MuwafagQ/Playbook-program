@@ -1,0 +1,295 @@
+<title>Counter Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one working screen. Video and the phase timeline on the left, the counter being judged and the list on the right; stacks under 900px. */
+:root{
+  --bg:#eef1ec; --surface:#fcfcfb; --line:#cdd5cb; --grid:#e3e8e1; --fg:#17201a; --muted:#56635a;
+  --accent:#1f7a4d; --accent-fg:#fff; --bad:#c2412d; --warn:#a86a00;
+  --teamA:#c23f80; --teamB:#1597b8; --stage:#0d1410; --turf:#2f6b45;
+  --ph-buildup:#eda100; --ph-transition:#1baf7a; --ph-finishing:#e34948; --ph-retreat:#2a78d6;
+  --display:"Saira Condensed","Arial Narrow",sans-serif; --body:"Source Sans 3",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1512; --surface:#18211c; --line:#2c3a31; --grid:#232d26; --fg:#e7efe8; --muted:#97a69b;
+  --accent:#3fbf7f; --accent-fg:#06110b; --bad:#ef6a52; --warn:#e2a64a; --teamA:#d55181; --teamB:#2a9fc4; --stage:#000; --turf:#245236;
+  --ph-buildup:#c98500; --ph-transition:#199e70; --ph-finishing:#e66767; --ph-retreat:#3987e5; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1512; --surface:#18211c; --line:#2c3a31; --grid:#232d26; --fg:#e7efe8; --muted:#97a69b;
+  --accent:#3fbf7f; --accent-fg:#06110b; --bad:#ef6a52; --warn:#e2a64a; --teamA:#d55181; --teamB:#2a9fc4; --stage:#000; --turf:#245236;
+  --ph-buildup:#c98500; --ph-transition:#199e70; --ph-finishing:#e66767; --ph-retreat:#3987e5; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.4 var(--body);padding-inline:16px;padding-block:12px 32px;margin:0}
+h1{font:700 22px/1.1 var(--display);letter-spacing:.02em;margin:0}
+h2{font:700 16px var(--display);letter-spacing:.05em;text-transform:uppercase;margin:0}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:12px}
+.top .right{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:auto}
+.tally{font:500 13px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.layout{display:flex;gap:16px;align-items:flex-start}
+.left{flex:3;min-width:0;display:flex;flex-direction:column;gap:8px}
+.side{flex:2;min-width:0;display:flex;flex-direction:column;gap:12px}
+@media (max-width:900px){.layout{flex-direction:column}.left,.side{width:100%}}
+button,.filebtn,select{font:600 14px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:6px;padding:8px 12px;min-height:44px;cursor:pointer}
+.filebtn{display:inline-flex;align-items:center;background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+button:focus-visible,.filebtn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+button:disabled{opacity:.45;cursor:default}
+.stage{position:relative;background:var(--stage);border-radius:6px;overflow:hidden;aspect-ratio:16/9;max-width:100%}
+.stage video{position:absolute;inset:0;width:100%;height:100%;background:var(--stage)}
+.novideo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#cfe3d6;padding:20px;font-size:15px}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.now{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font:600 14px var(--body)}
+.clock{font:500 13px var(--mono);color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+#strip{display:block;width:100%;height:40px;border-radius:4px;background:var(--surface);border:1px solid var(--line);cursor:pointer;touch-action:none}
+.lanes{display:flex;justify-content:space-between;font:500 12px var(--mono);color:var(--muted)}
+.pill{display:inline-block;padding:1px 8px;border-radius:9px;color:#fff;font:700 13px var(--display);letter-spacing:.04em;text-transform:uppercase}
+.pill.Buildup{background:var(--ph-buildup)}.pill.Transition{background:var(--ph-transition)}.pill.Finishing{background:var(--ph-finishing)}.pill.Retreat{background:var(--ph-retreat)}.pill.none{background:var(--muted)}
+.chipT{display:inline-block;min-width:24px;text-align:center;padding:1px 6px;border-radius:4px;color:#fff;font:700 14px var(--display)}
+.chipT.A{background:var(--teamA)}.chipT.B{background:var(--teamB)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.sub{color:var(--muted);font-size:13px}
+.row2{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.verdict{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.verdict button{min-height:56px;font:700 18px var(--display);letter-spacing:.04em}
+#kyes.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+#kno.on{background:var(--bad);border-color:var(--bad);color:#fff}
+#pitch{display:block;width:100%;max-width:100%;aspect-ratio:105/68;border-radius:6px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:14px}
+.facts span:nth-child(odd){color:var(--muted)}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:8px;max-height:360px;overflow:auto}
+.lrow{display:grid;grid-template-columns:52px 30px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--grid);cursor:pointer}
+.lrow:last-child{border-bottom:0}.lrow.cur{background:var(--bg)}
+.lrow .t{font:500 12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.tag{font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:10px;border:1px solid currentColor;color:var(--muted)}
+.tag.counter{color:var(--accent)}.tag.possible{color:var(--warn)}
+.v{font:700 14px var(--display)}.v.yes{color:var(--accent)}.v.no{color:var(--bad)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{min-height:38px;padding:4px 10px;font-size:13px}
+.msg{font-size:13px;color:var(--muted);min-height:18px}.msg.err{color:var(--bad)}
+.fix{display:flex;flex-direction:column;gap:8px}
+.fix .phs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.empty{padding:14px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="top">
+  <h1>Counter Review</h1>
+  <span class="tally" id="tally">match_video_2</span>
+  <div class="right">
+    <label class="filebtn" for="vfile">Open videos</label>
+    <input type="file" id="vfile" accept="video/*,.mp4" multiple hidden>
+    <span class="tally" id="vcount">0 of 20 clips</span>
+  </div>
+</div>
+<div class="layout">
+  <div class="left">
+    <div class="stage">
+      <video id="vid" playsinline controls preload="auto"></video>
+      <div class="novideo" id="novideo">Tap “Open videos” and select all 20 segment clips at once (01_1H_00-05.mp4 … 20_2H_90-94.mp4). Nothing is uploaded; they play on this tablet.</div>
+    </div>
+    <div class="bar">
+      <button id="bback" aria-label="Back 5 seconds">◀ 5 s</button>
+      <button id="bpp">▶ Play</button>
+      <button id="bfwd" aria-label="Forward 5 seconds">5 s ▶</button>
+      <button id="breplay">⟲ Replay counter</button>
+      <span class="clock" id="clock"></span>
+    </div>
+    <canvas id="strip" aria-label="Phases in this segment: team A on top, team B below. Tap to jump."></canvas>
+    <div class="lanes"><span id="segname"></span><span>top: A · bottom: B</span></div>
+    <div class="now"><span class="chipT A">A</span><span id="nowA"></span><span class="chipT B">B</span><span id="nowB"></span>
+      <button id="bfixopen" style="margin-left:auto">Phase wrong here?</button></div>
+    <div class="card fix" id="fixbox" hidden>
+      <div class="sub">At this moment, which team has the ball, and in which phase? The other team is in Retreat.</div>
+      <div class="row2"><button data-fteam="A">A has the ball</button><button data-fteam="B">B has the ball</button></div>
+      <div class="phs"><button data-fph="Buildup">Buildup</button><button data-fph="Transition">Transition</button><button data-fph="Finishing">Finishing</button></div>
+      <div class="row2"><button id="bfixsave">Save the correction</button><button id="bfixcancel">Cancel</button><span class="msg" id="fixmsg"></span></div>
+    </div>
+  </div>
+  <div class="side">
+    <div class="card">
+      <h2 id="ktitle">Counter</h2>
+      <div id="kinfo" class="sub"></div>
+      <canvas id="pitch" aria-label="Where the ball was won (dot) and the first pass (arrow); the team attacks to the right"></canvas>
+      <div class="facts" id="facts"></div>
+      <div class="verdict"><button id="kyes">✓ Counter</button><button id="kno">✗ Not a counter</button></div>
+      <div class="row2"><button id="kprev">◀ Previous</button><button id="knext">Next ▶</button><span class="msg" id="kmsg"></span></div>
+    </div>
+    <div class="tabs" role="group" aria-label="Which balls won to list">
+      <button data-tab="todo" class="on">To review</button><button data-tab="cands">Counters and possible</button><button data-tab="all">All balls won</button>
+    </div>
+    <div class="list" id="list"></div>
+  </div>
+</div>
+
+<script>
+const D = __DATA__;   // {fps, segments:[[name, seg_start, frames]], counters:[...], auto:[[start,end,A,B]]}
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const FPS = D.fps, PH = ["Buildup","Transition","Finishing","Retreat"];
+const SEG = D.segments.map(([name,s,f])=>({name,s,f,m0:Number(name.split("_")[2].split("-")[0])}));
+const segOf = f => SEG.find(g=>f>=g.s&&f<g.s+g.f) || SEG[SEG.length-1];
+const S = { reviews:{}, fixes:{}, db:null, tab:"todo", cur:null, seg:SEG[0], vids:{}, videoFor:null, stopAt:null, fixTeam:null, fixPh:null };
+const C = D.counters.slice().sort((a,b)=>a.regain_frame-b.regain_frame);
+const idOf = c => String(c.regain_frame);
+
+// ---------- phases (automatic, plus the corrections you saved)
+function autoAt(f){ const A=D.auto; let lo=0, hi=A.length-1;
+  while(lo<=hi){ const k=(lo+hi)>>1, s=A[k]; if(f<s[0]) hi=k-1; else if(f>=s[1]) lo=k+1; else return s; } return null; }
+function phaseAt(f){
+  // a correction holds for 5 s or until the automatic phase changes, whichever is first
+  let fx=null; for(const k in S.fixes){ const x=S.fixes[k]; if(x.f<=f && f<x.f+5*FPS && (!fx||x.f>fx.f)) fx=x; }
+  if(fx){ const a=fx.team==="A"?fx.phase:"Retreat", b=fx.team==="B"?fx.phase:"Retreat"; return {A:a,B:b,fixed:true}; }
+  const s=autoAt(f); return s&&PH.includes(s[2]) ? {A:s[2],B:s[3]} : null; }
+const pill = p => `<span class="pill ${PH.includes(p)?p:"none"}">${p||"–"}</span>`;
+
+// ---------- video
+const vid=$("vid");
+const frameNow=()=>S.seg.s+Math.round(vid.currentTime*FPS);
+function clockOf(f){ const g=segOf(f), sec=g.m0*60+(f-g.s)/FPS; return `${Math.floor(sec/60)}:${String(Math.floor(sec%60)).padStart(2,"0")}`; }
+function useSegment(g){
+  S.seg=g; $("segname").textContent=g.name.replace(/_/g," ");
+  const file=S.vids[g.name];
+  $("novideo").hidden=!!file;
+  if(!file){ $("novideo").textContent=Object.keys(S.vids).length?`The clip for ${g.name.replace(/_/g," ")} was not among the files you picked. Tap “Open videos” and add it.`:$("novideo").textContent; return Promise.resolve(false); }
+  if(S.videoFor===g.name) return Promise.resolve(true);
+  if(vid.src && vid.src.startsWith("blob:")) URL.revokeObjectURL(vid.src);
+  vid.src=URL.createObjectURL(file); S.videoFor=g.name;
+  return new Promise(res=>vid.addEventListener("loadedmetadata",()=>res(true),{once:true}));
+}
+async function playFrom(f, until){
+  const g=segOf(f); const ok=await useSegment(g); drawStrip(); renderNow();
+  if(!ok) return;
+  vid.currentTime=Math.max(0,(f-g.s)/FPS); S.stopAt=until??null; vid.play().catch(()=>{});
+}
+vid.addEventListener("timeupdate",()=>{ if(S.stopAt!=null && frameNow()>=S.stopAt){ vid.pause(); S.stopAt=null; } });
+vid.addEventListener("play",()=>$("bpp").textContent="❚❚ Pause"); vid.addEventListener("pause",()=>$("bpp").textContent="▶ Play");
+$("bpp").onclick=()=>{ if(!S.videoFor) return; S.stopAt=null; vid.paused?vid.play().catch(()=>{}):vid.pause(); };
+$("bback").onclick=()=>{ vid.currentTime=Math.max(0,vid.currentTime-5); };
+$("bfwd").onclick=()=>{ vid.currentTime=vid.currentTime+5; };
+$("breplay").onclick=()=>{ if(S.cur) replay(S.cur); };
+$("vfile").onchange=e=>{
+  let n=0; for(const f of e.target.files){ const g=SEG.find(g=>f.name.includes(g.name)); if(g){ S.vids[g.name]=f; n++; } }
+  $("vcount").textContent=`${Object.keys(S.vids).length} of ${SEG.length} clips`;
+  if(!n){ kmsg("None of these files is named like a segment clip (for example 03_1H_10-15.mp4).", true); return; }
+  S.videoFor=null; if(S.cur) replay(S.cur); else useSegment(S.seg);
+};
+
+// ---------- phase strip of the open segment
+function drawStrip(){
+  const cv=$("strip"), dpr=Math.min(2,window.devicePixelRatio||1), W=cv.clientWidth, H=cv.clientHeight; if(!W) return;
+  if(cv.width!==Math.round(W*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
+  const g=cv.getContext("2d"), a0=S.seg.s, n=S.seg.f, x=f=>(f-a0)/n*cv.width, h=cv.height/2;
+  const col={Buildup:css("--ph-buildup"),Transition:css("--ph-transition"),Finishing:css("--ph-finishing"),Retreat:css("--ph-retreat")};
+  g.clearRect(0,0,cv.width,cv.height);
+  for(const s of D.auto){ if(s[1]<=a0||s[0]>=a0+n||!PH.includes(s[2])) continue;
+    const xa=Math.max(0,x(s[0])), xb=Math.min(cv.width,x(s[1]));
+    g.fillStyle=col[s[2]]; g.fillRect(xa,1,xb-xa,h-1.5); g.fillStyle=col[s[3]]; g.fillRect(xa,h+.5,xb-xa,h-1.5); }
+  g.fillStyle=css("--fg");
+  for(const k in S.fixes){ const f=S.fixes[k].f; if(f>=a0&&f<a0+n){ g.beginPath(); g.moveTo(x(f)-5*dpr,0); g.lineTo(x(f)+5*dpr,0); g.lineTo(x(f),7*dpr); g.fill(); } }
+  for(const c of C){ if(c.regain_frame>=a0&&c.regain_frame<a0+n){ const cx=x(c.regain_frame); g.fillRect(cx-.5*dpr, cv.height-6*dpr, 1*dpr, 6*dpr); } }
+  if(S.videoFor===S.seg.name){ g.fillRect(x(frameNow())-dpr,0,2*dpr,cv.height); }
+}
+function stripSeek(ev){ const cv=$("strip"), r=cv.getBoundingClientRect(); if(!S.videoFor) return;
+  vid.pause(); S.stopAt=null; vid.currentTime=Math.max(0,(ev.clientX-r.left)/r.width*S.seg.f/FPS); }
+$("strip").addEventListener("pointerdown",ev=>{ $("strip").setPointerCapture(ev.pointerId); stripSeek(ev); });
+$("strip").addEventListener("pointermove",ev=>{ if(ev.buttons) stripSeek(ev); });
+let lastKey="";
+function renderNow(){
+  const f=S.videoFor===S.seg.name?frameNow():(S.cur?S.cur.regain_frame:S.seg.s), p=phaseAt(f), key=(p?p.A+p.B+(p.fixed?1:0):"")+"|"+Math.floor(f/FPS);
+  if(key===lastKey) return; lastKey=key;
+  $("nowA").innerHTML=pill(p&&p.A); $("nowB").innerHTML=pill(p&&p.B)+(p&&p.fixed?' <span class="sub">your correction</span>':"");
+  $("clock").textContent=`${clockOf(f)} · ${S.seg.name.replace(/_/g," ")}`;
+}
+(function tick(){ requestAnimationFrame(tick); if(!vid.paused||vid.seeking){ drawStrip(); renderNow(); } })();
+vid.addEventListener("seeked",()=>{ drawStrip(); renderNow(); });
+
+// ---------- phase corrections
+$("bfixopen").onclick=()=>{ vid.pause(); S.fixTeam=null; S.fixPh=null; $("fixmsg").textContent=""; $("fixbox").hidden=false; paintFix(); };
+$("bfixcancel").onclick=()=>{ $("fixbox").hidden=true; };
+document.querySelectorAll("[data-fteam]").forEach(b=>b.onclick=()=>{ S.fixTeam=b.dataset.fteam; paintFix(); });
+document.querySelectorAll("[data-fph]").forEach(b=>b.onclick=()=>{ S.fixPh=b.dataset.fph; paintFix(); });
+function paintFix(){ document.querySelectorAll("[data-fteam]").forEach(b=>b.classList.toggle("on",b.dataset.fteam===S.fixTeam));
+  document.querySelectorAll("[data-fph]").forEach(b=>b.classList.toggle("on",b.dataset.fph===S.fixPh)); $("bfixsave").disabled=!(S.fixTeam&&S.fixPh); }
+$("bfixsave").onclick=async()=>{
+  if(!S.videoFor){ $("fixmsg").textContent="Open the clip first."; return; }
+  if(!S.db){ $("fixmsg").textContent="Saving is not available in this view."; return; }
+  const f=frameNow(), doc={f, team:S.fixTeam, phase:S.fixPh, segment:S.seg.name, at:Date.now()};
+  S.fixes[String(f)]=doc; lastKey=""; drawStrip(); renderNow();
+  try{ await S.db.collection("phase_fixes").doc(String(f)).set(doc); $("fixbox").hidden=true; kmsg(`Phase correction saved at ${clockOf(f)}.`); }
+  catch(e){ $("fixmsg").textContent="Could not save ("+(e.code||e.message)+")."; }
+};
+
+// ---------- counters
+function list(){ return C.filter(c=> S.tab==="all" ? true : S.tab==="cands" ? c.label!=="none" : (c.label!=="none" && !S.reviews[idOf(c)])); }
+function kmsg(t,err){ $("kmsg").textContent=t; $("kmsg").className="msg"+(err?" err":""); }
+function renderList(){
+  const L=$("list"), items=list(), cands=C.filter(c=>c.label!=="none"), done=cands.filter(c=>S.reviews[idOf(c)]).length;
+  $("tally").textContent=`${done} of ${cands.length} counters reviewed`;
+  L.innerHTML = items.length ? "" : `<div class="empty">${S.tab==="todo"?"All counters and possible counters are reviewed. ✓ Check “All balls won” for any counter that was missed.":"Nothing here."}</div>`;
+  for(const c of items){ const r=S.reviews[idOf(c)], el=document.createElement("div");
+    el.className="lrow"+(S.cur===c?" cur":"");
+    el.innerHTML=`<span class="t">${c.clock}</span><span class="chipT ${c.team}">${c.team}</span><span><span class="tag ${c.label}">${c.label==="none"?"not suggested":c.label}</span> <span class="sub">${c.won_in}</span></span><span class="v ${r?(r.counter?"yes":"no"):""}">${r?(r.counter?"✓":"✗"):"–"}</span>`;
+    el.onclick=()=>select(c); L.appendChild(el); }
+}
+function drawPitch(c){
+  const cv=$("pitch"), dpr=Math.min(2,window.devicePixelRatio||1), W=cv.clientWidth; if(!W) return;
+  cv.width=Math.round(W*dpr); cv.height=Math.round(W*68/105*dpr);
+  const g=cv.getContext("2d"), k=cv.width/105, X=u=>u*k, Y=y=>y*k, tc=c.team==="A"?css("--teamA"):css("--teamB");
+  g.fillStyle=css("--turf"); g.fillRect(0,0,cv.width,cv.height);
+  g.fillStyle="rgba(255,255,255,.07)"; g.fillRect(X(35),0,X(35),cv.height);
+  g.strokeStyle="rgba(255,255,255,.75)"; g.lineWidth=1.2*dpr; g.strokeRect(1,1,cv.width-2,cv.height-2);
+  g.beginPath(); g.moveTo(X(52.5),0); g.lineTo(X(52.5),cv.height); g.stroke(); g.beginPath(); g.arc(X(52.5),Y(34),X(9.15),0,7); g.stroke();
+  for(const x0 of [0,105-16.5]) g.strokeRect(X(x0),Y(34-20.16),X(16.5),Y(40.32));
+  g.setLineDash([5*dpr,4*dpr]); g.strokeStyle="rgba(255,255,255,.95)";
+  for(const u of [35,70]){ g.beginPath(); g.moveTo(X(u),0); g.lineTo(X(u),cv.height); g.stroke(); }
+  g.setLineDash([]); g.fillStyle="rgba(255,255,255,.9)"; g.font=`600 ${11*dpr}px Source Sans 3, sans-serif`;
+  g.fillText("own third",X(2),Y(66)); g.fillText("middle third",X(37),Y(66)); g.fillText("final third ▶",X(72),Y(66));
+  const ok=v=>v!=null&&isFinite(v);
+  if(ok(c.p0_u)&&ok(c.p1_u)&&ok(c.p0_y)&&ok(c.p1_y)){ g.strokeStyle="#fff"; g.lineWidth=2*dpr;
+    const ax=X(c.p0_u), ay=Y(c.p0_y), bx=X(c.p1_u), by=Y(c.p1_y), an=Math.atan2(by-ay,bx-ax);
+    g.beginPath(); g.moveTo(ax,ay); g.lineTo(bx,by); g.stroke();
+    g.beginPath(); g.moveTo(bx,by); g.lineTo(bx-9*dpr*Math.cos(an-.4),by-9*dpr*Math.sin(an-.4)); g.lineTo(bx-9*dpr*Math.cos(an+.4),by-9*dpr*Math.sin(an+.4)); g.closePath(); g.fillStyle="#fff"; g.fill(); }
+  if(ok(c.won_u)&&ok(c.won_y)){ g.beginPath(); g.arc(X(c.won_u),Y(c.won_y),6*dpr,0,7); g.fillStyle=tc; g.fill(); g.lineWidth=2*dpr; g.strokeStyle="#fff"; g.stroke(); }
+}
+function renderCard(){
+  const c=S.cur; if(!c){ $("ktitle").textContent="Counter"; $("kinfo").textContent="Pick one from the list."; $("facts").innerHTML=""; return; }
+  const r=S.reviews[idOf(c)], n=v=>v==null?"–":v, how={"interception":"interception","tackle / duel":"tackle or duel","loose ball":"loose ball"}[c.kind]||c.kind;
+  const all=list(), i=all.indexOf(c);
+  $("ktitle").textContent=i>=0?`Counter ${i+1} of ${all.length}`:"Counter";
+  $("kinfo").innerHTML=`<b class="t${c.team}" style="color:var(--team${c.team})">Team ${c.team}</b> won the ball (${how}) in its ${c.won_in} · ${c.clock} · ${c.segment.replace(/_/g," ")}`;
+  $("facts").innerHTML=`<span>Suggested</span><span>${c.label==="none"?"not a counter":c.label}</span>`
+    +`<span>First pass</span><span>${n(c.first_pass_s)} s after winning it, ${n(c.first_pass_gain_m)} m forward</span>`
+    +`<span>Advance in 12 s</span><span>${n(c.progress_m)} m at ${n(c.speed_mps)} m/s · got to the ${c.reached}</span>`
+    +`<span>Won at</span><span>${c.won_u==null?"–":c.won_u+" m from its own goal line"} (thirds at 35 and 70 m)</span>`
+    +`<span>Opponents goal-side</span><span>${n(c.opp_goal_side)} of ${c.opp_visible} on screen</span>`;
+  $("kyes").classList.toggle("on",!!r&&r.counter===true); $("kno").classList.toggle("on",!!r&&r.counter===false);
+  drawPitch(c);
+}
+function replay(c){ kmsg(""); playFrom(c.regain_frame-2*FPS, c.regain_frame+12*FPS).then(()=>{ if(!S.vids[c.segment]) kmsg(Object.keys(S.vids).length?`Add the clip ${c.segment}.mp4 with “Open videos”.`:"Tap “Open videos” and select all the clips to watch it.", !!Object.keys(S.vids).length); }); }
+function select(c){ S.cur=c; renderCard(); renderList(); replay(c); }
+async function decide(yes){
+  const c=S.cur; if(!c) return; if(!S.db){ kmsg("Saving is not available in this view.", true); return; }
+  const id=idOf(c), doc={counter:yes, team:c.team, suggested:c.label, segment:c.segment, at:Date.now()};
+  S.reviews[id]=doc; renderCard();
+  try{ await S.db.collection("counter_reviews").doc(id).set(doc); }catch(e){ kmsg("Could not save ("+(e.code||e.message)+").", true); return; }
+  const all=list(); const next=all.find(x=>x.regain_frame>c.regain_frame&&!S.reviews[idOf(x)]) || all.find(x=>!S.reviews[idOf(x)]);
+  renderList(); if(next && S.tab!=="all") select(next); else kmsg(yes?"Saved: counter.":"Saved: not a counter.");
+}
+$("kyes").onclick=()=>decide(true); $("kno").onclick=()=>decide(false);
+$("kprev").onclick=()=>{ const all=list(), i=all.indexOf(S.cur); if(i>0) select(all[i-1]); else if(i<0&&all.length) select(all[0]); };
+$("knext").onclick=()=>{ const all=list(), i=all.indexOf(S.cur); if(i<all.length-1) select(all[i+1]); };
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("on",x===b)); renderList(); renderCard(); });
+window.addEventListener("resize",()=>{ drawStrip(); if(S.cur) drawPitch(S.cur); });
+
+// ---------- start: first counter still to review, then connect the saved verdicts
+S.cur=list()[0]||C[0]; S.seg=segOf(S.cur.regain_frame); $("segname").textContent=S.seg.name.replace(/_/g," ");
+renderList(); renderCard(); drawStrip(); renderNow();
+(async()=>{
+  try{ const db=await claude.use("db"); if(!db){ kmsg("Verdicts can't be saved in this view.", true); return; } S.db=db;
+    db.collection("counter_reviews").onSnapshot(s=>{ S.reviews={}; s.docs.forEach(x=>S.reviews[x.id]=x.data());
+      if(S.tab==="todo"&&S.cur&&S.reviews[idOf(S.cur)]&&!S.picked){ const nx=list()[0]; if(nx){ S.cur=nx; S.seg=segOf(nx.regain_frame); } }
+      S.picked=true; renderList(); renderCard(); drawStrip(); });
+    db.collection("phase_fixes").onSnapshot(s=>{ S.fixes={}; s.docs.forEach(x=>S.fixes[x.id]=x.data()); lastKey=""; drawStrip(); renderNow(); });
+  }catch(e){ kmsg("Could not connect to the saved verdicts.", true); }
+})();
+</script>

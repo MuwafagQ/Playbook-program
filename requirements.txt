@@ -15,6 +15,12 @@ fastapi==0.110.3
 uvicorn[standard]==0.30.6
 python-multipart==0.0.9
 
+# Benchmark (tools/benchmark.py)
+pandas>=2.0
+
+# Auth (Firebase ID token verification)
+firebase-admin==6.5.0
+
 # Frontend
 # NOTE:
 # Streamlit can conflict with the newer Roboflow inference stack used by main.py.
@@ -22,7 +28,7 @@ python-multipart==0.0.9
 # streamlit==1.38.0
 
 # CV tooling
-supervision==0.27.0.post2
+supervision>=0.29,<0.31   # rfdetr needs >=0.29; 0.31 dropped ByteTrack
 inference==1.2.2
 ultralytics>=8.4.37,<8.5.0
 lap>=0.5.13,<0.6

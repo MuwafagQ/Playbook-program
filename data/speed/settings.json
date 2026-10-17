@@ -1,0 +1,47 @@
+{
+ "_note": "notebooks/speed_settings.ipynb on the HIL-HAZ half-1 window (2268 frames), NVIDIA L4. full_match_hours = 162000 frames (90 min at 30 fps) / fps. vs_current: matched people, pitch position difference, ball.",
+ "runs": {
+  "current": {
+   "fps": 5.03,
+   "full_match_hours": 8.9,
+   "IDF1_pieces_joined_perfectly": 0.891,
+   "ball_detect_coverage": 0.866
+  },
+  "fp16": {
+   "fps": 5.61,
+   "full_match_hours": 8.0,
+   "IDF1_pieces_joined_perfectly": 0.895,
+   "ball_detect_coverage": 0.886,
+   "position_diff_m_median": 0.031,
+   "ball_same_spot_share": 0.86
+  },
+  "fp16_kp3": {
+   "fps": 6.03,
+   "full_match_hours": 7.5,
+   "IDF1_pieces_joined_perfectly": 0.894,
+   "position_diff_m_median": 0.18,
+   "position_diff_m_p90": 0.657
+  },
+  "fp16_kp3_noreid": {
+   "fps": 6.03,
+   "note": "identical to fp16_kp3: the tracker's ReID was not doing anything"
+  },
+  "fp16_kp3_noreid_team3": {
+   "fps": 6.75,
+   "full_match_hours": 6.7,
+   "team_ms": 8.0,
+   "IDF1_pieces_joined_perfectly": 0.894,
+   "ball_detect_coverage": 0.886
+  },
+  "trt_kp3_noreid_team3": {
+   "fps": 7.92,
+   "full_match_hours": 5.7,
+   "IDF1_pieces_joined_perfectly": 0.912,
+   "ball_detect_coverage": 0.834,
+   "ball_same_spot_share": 0.795,
+   "note": "ball model loses ~5% of detections in TensorRT -> BALL_MODEL_ACCEL=fp16"
+  }
+ },
+ "chosen": "baseline.env = fp16_kp3_noreid_team3; full-match notebook: people TensorRT + ball fp16 (to verify on its first segment)",
+ "homography_ok_rate_note": "0.33 in the kp3 runs was a reporting artefact (frames reusing the last fit were flagged not ok); fixed in main.py"
+}
